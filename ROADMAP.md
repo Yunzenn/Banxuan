@@ -85,11 +85,13 @@ query is about events/preferences.
 
 ## Reuse decisions
 
-Reuse-first. **Licences below are as reported by the user and still need to be verified against each
-repository's LICENSE file before any code is adapted** — only then do they enter `REUSE_AUDIT.md` as
-verified.
+Reuse-first. This table records the **decision**; `REUSE_AUDIT.md` is the authority on licence status and
+is what the reuse gate checks before any code is adapted. The four memory/voice candidates v0.4 and v0.5
+depend on (`wanyu-ai-android`, `mem0`, `jev-recall`, `Jev-Mem`) are recorded there as **VERIFIED**, each
+read directly against the upstream LICENSE file. `Voine/ChatWaifu_Mobile` remains unverified and is
+therefore REFERENCE ONLY.
 
-| Project | Licence (reported) | Use |
+| Project | Licence (see `REUSE_AUDIT.md`) | Use |
 |---|---|---|
 | `JieRobot/wanyu-ai-android` | MIT | **Primary schema/design reference**: `MemoryRepository`, `UserProfileEntity`, `MemoryEntity`, `MemoryLinkEntity`, `EmotionEngine`; importance, time decay, staged confirmation, dedup, character scoping |
 | `mem0ai/mem0` | Apache-2.0 | Backend memory store, self-hosted |
