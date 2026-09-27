@@ -10,6 +10,7 @@ import android.widget.*
 import com.aiwatch.probe.MainActivity
 import com.aiwatch.probe.ProbeApplication
 import com.aiwatch.probe.R
+import com.aiwatch.probe.memory.MemoryTrustActivity
 import kotlinx.coroutines.*
 
 class SettingsActivity : Activity() {
@@ -72,6 +73,10 @@ class SettingsActivity : Activity() {
         ui.add(root, ui.button(getString(R.string.product_live2d)) { explain(R.string.product_live2d, R.string.product_live2d_hint) })
         ui.add(root, ui.button(getString(R.string.product_voice)) { explain(R.string.product_voice, R.string.product_voice_hint) })
         ui.add(root, ui.button(getString(R.string.product_personality)) { explain(R.string.product_personality, R.string.product_personality_hint) })
+        // The trust surface lives here rather than on Home: Home stays the character, the state and the
+        // three-dot settings, and a memory screen is a thing you go and look at on purpose.
+        section(R.string.memory_entry, R.string.memory_entry_hint)
+        ui.add(root, ui.button(getString(R.string.memory_entry)) { startActivity(Intent(this, MemoryTrustActivity::class.java)) })
         section(R.string.product_server, R.string.product_server_hint)
         endpoint = field(R.string.bootstrap_endpoint, 2048, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         ui.add(root, endpoint)
