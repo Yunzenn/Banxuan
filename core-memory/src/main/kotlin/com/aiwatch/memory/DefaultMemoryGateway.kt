@@ -93,6 +93,52 @@ class DefaultMemoryGateway(private val store: MemoryStore) : MemoryGateway {
         return RememberOutcome.Updated(existing, updated)
     }
 
+    override suspend fun edit(id: MemoryId, edit: MemoryEdit): EditOutcome {
+        val existing = store.getById(id) ?: throw MemoryNotFoundException(id)
+
+        if (existing.status == MemoryStatus.REJECTED) {
+            throw MemoryNotEditableException(id, existing.status)
+        }
+        if (existing.type != edit.type) {
+            throw MemoryTypeMismatchException(id, edit.type, existing.type)
+        }
+
+        val edited = applyEdit(existing, edit)
+
+        // A Save the user pressed without changing anything. Writing would replace the audit envelope
+        // and erase where the fact originally came from, for no change at all.
+        if (edited.contentFingerprint == existing.contentFingerprint) {
+            return EditOutcome.Unchanged(existing)
+        }
+
+        // A correction frequently moves the identity - a new date, a different role, another attribute.
+        // The id travels with it. Colliding with a *different* confirmed memory is refused rather than
+        // merged: merging would consume one id and overwrite the other.
+        if (existing.status == MemoryStatus.CONFIRMED &&
+            edited.scopedIdentity != existing.scopedIdentity
+        ) {
+            val conflicting = confirmedFor(edited.scopedIdentity)
+            if (conflicting != null && conflicting.id != existing.id) {
+                throw MemoryIdentityConflictException(id, conflicting.id, edited.scopedIdentity)
+            }
+        }
+
+        // The fact now comes from the user rather than from the sentence it was extracted from, so the
+        // audit envelope moves with it and the old excerpt goes.
+        val written = edited.withAudit(
+            source = MemorySource.USER_EDIT,
+            recordedAt = edit.editedAt,
+            provenance = Provenance(
+                sessionId = null,
+                messageId = null,
+                excerpt = "",
+                extractor = USER_EDIT_EXTRACTOR,
+            ),
+        )
+        store.put(written)
+        return EditOutcome.Updated(existing, written)
+    }
+
     override suspend fun recall(query: MemoryQuery): List<CanonicalMemory> =
         store.list()
             .asSequence()
@@ -115,6 +161,40 @@ class DefaultMemoryGateway(private val store: MemoryStore) : MemoryGateway {
             .sortedByDescending { it.recordedAt }
 
     override suspend fun forget(id: MemoryId): Boolean = store.delete(id)
+
+    /**
+     * The edited content, with the envelope left exactly as it was.
+     *
+     * The casts are safe because [edit] has already refused a type mismatch, and they are written as
+     * `when` branches over a sealed hierarchy so a new memory type cannot be added without this failing
+     * to compile.
+     */
+    private fun applyEdit(memory: CanonicalMemory, edit: MemoryEdit): CanonicalMemory = when (edit) {
+        is ProfileEdit ->
+            (memory as ProfileMemory).copy(attribute = edit.attribute, value = edit.value)
+
+        is EventEdit ->
+            (memory as EventMemory).copy(
+                title = edit.title,
+                scheduledFor = edit.scheduledFor,
+                location = edit.location,
+            )
+
+        is EpisodeEdit ->
+            (memory as EpisodeMemory).copy(
+                summary = edit.summary,
+                occurredAt = edit.occurredAt,
+                emotionalTone = edit.emotionalTone,
+                relations = edit.relations,
+            )
+
+        is RelationEdit ->
+            (memory as RelationMemory).copy(
+                name = edit.name,
+                role = edit.role,
+                note = edit.note,
+            )
+    }
 
     /**
      * The confirmed record for a fact, if there is one.

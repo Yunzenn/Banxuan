@@ -36,19 +36,22 @@ class CanonicalMemoryConformanceTest {
     private val errorCodes: Set<String> = contract.array("errorCodes").map { it.asString }.toSet()
 
     @Test
-    fun `contract file is versioned and declares exactly the four error codes`() {
+    fun `contract file is versioned and declares every language-neutral error code`() {
         assertEquals("canonical-memory", contract["contract"].asString)
-        assertEquals(1, contract["version"].asInt)
+        assertEquals(2, contract["version"].asInt)
         assertEquals(
             setOf(
                 "MEMORY_NOT_FOUND",
                 "MEMORY_NOT_CONFIRMED",
                 "MEMORY_NOT_STAGEABLE",
                 "INVALID_TRANSITION",
+                "MEMORY_NOT_EDITABLE",
+                "MEMORY_TYPE_MISMATCH",
+                "MEMORY_IDENTITY_CONFLICT",
             ),
             errorCodes,
         )
-        assertTrue(cases.size >= 12, "contract declares only ${cases.size} cases")
+        assertTrue(cases.size >= 27, "contract declares only ${cases.size} cases")
     }
 
     /**
@@ -79,6 +82,7 @@ class CanonicalMemoryConformanceTest {
             case.array("initial").forEach { store.put(memory(it.asJsonObject)) }
 
             var outcome: String? = null
+            var editOutcome: String? = null
             val forgetResults = mutableListOf<Boolean>()
             val recalls = mutableListOf<List<String>>()
             val listings = mutableListOf<List<String>>()
@@ -89,6 +93,10 @@ class CanonicalMemoryConformanceTest {
                     val op = element.asJsonObject
                     when (val kind = op["op"].asString) {
                         "remember" -> outcome = gateway.remember(memory(op.obj("record"))).outcomeName
+                        "edit" -> editOutcome = gateway.edit(
+                            MemoryId(op["id"].asString),
+                            editOf(op.obj("edit")),
+                        ).outcomeName
                         "stage" -> gateway.stage(listOf(memory(op.obj("record"))))
                         "confirm" -> gateway.confirm(MemoryId(op["id"].asString))
                         "reject" -> gateway.reject(MemoryId(op["id"].asString))
@@ -112,17 +120,26 @@ class CanonicalMemoryConformanceTest {
                 error = "MEMORY_NOT_STAGEABLE"
             } catch (transition: MemoryTransitionException) {
                 error = "INVALID_TRANSITION"
+            } catch (notEditable: MemoryNotEditableException) {
+                error = "MEMORY_NOT_EDITABLE"
+            } catch (typeMismatch: MemoryTypeMismatchException) {
+                error = "MEMORY_TYPE_MISMATCH"
+            } catch (conflict: MemoryIdentityConflictException) {
+                error = "MEMORY_IDENTITY_CONFLICT"
             }
 
+            val records = store.list()
             checkCase(
                 case = case,
                 name = name,
                 error = error,
                 outcome = outcome,
+                editOutcome = editOutcome,
                 forgetResults = forgetResults.toList(),
                 recalls = recalls.toList(),
                 listings = listings.toList(),
-                actualStore = store.list().map(::snapshot),
+                actualStore = records.map(::snapshot),
+                actualAudit = records.associate { it.id.value to auditOf(it) },
             )
         }
     }
@@ -132,10 +149,12 @@ class CanonicalMemoryConformanceTest {
         name: String,
         error: String?,
         outcome: String?,
+        editOutcome: String?,
         forgetResults: List<Boolean>,
         recalls: List<List<String>>,
         listings: List<List<String>>,
         actualStore: List<Map<String, Any>>,
+        actualAudit: Map<String, Map<String, Any?>>,
     ) {
         val expect = case.obj("expect")
 
@@ -149,6 +168,22 @@ class CanonicalMemoryConformanceTest {
 
         if (expect.has("outcome")) {
             assertEquals(expect["outcome"].asString, outcome, "$name: outcome $outcome")
+        }
+        if (expect.has("editOutcome")) {
+            assertEquals(expect["editOutcome"].asString, editOutcome, "$name: editOutcome $editOutcome")
+        }
+        // The audit envelope is compared only when a case asks, so that v1's comparisons keep meaning
+        // exactly what they meant. Folding these fields into every snapshot would have silently changed
+        // an older contract.
+        if (expect.has("audit")) {
+            val wanted = expect.obj("audit")
+            val target = wanted["id"].asString
+            val actual = actualAudit[target] ?: fail("$name: no record '$target' to audit")
+            wanted.entrySet().forEach { (field, element) ->
+                if (field == "id") return@forEach
+                val expectedValue: Any? = if (element.isJsonNull) null else element.asString
+                assertEquals(expectedValue, actual[field], "$name: audit $field")
+            }
         }
         if (expect.has("forgetResults")) {
             assertEquals(
@@ -195,6 +230,10 @@ class CanonicalMemoryConformanceTest {
         val status = MemoryStatus.valueOf(spec["status"].asString)
         val recordedAt = instant(spec["recordedAt"].asString)
         val scope = CharacterScope(spec.str("characterScope") ?: DEFAULT_CHARACTER_SCOPE)
+        // Read from the contract rather than hardcoded. The Python harness honours this field, so
+        // hardcoding NORMAL here made the two runners interpret the same contract differently - a
+        // divergence that stayed invisible until a case actually specified a non-default importance.
+        val importance = spec.str("importance")?.let(Importance::valueOf) ?: Importance.NORMAL
         val provenance = Provenance(
             sessionId = null,
             messageId = null,
@@ -205,7 +244,7 @@ class CanonicalMemoryConformanceTest {
         return when (val type = spec["type"].asString) {
             "PROFILE" -> ProfileMemory(
                 id = id,
-                importance = Importance.NORMAL,
+                importance = importance,
                 status = status,
                 recordedAt = recordedAt,
                 source = MemorySource.CONVERSATION,
@@ -217,7 +256,7 @@ class CanonicalMemoryConformanceTest {
 
             "EVENT" -> EventMemory(
                 id = id,
-                importance = Importance.NORMAL,
+                importance = importance,
                 status = status,
                 recordedAt = recordedAt,
                 source = MemorySource.CONVERSATION,
@@ -230,7 +269,7 @@ class CanonicalMemoryConformanceTest {
 
             "EPISODE" -> EpisodeMemory(
                 id = id,
-                importance = Importance.NORMAL,
+                importance = importance,
                 status = status,
                 recordedAt = recordedAt,
                 source = MemorySource.CONVERSATION,
@@ -244,7 +283,7 @@ class CanonicalMemoryConformanceTest {
 
             "RELATION" -> RelationMemory(
                 id = id,
-                importance = Importance.NORMAL,
+                importance = importance,
                 status = status,
                 recordedAt = recordedAt,
                 source = MemorySource.CONVERSATION,
@@ -324,12 +363,77 @@ class CanonicalMemoryConformanceTest {
             is RememberOutcome.Unchanged -> "unchanged"
         }
 
+    private val EditOutcome.outcomeName: String
+        get() = when (this) {
+            is EditOutcome.Updated -> "updated"
+            is EditOutcome.Unchanged -> "unchanged"
+        }
+
     // --- loading and JSON helpers ---------------------------------------------------------------
 
     /**
      * Loaded through the classloader rather than a relative path so the test cannot depend on the
      * Gradle working directory. The directory is mounted as a test resource root in build.gradle.kts.
      */
+    /**
+     * One edit from its contract representation.
+     *
+     * The type is a discriminator in the contract rather than a nested object, so this is a mapping
+     * rather than a parse. An unknown type fails loudly: a contract case that neither implementation
+     * understands must not quietly do nothing.
+     */
+    private fun editOf(spec: JsonObject): MemoryEdit {
+        val editedAt = instant(spec["editedAt"].asString)
+        return when (val type = spec["type"].asString) {
+            "PROFILE" -> ProfileEdit(
+                editedAt = editedAt,
+                attribute = spec["attribute"].asString,
+                value = spec["value"].asString,
+            )
+
+            "EVENT" -> EventEdit(
+                editedAt = editedAt,
+                title = spec["title"].asString,
+                scheduledFor = spec.str("scheduledFor")?.let(::instant),
+                location = spec.str("location"),
+            )
+
+            "EPISODE" -> EpisodeEdit(
+                editedAt = editedAt,
+                summary = spec["summary"].asString,
+                occurredAt = instant(spec["occurredAt"].asString),
+                emotionalTone = spec.str("emotionalTone"),
+                relations = spec.optArray("relations")?.map { it.asString }?.toSet() ?: emptySet(),
+            )
+
+            "RELATION" -> RelationEdit(
+                editedAt = editedAt,
+                name = spec["name"].asString,
+                role = spec["role"].asString,
+                note = spec.str("note"),
+            )
+
+            else -> fail("unknown edit type '$type'")
+        }
+    }
+
+    /**
+     * The audit envelope of a stored record.
+     *
+     * Separate from [snapshot] on purpose: an edit can get the content right and the audit information
+     * wrong, and that would stay green if only content were compared.
+     */
+    private fun auditOf(memory: CanonicalMemory): Map<String, Any?> = mapOf(
+        "id" to memory.id.value,
+        "source" to memory.source.name,
+        "importance" to memory.importance.name,
+        "recordedAt" to memory.recordedAt.toString(),
+        "sessionId" to memory.provenance.sessionId,
+        "messageId" to memory.provenance.messageId,
+        "excerpt" to memory.provenance.excerpt,
+        "extractor" to memory.provenance.extractor,
+    )
+
     private fun loadContract(): JsonObject {
         val stream = javaClass.getResourceAsStream(CONTRACT_RESOURCE)
             ?: fail(
@@ -358,7 +462,7 @@ class CanonicalMemoryConformanceTest {
         get(key)?.takeIf { !it.isJsonNull }?.asInt
 
     private companion object {
-        const val CONTRACT_RESOURCE = "/canonical-memory-v1.json"
+        const val CONTRACT_RESOURCE = "/canonical-memory-v2.json"
         const val DEFAULT_CHARACTER_SCOPE = "xiaozhi"
     }
 }
