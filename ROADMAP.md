@@ -35,7 +35,8 @@ spent to make the product worse. 1400 mAh belongs to the panel, the microphone a
 ```
 watch:  Companion UI (IDLE/LISTENING/THINKING/SPEAKING)
       + core-audio (PCM / Opus / AudioTrack)
-      + core-memory local cache (Room: recent turns, profile cache, event cache)
+      + core-memory semantics (typed canonical schema + gateway contract; JVM module)
+      + local cache (recent turns, profile cache, event cache) - durable store is a later increment
       + core-protocol  <-- WebSocket / HTTPS -->  backend
 backend: ASR -> context builder -> LLM -> TTS (streamed PCM/Opus back to the watch)
                               ^
