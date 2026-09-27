@@ -35,21 +35,32 @@ class DefaultMemoryGateway(private val store: MemoryStore) : MemoryGateway {
         }
 
         val existing = confirmedFor(candidate.scopedIdentity)
-        val confirmed = if (existing == null) {
-            candidate.withStatus(MemoryStatus.CONFIRMED)
-        } else {
-            // The user has just accepted a change to a fact the companion already treats as true. The
-            // confirmed record is corrected in place and keeps its id: the alternative - a second
-            // confirmed record, or a new id for the same fact - would either duplicate her memory or
-            // break any reference she is already holding.
-            candidate.withId(existing.id).withStatus(MemoryStatus.CONFIRMED)
+        if (existing == null) {
+            val confirmed = candidate.withStatus(MemoryStatus.CONFIRMED)
+            store.put(confirmed)
+            return confirmed
         }
 
-        store.put(confirmed)
-        if (existing != null) {
+        // A proposal about a fact she already treats as true. Whether it changes anything depends on
+        // content, not on identity: a ProfileMemory's identity deliberately excludes its value, so an
+        // identity comparison here would report a genuine correction as no change at all.
+        if (existing.contentFingerprint == candidate.contentFingerprint) {
+            // The user confirmed something already true. Drop the redundant proposal and leave the
+            // confirmed record - provenance and recordedAt included - exactly as it was. Overwriting it
+            // with the candidate would refresh recordedAt and destroy the provenance that records where
+            // the fact actually came from; this is the same case remember() reports as Unchanged.
             store.delete(candidate.id)
+            return existing
         }
-        return confirmed
+
+        // The user has just accepted a change to a fact the companion already treats as true. The
+        // confirmed record is corrected in place and keeps its id: the alternative - a second confirmed
+        // record, or a new id for the same fact - would either duplicate her memory or break any
+        // reference she is already holding.
+        val corrected = candidate.withId(existing.id).withStatus(MemoryStatus.CONFIRMED)
+        store.put(corrected)
+        store.delete(candidate.id)
+        return corrected
     }
 
     override suspend fun reject(id: MemoryId): CanonicalMemory {
