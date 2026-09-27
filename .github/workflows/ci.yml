@@ -68,5 +68,20 @@ jobs:
       - name: JVM tests
         run: ./gradlew :core-protocol:test :core-audio:test :core-memory:test --console=plain
 
+      # The shared canonical-memory contract is enforced on both sides, and both sides run in
+      # this gate: the Kotlin conformance runner is inside :core-memory:test above, and the
+      # Python conformance script below. Only the language-neutral contract runs here.
+      #
+      # The Xiaozhi integration evidence deliberately does NOT run here. It needs the frozen
+      # xiaozhi-server checkout, and making this repository's gate depend on a second public
+      # repository being reachable is a worse trade than leaving that evidence local.
+      # No pip install: the conformance script is standard library only.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Python canonical memory conformance
+        run: python evidence/tests/test_canonical_memory_conformance.py
+
       - name: Assemble app
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
