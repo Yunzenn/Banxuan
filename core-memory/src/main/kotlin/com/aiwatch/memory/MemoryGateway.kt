@@ -65,9 +65,13 @@ data class MemoryQuery(
  * Implementations must enforce these contracts:
  *
  * * [stage] accepts only [MemoryStatus.STAGED] records and stores them as staged.
- * * [confirm] and [reject] throw [MemoryNotFoundException] for an unknown id.
- * * [remember] de-duplicates by [CanonicalMemory.identity]; it never creates a second record for a fact
- *   that already exists. It throws [MemoryNotConfirmedException] if handed a non-confirmed record.
+ * * [confirm] and [reject] throw [MemoryNotFoundException] for an unknown id, and
+ *   [MemoryTransitionException] for a record that is not staged.
+ * * [remember] de-duplicates by **scoped** identity - [CanonicalMemory.scopedIdentity], never
+ *   [CanonicalMemory.identity] alone - so two characters never overwrite each other's memory of the same
+ *   fact. It never creates a second confirmed record for a fact that is already known: the stored record
+ *   keeps its [MemoryId] and takes the new content. It throws [MemoryNotConfirmedException] if handed a
+ *   non-confirmed record.
  * * [forget] removes the record. After it returns true, no later [recall] or [list] may return it.
  * * [recall] never returns a memory whose status is outside [MemoryQuery.statuses].
  */
@@ -85,7 +89,7 @@ interface MemoryGateway {
     /** Reject a staged memory. The record is retained as a negative signal, not deleted. */
     suspend fun reject(id: MemoryId): CanonicalMemory
 
-    /** Write a confirmed memory, de-duplicating by content identity. */
+    /** Write a confirmed memory, de-duplicating by scoped content identity. */
     suspend fun remember(memory: CanonicalMemory): RememberOutcome
 
     /** Retrieve memories for the current turn. Staged candidates are excluded by default. */
@@ -120,3 +124,16 @@ class MemoryNotConfirmedException(val id: MemoryId, val status: MemoryStatus) :
 /** Thrown when a record is staged through a path that requires a candidate produced by extraction. */
 class MemoryNotStageableException(val id: MemoryId, val status: MemoryStatus) :
     IllegalArgumentException("memory ${id.value} is $status, expected STAGED")
+
+/**
+ * Thrown when a lifecycle transition is attempted from a status that does not allow it.
+ *
+ * Illegal transitions are refused rather than tolerated. Confirming something already rejected, or
+ * rejecting something already confirmed, is not a no-op with a friendly face: silently accepting it would
+ * let a decision the user made be undone without anyone recording that it was.
+ */
+class MemoryTransitionException(
+    val id: MemoryId,
+    val from: MemoryStatus,
+    val to: MemoryStatus,
+) : IllegalStateException("memory ${id.value} is $from and cannot become $to")
