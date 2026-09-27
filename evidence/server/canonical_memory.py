@@ -247,8 +247,56 @@ class InvalidTransition(MemoryError):
     code = INVALID_TRANSITION
 
 
+class SubjectPartitionMismatch(Exception):
+    """A namespace and a service describing different subjects were used together.
+
+    ``subject_id`` is the storage partition boundary, so a mismatch would read a
+    different user's memories while every other check still passed. Refused rather
+    than warned about, because a warning here is one overlooked log line away from a
+    cross-user disclosure - and because an earlier version carried a ``subject_id``
+    that nothing ever read, which is exactly how that happens.
+    """
+
+
+@dataclass(frozen=True)
+class MemoryNamespace:
+    """Who a memory belongs to: a subject, and a character within that subject.
+
+    ``subject_id`` is the device today (the frozen server passes
+    ``role_id=self.device_id``), and it is kept as its own field rather than
+    concatenated with the character because it will become an account or user id
+    later. Serialising the two into one key is a migration decision and belongs in a
+    single versioned encoder when a substrate actually needs one, not spread through
+    the code as string formatting.
+
+    This lives here rather than in the Xiaozhi adapter because it is not a Xiaozhi
+    concept: it is the partitioning of canonical memory, and keeping it in the
+    adapter would make the isolation property untestable without a server checkout.
+    """
+
+    subject_id: str
+    character_scope: str
+
+
 class CanonicalMemoryStore:
     """Storage port. Primitives only: no dedup, no transitions, no recall policy."""
+
+    def partition(self, subject_id: str) -> "CanonicalMemoryStore":
+        """A view of this store holding one subject's records and nothing else.
+
+        ``subject_id`` is the storage partition boundary, not a field on
+        :class:`Memory`. That separation is deliberate: ``CanonicalMemory`` describes
+        *what a memory is* and ``character_scope`` describes *which character knows
+        it*; who the memory belongs to is an infrastructure concern one level below.
+        A service is therefore constructed against exactly one partition and can
+        never observe another subject's records at all.
+
+        Without this boundary, one service backing two devices or two accounts would
+        let them recall and dedupe against each other's memories whenever they
+        happened to share a character scope - and nothing in the model would look
+        wrong, because ``character_scope`` would be doing its job correctly.
+        """
+        raise NotImplementedError
 
     async def get_by_id(self, memory_id: str) -> Optional[Memory]:
         raise NotImplementedError
@@ -273,44 +321,64 @@ class CanonicalMemoryStore:
 
 
 class InMemoryCanonicalMemoryStore(CanonicalMemoryStore):
-    """Process-local store.
+    """Process-local store, partitioned by subject.
 
     A substrate for tests and for running the semantics without a database. It is
     not the production persistence layer, and being process-local it must never be
     presented as one.
+
+    Partitions share one backing map so that two subjects can be exercised against a
+    single store instance, which is the only way the isolation property can actually
+    be tested.
     """
 
-    def __init__(self) -> None:
-        self._records: Dict[str, Memory] = {}
+    def __init__(self, backing: Optional[Dict[str, Dict[str, Memory]]] = None,
+                 subject_id: str = "__unpartitioned__") -> None:
+        self._backing = backing if backing is not None else {}
+        self._subject_id = subject_id
+
+    def partition(self, subject_id: str) -> "InMemoryCanonicalMemoryStore":
+        return InMemoryCanonicalMemoryStore(self._backing, subject_id)
+
+    def _bucket(self) -> Dict[str, Memory]:
+        return self._backing.setdefault(self._subject_id, {})
 
     async def get_by_id(self, memory_id: str) -> Optional[Memory]:
-        return self._records.get(memory_id)
+        return self._bucket().get(memory_id)
 
     async def find_all_by_scoped_identity(self, scoped_identity) -> List[Memory]:
-        return [r for r in self._records.values() if r.scoped_identity == scoped_identity]
+        return [r for r in self._bucket().values() if r.scoped_identity == scoped_identity]
 
     async def put(self, memory: Memory) -> None:
-        self._records[memory.id] = memory
+        self._bucket()[memory.id] = memory
 
     async def delete(self, memory_id: str) -> bool:
-        return self._records.pop(memory_id, None) is not None
+        return self._bucket().pop(memory_id, None) is not None
 
     async def list(self) -> List[Memory]:
-        return list(self._records.values())
+        return list(self._bucket().values())
 
 
 class CanonicalMemoryService:
-    """The authority on what a memory means.
+    """The authority on what a memory means, for exactly one subject.
 
     Maintains two invariants rather than assuming them of the store:
 
     * at most one record per scoped identity may be CONFIRMED;
     * a record's id survives a correction, so a reference the user is holding still
       names the same fact afterwards.
+
+    A service is bound to one ``subject_id`` at construction and works against that
+    subject's store partition. ``character_scope`` on each record is a different
+    axis: it says which character knows the fact, within one subject's memory. Two
+    subjects that both use a character called ``xiaozhi`` are still two disjoint
+    memories, and this confinement is what makes that true - it is not left to every
+    caller to remember to filter.
     """
 
-    def __init__(self, store: CanonicalMemoryStore) -> None:
-        self._store = store
+    def __init__(self, store: CanonicalMemoryStore, subject_id: str) -> None:
+        self.subject_id = subject_id
+        self._store = store.partition(subject_id)
 
     async def stage(self, records: Sequence[Memory]) -> List[Memory]:
         for record in records:
@@ -381,7 +449,7 @@ class CanonicalMemoryService:
         await self._store.put(updated)
         return RememberOutcome("updated", updated)
 
-    async def recall(self, query: MemoryQuery) -> List[Memory]:
+    async def recall(self, query: MemoryQuery = MemoryQuery()) -> List[Memory]:
         kept = [
             record
             for record in await self._store.list()

@@ -32,7 +32,9 @@ from canonical_memory import (
     RELATION,
     CanonicalMemoryService,
     Memory,
+    MemoryNamespace,
     MemoryQuery,
+    SubjectPartitionMismatch,
 )
 
 #: The placeholder ``Dialogue.get_llm_dialogue_with_memory()`` substitutes into.
@@ -58,22 +60,6 @@ def require_memory_slot(system_prompt: str) -> None:
             "canonical memory provider is enabled but the system prompt contains no "
             "<memory>...</memory> slot; injected memories would be discarded silently"
         )
-
-
-@dataclass(frozen=True)
-class MemoryNamespace:
-    """Who a memory belongs to.
-
-    ``subject_id`` is the device today (the frozen server passes
-    ``role_id=self.device_id``), and it is kept as a separate field rather than
-    concatenated with the character because it will become an account or user id
-    later. Serialising it into a single string is a migration decision, and it
-    belongs in one versioned encoder when a substrate actually needs one - not
-    spread through the code as string formatting.
-    """
-
-    subject_id: str
-    character_scope: str
 
 
 def render_memory(memory: Memory) -> str:
@@ -119,6 +105,11 @@ class CanonicalMemoryProvider(MemoryProviderBase):
         self._namespace = namespace
 
     def bind(self, namespace: MemoryNamespace, service: CanonicalMemoryService) -> None:
+        if namespace.subject_id != service.subject_id:
+            raise SubjectPartitionMismatch(
+                f"namespace subject {namespace.subject_id!r} does not match the service "
+                f"partition {service.subject_id!r}"
+            )
         self._namespace = namespace
         self._service = service
 
@@ -132,6 +123,13 @@ class CanonicalMemoryProvider(MemoryProviderBase):
             raise MissingMemorySlotError(
                 "CanonicalMemoryProvider requires an explicit MemoryNamespace; "
                 "role_id alone is a device, not a character"
+            )
+        # role_id must agree with the partition the service was built for. Reading it
+        # and then ignoring it was the defect this check closes.
+        if role_id is not None and role_id != self._namespace.subject_id:
+            raise SubjectPartitionMismatch(
+                f"role_id {role_id!r} does not match namespace subject "
+                f"{self._namespace.subject_id!r}"
             )
 
     async def query_memory(self, query: str) -> str:
