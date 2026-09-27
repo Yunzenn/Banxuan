@@ -56,4 +56,28 @@
 
     <string name="memory_entry">我的记忆</string>
     <string name="memory_entry_hint">看看小智相信什么，并确认、忽略或删除</string>
+
+    <!-- Editing. The field sets match the canonical types rather than one generic content box, because
+         the gateway's edit contract is typed and a free-form box would lose exactly that. -->
+    <string name="memory_action_edit">编辑</string>
+    <string name="memory_edit_heading">编辑 · %1$s</string>
+    <string name="memory_edit_saved">已保存。小智会记住你的修改。</string>
+    <string name="memory_edit_unchanged">没有改动，原记录保持原样。</string>
+    <string name="memory_edit_conflict">已经有一条相同事实，请先处理那条记忆。</string>
+    <string name="memory_edit_failed">保存失败，修改没有生效。</string>
+    <string name="memory_edit_required">必填项不能为空。</string>
+    <string name="memory_edit_time_invalid">时间格式无法识别，请用 2026-10-05 15:00。</string>
+
+    <string name="memory_field_attribute">属性</string>
+    <string name="memory_field_value">内容</string>
+    <string name="memory_field_title">标题</string>
+    <string name="memory_field_scheduled">时间（可留空）</string>
+    <string name="memory_field_location">地点（可留空）</string>
+    <string name="memory_field_summary">经历</string>
+    <string name="memory_field_occurred">发生时间</string>
+    <string name="memory_field_tone">情绪（可留空）</string>
+    <string name="memory_field_relations">相关人物（可留空，用、分隔）</string>
+    <string name="memory_field_name">姓名</string>
+    <string name="memory_field_role">关系</string>
+    <string name="memory_field_note">备注（可留空）</string>
 </resources>

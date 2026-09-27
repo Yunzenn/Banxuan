@@ -4,19 +4,27 @@ import android.app.Activity
 import android.content.Intent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.test.platform.app.InstrumentationRegistry
 import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.CharacterScope
 import com.aiwatch.memory.DefaultMemoryGateway
+import com.aiwatch.memory.EditOutcome
+import com.aiwatch.memory.EpisodeMemory
+import com.aiwatch.memory.EventMemory
 import com.aiwatch.memory.Importance
+import com.aiwatch.memory.MemoryEdit
 import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
+import com.aiwatch.memory.MemoryQuery
 import com.aiwatch.memory.MemorySource
 import com.aiwatch.memory.MemoryStatus
 import com.aiwatch.memory.MemoryStore
 import com.aiwatch.memory.ProfileMemory
 import com.aiwatch.memory.Provenance
+import com.aiwatch.memory.RelationMemory
 import com.aiwatch.memory.ScopedMemoryIdentity
 import com.aiwatch.memory.scopedIdentity
 import com.aiwatch.probe.R
@@ -207,30 +215,319 @@ class MemoryTrustTest {
         }
     }
 
+    // ------------------------------------------------------------------ editing
+
     @Test
-    fun theScreenOffersNoEditingBecauseTheContractHasNone() {
+    fun aConfirmedProfileCanBeEditedAndKeepsItsIdentity() {
+        val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "m1")
+            setField(activity, "value", "芹菜")
+            saveEdit(activity, "m1")
+
+            awaitState("the edit to be applied") {
+                (runBlocking { gateway.list() }.singleOrNull() as? ProfileMemory)?.value == "芹菜"
+            }
+            val stored = runBlocking { gateway.list() }.single()
+            assertEquals("m1", stored.id.value)
+            assertEquals(MemoryStatus.CONFIRMED, stored.status)
+            assertEquals(MemorySource.USER_EDIT, stored.source)
+            assertEquals(
+                "the sentence the fact came from is no longer why she believes it",
+                "",
+                stored.provenance.excerpt,
+            )
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun editingAStagedCandidateDoesNotConfirmIt() {
+        val gateway = gatewayWith(profile("s1", MemoryStatus.STAGED, "food.dislike", "香菜", "我不喜欢香菜"))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "s1")
+            setField(activity, "value", "芹菜")
+            saveEdit(activity, "s1")
+
+            awaitState("the candidate to be edited but not confirmed") {
+                (runBlocking { gateway.list() }.singleOrNull() as? ProfileMemory)?.value == "芹菜"
+            }
+            assertEquals(
+                "editing must not turn a candidate into something the companion treats as true",
+                MemoryStatus.STAGED,
+                statusOf(gateway, "s1"),
+            )
+            assertNotNull(
+                "the user must still have to accept it",
+                onMain { findTagged(activity, MemoryTrustActivity.TAG_CONFIRM + "s1") },
+            )
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun savingWithoutChangingAnythingPreservesTheOriginalProvenance() {
+        val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "m1")
+            saveEdit(activity, "m1")
+
+            awaitState("the no-op save to report back") {
+                onMain { texts(activity).any { it == activity.getString(R.string.memory_edit_unchanged) } }
+            }
+            val stored = runBlocking { gateway.list() }.single()
+            assertEquals(MemorySource.CONVERSATION, stored.source)
+            assertEquals(Instant.parse("2026-09-27T10:00:00Z"), stored.recordedAt)
+            assertEquals("test", stored.provenance.extractor)
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun anIdentityMovingEditKeepsTheIdAndShowsTheNewFact() {
+        val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "m1")
+            setField(activity, "attribute", "food.like")
+            saveEdit(activity, "m1")
+
+            awaitState("the identity to move") {
+                (runBlocking { gateway.list() }.singleOrNull() as? ProfileMemory)?.attribute == "food.like"
+            }
+            assertEquals("m1", runBlocking { gateway.list() }.single().id.value)
+            awaitState("the new fact to be shown") {
+                onMain { texts(activity).any { it.contains("food.like：香菜") } }
+            }
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing() {
         val gateway = gatewayWith(
-            profile("settled", MemoryStatus.CONFIRMED, "food.like", "芹菜", "我爱吃芹菜"),
-            profile("pending", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"),
+            profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"),
+            profile("m2", MemoryStatus.CONFIRMED, "food.like", "芹菜", "我爱吃芹菜"),
         )
         MemoryGatewayRegistry.override = gateway
         val activity = launch()
         try {
             awaitCard(activity, "food.dislike")
-            val labels = onMain {
-                flatten(activity.window.decorView).mapNotNull {
-                    when (it) {
-                        is TextView -> it.text?.toString()
-                        else -> null
-                    }
-                }
+            openEditor(activity, "m1")
+            setField(activity, "attribute", "food.like")
+            setField(activity, "value", "香菜")
+            saveEdit(activity, "m1")
+
+            awaitState("the conflict to be reported in the card") {
+                onMain { texts(activity).any { it == activity.getString(R.string.memory_edit_conflict) } }
             }
-            listOf("编辑", "修改", "Edit").forEach { banned ->
-                assertTrue(
-                    "edit is not in this increment and must not be offered: found \"$banned\"",
-                    labels.none { it.contains(banned) },
+            // The editor and the typing are still there: the gateway wrote nothing, and the draft is the
+            // only copy of what she meant.
+            onMain {
+                assertNotNull(
+                    "the editor closed on conflict",
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + "m1"),
+                )
+                assertNotNull(
+                    "the draft was discarded",
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + "value"),
                 )
             }
+            val after = runBlocking { gateway.list() }.associateBy { it.id.value }
+            assertEquals("food.dislike", (after.getValue("m1") as ProfileMemory).attribute)
+            assertEquals("food.like", (after.getValue("m2") as ProfileMemory).attribute)
+            assertEquals(2, after.size)
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun aRejectedMemoryOffersNoEditAffordance() {
+        val gateway = gatewayWith(
+            ProfileMemory(
+                id = MemoryId("r1"),
+                importance = Importance.NORMAL,
+                status = MemoryStatus.REJECTED,
+                recordedAt = Instant.parse("2026-09-27T10:00:00Z"),
+                source = MemorySource.CONVERSATION,
+                provenance = Provenance(sessionId = "s", messageId = "m", excerpt = "我不喜欢香菜", extractor = "test"),
+                characterScope = CharacterScope("xiaozhi"),
+                attribute = "food.dislike",
+                value = "香菜",
+            ),
+        )
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            onMain {
+                assertNull(
+                    "a rejected memory must not offer an edit the gateway would refuse",
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT + "r1"),
+                )
+            }
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun cancellingAnEditNeverReachesTheGateway() {
+        val recording = RecordingGateway(
+            gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜")),
+        )
+        MemoryGatewayRegistry.override = recording
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "m1")
+            setField(activity, "value", "芹菜")
+            clickTagged(activity, MemoryTrustActivity.TAG_EDIT_CANCEL + "m1")
+
+            awaitState("the original card to come back") {
+                onMain {
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT + "m1") != null &&
+                        findTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + "m1") == null
+                }
+            }
+            assertEquals("cancel must not call edit()", 0, recording.editCalls)
+            assertEquals("香菜", (runBlocking { recording.list() }.single() as ProfileMemory).value)
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun everyCanonicalTypeOpensAnEditorWithItsOwnFields() {
+        val gateway = gatewayWith(
+            profile("p1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"),
+            event("e1"),
+            episode("x1"),
+            relation("n1"),
+        )
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            assertEditorFields(activity, "p1", listOf("attribute", "value"))
+            assertEditorFields(activity, "e1", listOf("title", "scheduledFor", "location"))
+            assertEditorFields(activity, "x1", listOf("summary", "occurredAt", "emotionalTone", "relations"))
+            assertEditorFields(activity, "n1", listOf("name", "role", "note"))
+        } finally {
+            close(activity)
+        }
+    }
+
+    /**
+     * The regression a lossy time format would hide.
+     *
+     * The field shows `yyyy-MM-dd HH:mm`, but the record holds `...T07:00:37.123Z`. Editing only the
+     * title must not rewrite the instant, or the gateway would correctly see a content change, relabel
+     * the record as a user edit and drop the original provenance - for a field nobody touched.
+     */
+    @Test
+    fun editingAnEventTitleLeavesTheOriginalInstantExactlyAlone() {
+        val exact = Instant.parse("2026-10-05T07:00:37.123Z")
+        val gateway = gatewayWith(event("e1", exact))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "去医院")
+            openEditor(activity, "e1")
+            onMain {
+                val field = findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + "scheduledFor") as EditText
+                assertEquals(
+                    "the field must show the formatted time, not the raw instant",
+                    MemoryEditDraft.formatTime(exact),
+                    field.text.toString(),
+                )
+            }
+            setField(activity, "title", "去复查")
+            saveEdit(activity, "e1")
+
+            awaitState("the title edit to be applied") {
+                (runBlocking { gateway.list() }.singleOrNull() as? EventMemory)?.title == "去复查"
+            }
+            val stored = runBlocking { gateway.list() }.single() as EventMemory
+            assertEquals(
+                "editing the title silently rewrote the time the user never touched",
+                exact,
+                stored.scheduledFor,
+            )
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun theEditFormFitsThePanelAndItsButtonsAreNotClipped() {
+        val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
+        MemoryGatewayRegistry.override = gateway
+        val activity = launch()
+        try {
+            awaitCard(activity, "food.dislike")
+            openEditor(activity, "m1")
+            onMain {
+                val frameWidth = activity.window.decorView.width
+                val frameHeight = activity.window.decorView.height
+
+                val heading = flatten(activity.window.decorView)
+                    .filterIsInstance<TextView>()
+                    .firstOrNull {
+                        it.text.toString() == activity.getString(
+                            R.string.memory_edit_heading,
+                            activity.getString(R.string.memory_type_profile),
+                        )
+                    }
+                assertNotNull("the edit form has no heading", heading)
+                assertTrue("the edit form heading is not visible", heading!!.isShown)
+
+                // The first required field must be readable without scrolling, or the form opens showing
+                // nothing to edit - the defect the trust surface already had once.
+                val firstField = findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + "attribute")
+                assertNotNull("the form has no first field", firstField)
+                val location = IntArray(2).also { firstField!!.getLocationInWindow(it) }
+                assertTrue(
+                    "the first field is below the fold: y=${location[1]} of $frameHeight",
+                    location[1] + firstField!!.height <= frameHeight,
+                )
+
+                listOf(
+                    MemoryTrustActivity.TAG_EDIT_CANCEL + "m1",
+                    MemoryTrustActivity.TAG_EDIT_SAVE + "m1",
+                ).forEach { tag ->
+                    val button = findTagged(activity, tag) as Button
+                    val needed = button.paint.measureText(button.text.toString())
+                    val available = (button.width - button.paddingLeft - button.paddingRight).toFloat()
+                    assertTrue(
+                        "label \"${button.text}\" is clipped: needs $needed, has $available",
+                        needed <= available,
+                    )
+                    val buttonLocation = IntArray(2).also { button.getLocationInWindow(it) }
+                    assertTrue(
+                        "a control escaped the panel: x=${buttonLocation[0]} width=${button.width} of $frameWidth",
+                        buttonLocation[0] >= 0 && buttonLocation[0] + button.width <= frameWidth + 1,
+                    )
+                }
+            }
+            // Outside the onMain block: capture() posts its own work to the main thread.
+            capture(activity, "memory_edit_form")
         } finally {
             close(activity)
         }
@@ -293,6 +590,100 @@ class MemoryTrustTest {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private fun openEditor(activity: Activity, id: String) {
+        clickTagged(activity, MemoryTrustActivity.TAG_EDIT + id)
+        awaitState("the editor for $id") {
+            onMain { findTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + id) != null }
+        }
+    }
+
+    private fun saveEdit(activity: Activity, id: String) {
+        clickTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + id)
+    }
+
+    private fun setField(activity: Activity, key: String, value: String) {
+        instrumentation.runOnMainSync {
+            val field = findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + key)
+            assertNotNull("no edit field tagged '$key'", field)
+            (field as EditText).setText(value)
+        }
+        instrumentation.waitForIdleSync()
+    }
+
+    private fun assertEditorFields(activity: Activity, id: String, keys: List<String>) {
+        openEditor(activity, id)
+        onMain {
+            keys.forEach { key ->
+                assertNotNull(
+                    "the editor for $id is missing the '$key' field",
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + key),
+                )
+            }
+        }
+        clickTagged(activity, MemoryTrustActivity.TAG_EDIT_CANCEL + id)
+    }
+
+    /** Counts edit calls, so a cancel can be shown to have reached the gateway zero times. */
+    private class RecordingGateway(private val delegate: MemoryGateway) : MemoryGateway {
+        var editCalls = 0
+
+        override suspend fun stage(candidates: List<CanonicalMemory>) = delegate.stage(candidates)
+
+        override suspend fun confirm(id: MemoryId) = delegate.confirm(id)
+        override suspend fun reject(id: MemoryId) = delegate.reject(id)
+        override suspend fun remember(memory: CanonicalMemory) = delegate.remember(memory)
+
+        override suspend fun edit(id: MemoryId, edit: MemoryEdit): EditOutcome {
+            editCalls++
+            return delegate.edit(id, edit)
+        }
+
+        override suspend fun recall(query: MemoryQuery) = delegate.recall(query)
+        override suspend fun list(statuses: Set<MemoryStatus>, characterScope: CharacterScope?) =
+            delegate.list(statuses, characterScope)
+
+        override suspend fun forget(id: MemoryId) = delegate.forget(id)
+    }
+
+    private fun event(id: String, scheduledFor: Instant = Instant.parse("2026-10-05T07:00:00Z")) = EventMemory(
+        id = MemoryId(id),
+        importance = Importance.NORMAL,
+        status = MemoryStatus.CONFIRMED,
+        recordedAt = Instant.parse("2026-09-27T10:00:00Z"),
+        source = MemorySource.CONVERSATION,
+        provenance = Provenance(sessionId = "s", messageId = "m", excerpt = "下周三去医院", extractor = "test"),
+        characterScope = CharacterScope("xiaozhi"),
+        title = "去医院",
+        scheduledFor = scheduledFor,
+        location = "浙一",
+    )
+
+    private fun episode(id: String) = EpisodeMemory(
+        id = MemoryId(id),
+        importance = Importance.NORMAL,
+        status = MemoryStatus.CONFIRMED,
+        recordedAt = Instant.parse("2026-09-27T10:00:00Z"),
+        source = MemorySource.CONVERSATION,
+        provenance = Provenance(sessionId = "s", messageId = "m", excerpt = "昨天和室友吵架了", extractor = "test"),
+        characterScope = CharacterScope("xiaozhi"),
+        summary = "和室友吵架了",
+        occurredAt = Instant.parse("2026-09-26T13:00:00Z"),
+        emotionalTone = "委屈",
+        relations = setOf("室友"),
+    )
+
+    private fun relation(id: String) = RelationMemory(
+        id = MemoryId(id),
+        importance = Importance.NORMAL,
+        status = MemoryStatus.CONFIRMED,
+        recordedAt = Instant.parse("2026-09-27T10:00:00Z"),
+        source = MemorySource.CONVERSATION,
+        provenance = Provenance(sessionId = "s", messageId = "m", excerpt = "小李是我室友", extractor = "test"),
+        characterScope = CharacterScope("xiaozhi"),
+        name = "小李",
+        role = "室友",
+    )
 
     private fun launch(): Activity {
         val activity = instrumentation.startActivitySync(
