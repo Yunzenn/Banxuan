@@ -45,6 +45,14 @@ MEMORY_NOT_FOUND = "MEMORY_NOT_FOUND"
 MEMORY_NOT_CONFIRMED = "MEMORY_NOT_CONFIRMED"
 MEMORY_NOT_STAGEABLE = "MEMORY_NOT_STAGEABLE"
 INVALID_TRANSITION = "INVALID_TRANSITION"
+MEMORY_NOT_EDITABLE = "MEMORY_NOT_EDITABLE"
+MEMORY_TYPE_MISMATCH = "MEMORY_TYPE_MISMATCH"
+MEMORY_IDENTITY_CONFLICT = "MEMORY_IDENTITY_CONFLICT"
+
+#: Recorded as the extractor when the user corrects a fact herself. Versioned because it is audit data,
+#: and spelled out in the shared contract so both implementations write the same string rather than
+#: each inventing its own.
+USER_EDIT_EXTRACTOR = "user-edit-v1"
 
 _TRAILING_PUNCTUATION = ".。．!！,，;；"
 _WHITESPACE = re.compile(r"\s+")
@@ -223,6 +231,56 @@ class RememberOutcome:
     memory: Memory
 
 
+@dataclass(frozen=True)
+class MemoryEdit:
+    """A content-only correction to an existing memory.
+
+    Deliberately **not** a replacement :class:`Memory`. Handing the service a whole record would let a
+    caller carry along ``id``, ``status``, ``character_scope``, ``importance``, ``source`` and the
+    provenance fields - exactly the fields the service exists to guarantee. An edit says what the user
+    now believes the fact is; the service decides what that means for everything else.
+
+    ``type`` is part of the edit, and a mismatch is refused rather than guessed at. The type is a
+    discriminator here rather than a class hierarchy because the shared contract expresses an edit as
+    one object with a ``type`` field, and mirroring that keeps the two implementations comparable.
+
+    These types carry **no behaviour**: which statuses allow an edit, what happens to the audit
+    envelope and whether an identity may move all belong to :meth:`CanonicalMemoryService.edit`.
+    """
+
+    type: str
+    edited_at: str
+    # PROFILE
+    attribute: Optional[str] = None
+    value: Optional[str] = None
+    # EVENT
+    title: Optional[str] = None
+    scheduled_for: Optional[str] = None
+    location: Optional[str] = None
+    # EPISODE
+    summary: Optional[str] = None
+    occurred_at: Optional[str] = None
+    emotional_tone: Optional[str] = None
+    relations: Tuple[str, ...] = ()
+    # RELATION
+    name: Optional[str] = None
+    role: Optional[str] = None
+    note: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class EditOutcome:
+    """What an edit did. ``kind`` is "updated" or "unchanged".
+
+    ``unchanged`` is not merely an optimisation: writing would have replaced ``recorded_at``,
+    ``source`` and the provenance with the edit's, destroying the record of where the fact originally
+    came from - for a Save button the user pressed without changing anything.
+    """
+
+    kind: str
+    memory: Memory
+
+
 class MemoryError(Exception):
     code = "MEMORY_ERROR"
 
@@ -245,6 +303,28 @@ class MemoryNotStageable(MemoryError):
 
 class InvalidTransition(MemoryError):
     code = INVALID_TRANSITION
+
+
+class MemoryNotEditable(MemoryError):
+    """A rejected memory is a decision the user already made; editing it would confirm it silently."""
+
+    code = MEMORY_NOT_EDITABLE
+
+
+class MemoryTypeMismatch(MemoryError):
+    """Changing a PROFILE into an EVENT is a delete plus a create, not an edit."""
+
+    code = MEMORY_TYPE_MISMATCH
+
+
+class MemoryIdentityConflict(MemoryError):
+    """An edit would move a confirmed memory onto a fact another confirmed memory already holds.
+
+    Raised with **neither record touched**. Merging would consume one id and overwrite the other, which
+    destroys both the stable reference and whatever the user thought she was editing.
+    """
+
+    code = MEMORY_IDENTITY_CONFLICT
 
 
 class SubjectPartitionMismatch(Exception):
@@ -449,6 +529,61 @@ class CanonicalMemoryService:
         await self._store.put(updated)
         return RememberOutcome("updated", updated)
 
+    async def edit(self, memory_id: str, edit: MemoryEdit) -> EditOutcome:
+        """Correct the content of an existing memory.
+
+        The envelope is not editable: ``id``, ``status``, ``character_scope`` and ``importance`` are
+        preserved, because they are guarantees of this service rather than things a user edits.
+
+        Lifecycle: a CONFIRMED memory stays confirmed; a STAGED memory stays staged, because **editing
+        is not confirming** and the user must still accept it - anything else would let one keystroke
+        turn an unapproved candidate into something the companion treats as true; a REJECTED memory
+        cannot be edited at all, since that would be confirming it by the back door.
+
+        A real change makes the user the new source and drops the old excerpt: it is the sentence the
+        fact was originally extracted from, and after a correction it is no longer the reason she
+        believes it. Identity is allowed to move, because that is what a correction often is, and the
+        same id moves with it; colliding with a *different* confirmed memory is refused with neither
+        record touched, rather than merged.
+        """
+        existing = await self._store.get_by_id(memory_id)
+        if existing is None:
+            raise MemoryNotFound(f"no memory with id {memory_id}")
+        if existing.status == REJECTED:
+            raise MemoryNotEditable(f"memory {memory_id} is {existing.status}, which cannot be edited")
+        if existing.type != edit.type:
+            raise MemoryTypeMismatch(
+                f"memory {memory_id} is {existing.type} but the edit is for {edit.type}"
+            )
+
+        edited = _apply_edit(existing, edit)
+
+        # A Save pressed without changing anything. Writing would replace the audit envelope and erase
+        # where the fact originally came from, for no change at all.
+        if edited.content_fingerprint == existing.content_fingerprint:
+            return EditOutcome("unchanged", existing)
+
+        # A correction frequently moves the identity - a new date, a different role, another attribute.
+        if existing.status == CONFIRMED and edited.scoped_identity != existing.scoped_identity:
+            conflicting = await self._confirmed_for(edited.scoped_identity)
+            if conflicting is not None and conflicting.id != existing.id:
+                raise MemoryIdentityConflict(
+                    f"memory {memory_id} would become the same fact as {conflicting.id} "
+                    f"({edited.identity[1]})"
+                )
+
+        written = replace(
+            edited,
+            source="USER_EDIT",
+            recorded_at=canonical_instant(edit.edited_at),
+            session_id=None,
+            message_id=None,
+            excerpt="",
+            extractor=USER_EDIT_EXTRACTOR,
+        )
+        await self._store.put(written)
+        return EditOutcome("updated", written)
+
     async def recall(self, query: MemoryQuery = MemoryQuery()) -> List[Memory]:
         kept = [
             record
@@ -490,6 +625,32 @@ class CanonicalMemoryService:
         # The invariant above means there is normally one. The defensive maximum keeps
         # the choice deterministic if a store ever holds records written elsewhere.
         return max(matches, key=lambda r: parse_instant(r.recorded_at))
+
+
+def _apply_edit(memory: Memory, edit: MemoryEdit) -> Memory:
+    """The edited content, with the envelope left exactly as it was.
+
+    The caller has already refused a type mismatch, so these branches cannot disagree with the record
+    they are applied to.
+    """
+    if edit.type == PROFILE:
+        return replace(memory, attribute=edit.attribute, value=edit.value)
+    if edit.type == EVENT:
+        return replace(
+            memory,
+            title=edit.title,
+            scheduled_for=canonical_instant(edit.scheduled_for),
+            location=edit.location,
+        )
+    if edit.type == EPISODE:
+        return replace(
+            memory,
+            summary=edit.summary,
+            occurred_at=canonical_instant(edit.occurred_at),
+            emotional_tone=edit.emotional_tone,
+            relations=tuple(edit.relations),
+        )
+    return replace(memory, name=edit.name, role=edit.role, note=edit.note)
 
 
 def _within_window(record: Memory, from_instant: Optional[str], to_instant: Optional[str]) -> bool:

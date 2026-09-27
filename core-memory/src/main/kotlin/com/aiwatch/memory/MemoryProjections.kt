@@ -87,3 +87,31 @@ internal fun CanonicalMemory.withId(id: MemoryId): CanonicalMemory = when (this)
     is EpisodeMemory -> copy(id = id)
     is RelationMemory -> copy(id = id)
 }
+
+/**
+ * The extractor label recorded when the user corrects a fact herself.
+ *
+ * Versioned because it is audit data: it should be possible to tell later which generation of the
+ * editor produced a correction. The shared contract in
+ * `evidence/contracts/canonical-memory-v2.json` spells this value out, so both implementations write
+ * the same string rather than each inventing its own.
+ */
+const val USER_EDIT_EXTRACTOR: String = "user-edit-v1"
+
+/**
+ * The record with its audit envelope replaced.
+ *
+ * Used by an edit, which is a new *reason* to believe something rather than new evidence from the same
+ * source: the fact now comes from the user, not from the sentence it was originally extracted from, so
+ * `recordedAt`, `source` and `provenance` all move together. Content is untouched.
+ */
+internal fun CanonicalMemory.withAudit(
+    source: MemorySource,
+    recordedAt: Instant,
+    provenance: Provenance,
+): CanonicalMemory = when (this) {
+    is ProfileMemory -> copy(source = source, recordedAt = recordedAt, provenance = provenance)
+    is EventMemory -> copy(source = source, recordedAt = recordedAt, provenance = provenance)
+    is EpisodeMemory -> copy(source = source, recordedAt = recordedAt, provenance = provenance)
+    is RelationMemory -> copy(source = source, recordedAt = recordedAt, provenance = provenance)
+}

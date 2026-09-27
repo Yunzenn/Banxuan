@@ -52,14 +52,17 @@ XIAOZHI = "xiaozhi"
 
 def test_contract_file_is_versioned_and_declares_its_error_codes():
     assert CONTRACT["contract"] == "canonical-memory"
-    assert CONTRACT["version"] == 1
+    assert CONTRACT["version"] == 2
     assert ERROR_CODES == {
         "MEMORY_NOT_FOUND",
         "MEMORY_NOT_CONFIRMED",
         "MEMORY_NOT_STAGEABLE",
         "INVALID_TRANSITION",
+        "MEMORY_NOT_EDITABLE",
+        "MEMORY_TYPE_MISMATCH",
+        "MEMORY_IDENTITY_CONFLICT",
     }
-    assert len(CASES) >= 12
+    assert len(CASES) >= 27
 
 
 def test_every_shared_conformance_case_passes():

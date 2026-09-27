@@ -73,6 +73,9 @@ data class MemoryQuery(
  *   keeps its [MemoryId] and takes the new content. It throws [MemoryNotConfirmedException] if handed a
  *   non-confirmed record.
  * * [forget] removes the record. After it returns true, no later [recall] or [list] may return it.
+ * * [edit] changes content only. It preserves `id`, `status`, `characterScope` and `importance`, never
+ *   promotes a staged record to confirmed, refuses a rejected one, and refuses an edited identity that
+ *   already belongs to a different confirmed memory. An edit that changes nothing writes nothing.
  * * [recall] never returns a memory whose status is outside [MemoryQuery.statuses].
  */
 interface MemoryGateway {
@@ -91,6 +94,45 @@ interface MemoryGateway {
 
     /** Write a confirmed memory, de-duplicating by scoped content identity. */
     suspend fun remember(memory: CanonicalMemory): RememberOutcome
+
+    /**
+     * Correct the content of an existing memory.
+     *
+     * This is the only way a memory's content changes after it exists, so the rules live here rather
+     * than in whichever screen happens to offer an editor.
+     *
+     * **The envelope is not editable.** `id`, `status`, `characterScope` and `importance` are preserved,
+     * because they are guarantees of this interface rather than things a user edits; a caller able to
+     * carry them along could quietly move a memory to another character or promote a candidate. See
+     * [MemoryEdit] for why an edit is not a replacement record.
+     *
+     * Lifecycle:
+     * * a `CONFIRMED` memory stays confirmed;
+     * * a `STAGED` memory stays staged - **editing is not confirming**, and the user must still accept
+     *   it. Anything else would let one keystroke turn an unapproved candidate into something the
+     *   companion treats as true, which is the trust model this product is built on;
+     * * a `REJECTED` memory cannot be edited at all ([MemoryNotEditableException]). It stays a negative
+     *   signal, and resurrecting it through an editor would be confirming by the back door.
+     *
+     * **Audit.** A real change sets `source` to [MemorySource.USER_EDIT], `recordedAt` to
+     * [MemoryEdit.editedAt], and replaces the provenance with a user-edit one. The old `excerpt` is
+     * dropped on purpose: it is the sentence the fact was originally extracted from, and after a
+     * correction it is no longer the reason she believes it. The new reason is that the user said so.
+     *
+     * **No change means no write.** An edit whose content is identical returns [EditOutcome.Unchanged]
+     * and touches nothing, so a Save pressed without changing anything cannot erase where the fact came
+     * from.
+     *
+     * **Identity may move**, because that is what a correction often is: an event's date, a relation's
+     * role, a preference's attribute. The same [MemoryId] moves with it, so any reference the user holds
+     * still names the same memory. If the new identity is already held by a *different* confirmed
+     * memory, the edit is refused with [MemoryIdentityConflictException] and **neither record is
+     * touched**. Merging would delete one id and overwrite the other, breaking both the stable reference
+     * and the user's idea of what she was editing; the honest answer is that a memory for that fact
+     * already exists and she should deal with that one. A staged record is exempt from the check,
+     * because "one known fact plus one pending correction" is a legitimate state.
+     */
+    suspend fun edit(id: MemoryId, edit: MemoryEdit): EditOutcome
 
     /** Retrieve memories for the current turn. Staged candidates are excluded by default. */
     suspend fun recall(query: MemoryQuery = MemoryQuery()): List<CanonicalMemory>
@@ -137,3 +179,39 @@ class MemoryTransitionException(
     val from: MemoryStatus,
     val to: MemoryStatus,
 ) : IllegalStateException("memory ${id.value} is $from and cannot become $to")
+
+/**
+ * Thrown when an edit names a memory whose status does not allow one.
+ *
+ * A rejected memory is a decision the user already made. Being able to edit it would make the editor a
+ * way to confirm it without ever saying so.
+ */
+class MemoryNotEditableException(val id: MemoryId, val status: MemoryStatus) :
+    IllegalStateException("memory ${id.value} is $status, which cannot be edited")
+
+/**
+ * Thrown when an edit's kind does not match the record it is applied to.
+ *
+ * Changing a PROFILE into an EVENT is a delete plus a create, not an edit, and this interface will not
+ * pretend otherwise.
+ */
+class MemoryTypeMismatchException(
+    val id: MemoryId,
+    val expected: MemoryType,
+    val actual: MemoryType,
+) : IllegalArgumentException("memory ${id.value} is $actual but the edit is for $expected")
+
+/**
+ * Thrown when an edit would move a confirmed memory onto a fact another confirmed memory already holds.
+ *
+ * Nothing is written when this is thrown: neither the edited record nor the one it collided with. The
+ * alternative - merging - would consume one [MemoryId] and overwrite the other, which destroys both the
+ * stable reference and whatever the user thought she was editing.
+ */
+class MemoryIdentityConflictException(
+    val id: MemoryId,
+    val conflictingId: MemoryId,
+    val identity: ScopedMemoryIdentity,
+) : IllegalStateException(
+    "memory ${id.value} would become the same fact as ${conflictingId.value} (${identity.identity.key})",
+)

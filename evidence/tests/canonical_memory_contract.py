@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 EVIDENCE_DIR = Path(__file__).resolve().parents[1]
 REPO = EVIDENCE_DIR.parent
 SERVER_DIR = EVIDENCE_DIR / "server"
-CONTRACT_PATH = EVIDENCE_DIR / "contracts" / "canonical-memory-v1.json"
+CONTRACT_PATH = EVIDENCE_DIR / "contracts" / "canonical-memory-v2.json"
 
 if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
@@ -31,6 +31,7 @@ from canonical_memory import (  # noqa: E402
     CanonicalMemoryService,
     InMemoryCanonicalMemoryStore,
     Memory,
+    MemoryEdit,
     MemoryError,
     MemoryQuery,
     canonical_instant,
@@ -45,11 +46,19 @@ CONTRACT = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 CASES: List[Dict[str, Any]] = CONTRACT["cases"]
 ERROR_CODES = set(CONTRACT["errorCodes"])
 
+#: Contract keys that carry instants and need canonicalising.
 _INSTANT_FIELDS = {
     "scheduledFor": "scheduled_for",
     "occurredAt": "occurred_at",
-    "emotionalTone": "emotional_tone",
 }
+
+#: Contract keys whose name differs from the Python attribute, but whose value is not a time.
+#: `emotionalTone` used to sit in _INSTANT_FIELDS, which was simply wrong - v1 had no episode case with
+#: a tone in it, so nothing parsed one until the v2 episode edit exposed it as
+#: "Invalid isoformat string: '委屈'".
+_RENAMED_FIELDS = {"emotionalTone": "emotional_tone"}
+
+_ATTR_NAMES = {**_INSTANT_FIELDS, **_RENAMED_FIELDS}
 
 
 def build_memory(spec: Dict[str, Any]) -> Memory:
@@ -68,6 +77,8 @@ def build_memory(spec: Dict[str, Any]) -> Memory:
             continue
         if key in _INSTANT_FIELDS:
             kwargs[_INSTANT_FIELDS[key]] = canonical_instant(value)
+        elif key in _RENAMED_FIELDS:
+            kwargs[_RENAMED_FIELDS[key]] = value
         else:
             kwargs[key] = value
     return Memory(**kwargs)
@@ -96,7 +107,7 @@ def snapshot(memory: Memory) -> Dict[str, Any]:
         "role",
         "note",
     ):
-        value = getattr(memory, _INSTANT_FIELDS.get(key, key))
+        value = getattr(memory, _ATTR_NAMES.get(key, key))
         if value is not None:
             result[key] = value
     if memory.relations:
@@ -120,6 +131,44 @@ def to_query(spec: Dict[str, Any]) -> MemoryQuery:
     )
 
 
+def audit_of(memory: Memory) -> Dict[str, Any]:
+    """The audit envelope, compared only when a case asks for it.
+
+    Deliberately kept out of `snapshot`: folding these fields into every record comparison would
+    silently change what v1 asserts, and v1 is a historical contract that must keep meaning exactly
+    what it meant. An edit case asks for them explicitly instead.
+    """
+    return {
+        "id": memory.id,
+        "source": memory.source,
+        "importance": memory.importance,
+        "recordedAt": memory.recorded_at,
+        "sessionId": memory.session_id,
+        "messageId": memory.message_id,
+        "excerpt": memory.excerpt,
+        "extractor": memory.extractor,
+    }
+
+
+def to_edit(spec: Dict[str, Any]) -> MemoryEdit:
+    return MemoryEdit(
+        type=spec["type"],
+        edited_at=canonical_instant(spec["editedAt"]),
+        attribute=spec.get("attribute"),
+        value=spec.get("value"),
+        title=spec.get("title"),
+        scheduled_for=canonical_instant(spec["scheduledFor"]) if spec.get("scheduledFor") else None,
+        location=spec.get("location"),
+        summary=spec.get("summary"),
+        occurred_at=canonical_instant(spec["occurredAt"]) if spec.get("occurredAt") else None,
+        emotional_tone=spec.get("emotionalTone"),
+        relations=tuple(spec.get("relations", ())),
+        name=spec.get("name"),
+        role=spec.get("role"),
+        note=spec.get("note"),
+    )
+
+
 async def execute(case: Dict[str, Any]) -> Dict[str, Any]:
     """Run one contract case and return everything the expectations can look at."""
     backing = InMemoryCanonicalMemoryStore()
@@ -129,6 +178,7 @@ async def execute(case: Dict[str, Any]) -> Dict[str, Any]:
         await store.put(build_memory(spec))
 
     outcome: Optional[str] = None
+    edit_outcome: Optional[str] = None
     forget_results: List[bool] = []
     recalls: List[List[str]] = []
     listings: List[List[str]] = []
@@ -139,6 +189,8 @@ async def execute(case: Dict[str, Any]) -> Dict[str, Any]:
             name = op["op"]
             if name == "remember":
                 outcome = (await service.remember(build_memory(op["record"]))).kind
+            elif name == "edit":
+                edit_outcome = (await service.edit(op["id"], to_edit(op["edit"]))).kind
             elif name == "stage":
                 await service.stage([build_memory(op["record"])])
             elif name == "confirm":
@@ -161,13 +213,16 @@ async def execute(case: Dict[str, Any]) -> Dict[str, Any]:
     except MemoryError as exc:
         error = exc.code
 
+    records = await store.list()
     return {
         "error": error,
         "outcome": outcome,
+        "editOutcome": edit_outcome,
         "forget": forget_results,
         "recalls": recalls,
         "listings": listings,
-        "store": [snapshot(r) for r in await store.list()],
+        "store": [snapshot(r) for r in records],
+        "audit": {r.id: audit_of(r) for r in records},
     }
 
 
@@ -191,6 +246,19 @@ def check_case(case: Dict[str, Any], result: Dict[str, Any]) -> None:
 
     if "outcome" in expect:
         assert result["outcome"] == expect["outcome"], f"{name}: outcome {result['outcome']}"
+    if "editOutcome" in expect:
+        assert result["editOutcome"] == expect["editOutcome"], (
+            f"{name}: editOutcome {result['editOutcome']}"
+        )
+    if "audit" in expect:
+        wanted = dict(expect["audit"])
+        target = wanted.pop("id")
+        actual = result["audit"].get(target)
+        assert actual is not None, f"{name}: no record {target!r} to audit"
+        for field, value in wanted.items():
+            assert actual[field] == value, (
+                f"{name}: audit {field} expected {value!r}, got {actual[field]!r}"
+            )
     if "forgetResults" in expect:
         assert result["forget"] == expect["forgetResults"], f"{name}: forget {result['forget']}"
     if "recallBefore" in expect:

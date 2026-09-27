@@ -1,0 +1,1243 @@
+{
+  "contract": "canonical-memory",
+  "version": 2,
+  "description": [
+    "Full snapshot of the canonical-memory semantic contract at version 2. Both the Kotlin",
+    "executable spec and the Python server authority must satisfy every case here, and neither",
+    "implementation is the source of truth.",
+    "v1 remains byte-for-byte unchanged and keeps its own conformance run: it is a historical",
+    "contract that has been mutation-falsified and enforced in CI. v2 is a snapshot rather than",
+    "a runtime `extends`, because loader inheritance would add contract versioning semantics",
+    "just to avoid repeating these cases.",
+    "Version 2 adds edit: the rules for correcting an existing memory's content, including the",
+    "audit envelope and what happens when a correction moves a memory's identity."
+  ],
+  "errorCodes": [
+    "MEMORY_NOT_FOUND",
+    "MEMORY_NOT_CONFIRMED",
+    "MEMORY_NOT_STAGEABLE",
+    "INVALID_TRANSITION",
+    "MEMORY_NOT_EDITABLE",
+    "MEMORY_TYPE_MISMATCH",
+    "MEMORY_IDENTITY_CONFLICT"
+  ],
+  "outcomes": [
+    "created",
+    "updated",
+    "unchanged"
+  ],
+  "cases": [
+    {
+      "name": "remember_same_fact_same_content_is_unchanged",
+      "initial": [],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "不喜欢香菜"
+          }
+        },
+        {
+          "op": "remember",
+          "record": {
+            "id": "p2",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "又说不喜欢香菜"
+          }
+        }
+      ],
+      "expect": {
+        "outcome": "unchanged",
+        "store": [
+          {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "不喜欢香菜"
+          }
+        ]
+      }
+    },
+    {
+      "name": "remember_correction_updates_in_place_and_keeps_id",
+      "initial": [],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "不喜欢香菜"
+          }
+        },
+        {
+          "op": "remember",
+          "record": {
+            "id": "p2",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "现在不爱吃芹菜"
+          }
+        }
+      ],
+      "expect": {
+        "outcome": "updated",
+        "store": [
+          {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "现在不爱吃芹菜"
+          }
+        ]
+      }
+    },
+    {
+      "name": "identity_folds_attribute_padding_but_not_free_text",
+      "initial": [
+        {
+          "id": "p1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "x"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "p2",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "  food. dislike 。",
+            "value": "香菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "y"
+          }
+        }
+      ],
+      "expect": {
+        "outcome": "unchanged",
+        "store": [
+          {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "x"
+          }
+        ]
+      }
+    },
+    {
+      "name": "character_scopes_do_not_deduplicate_each_other",
+      "initial": [],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "a1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "characterScope": "xiaozhi",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "a"
+          }
+        },
+        {
+          "op": "remember",
+          "record": {
+            "id": "b1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "characterScope": "other",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "b"
+          }
+        },
+        {
+          "op": "remember",
+          "record": {
+            "id": "a2",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "characterScope": "xiaozhi",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "c"
+          }
+        }
+      ],
+      "expect": {
+        "outcome": "updated",
+        "store": [
+          {
+            "id": "a1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "characterScope": "xiaozhi",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "c"
+          },
+          {
+            "id": "b1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "characterScope": "other",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_then_confirm_makes_candidate_visible_to_recall",
+      "initial": [],
+      "operations": [
+        {
+          "op": "stage",
+          "record": {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "s"
+          }
+        },
+        {
+          "op": "recall",
+          "query": {}
+        },
+        {
+          "op": "confirm",
+          "id": "c1"
+        },
+        {
+          "op": "recall",
+          "query": {}
+        }
+      ],
+      "expect": {
+        "recallBefore": [],
+        "recallAfter": [
+          "c1"
+        ],
+        "store": [
+          {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "s"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reject_keeps_candidate_out_of_recall_but_listable",
+      "initial": [],
+      "operations": [
+        {
+          "op": "stage",
+          "record": {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "s"
+          }
+        },
+        {
+          "op": "reject",
+          "id": "c1"
+        },
+        {
+          "op": "recall",
+          "query": {}
+        },
+        {
+          "op": "list",
+          "statuses": [
+            "REJECTED"
+          ]
+        }
+      ],
+      "expect": {
+        "recallAfter": [],
+        "listAfter": [
+          "c1"
+        ],
+        "store": [
+          {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "REJECTED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "s"
+          }
+        ]
+      }
+    },
+    {
+      "name": "confirm_changed_proposal_corrects_confirmed_and_keeps_its_id",
+      "initial": [
+        {
+          "id": "p1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "原句"
+        }
+      ],
+      "operations": [
+        {
+          "op": "stage",
+          "record": {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "新句"
+          }
+        },
+        {
+          "op": "confirm",
+          "id": "c1"
+        }
+      ],
+      "expect": {
+        "store": [
+          {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "新句"
+          }
+        ]
+      }
+    },
+    {
+      "name": "confirm_unchanged_proposal_preserves_record_and_provenance",
+      "initial": [
+        {
+          "id": "p1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "最早那一句"
+        }
+      ],
+      "operations": [
+        {
+          "op": "stage",
+          "record": {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": "后来说的同一件事"
+          }
+        },
+        {
+          "op": "confirm",
+          "id": "c1"
+        }
+      ],
+      "expect": {
+        "store": [
+          {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "最早那一句"
+          }
+        ]
+      }
+    },
+    {
+      "name": "forget_removes_and_second_attempt_is_false",
+      "initial": [
+        {
+          "id": "p1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "x"
+        }
+      ],
+      "operations": [
+        {
+          "op": "forget",
+          "id": "p1"
+        },
+        {
+          "op": "forget",
+          "id": "p1"
+        },
+        {
+          "op": "recall",
+          "query": {}
+        }
+      ],
+      "expect": {
+        "forgetResults": [
+          true,
+          false
+        ],
+        "recallAfter": [],
+        "store": []
+      }
+    },
+    {
+      "name": "recall_window_matches_event_scheduled_time_only",
+      "initial": [
+        {
+          "id": "e1",
+          "type": "EVENT",
+          "status": "CONFIRMED",
+          "title": "取报告",
+          "scheduledFor": "2026-10-01T02:00:00Z",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "a"
+        },
+        {
+          "id": "e2",
+          "type": "EVENT",
+          "status": "CONFIRMED",
+          "title": "复诊",
+          "scheduledFor": "2026-10-05T02:00:00Z",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "b"
+        },
+        {
+          "id": "e3",
+          "type": "EVENT",
+          "status": "CONFIRMED",
+          "title": "买药",
+          "scheduledFor": null,
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "c"
+        },
+        {
+          "id": "p1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "d"
+        }
+      ],
+      "operations": [
+        {
+          "op": "recall",
+          "query": {
+            "from": "2026-10-04T00:00:00Z",
+            "to": "2026-10-06T00:00:00Z"
+          }
+        }
+      ],
+      "expect": {
+        "recallAfter": [
+          "e2"
+        ]
+      }
+    },
+    {
+      "name": "event_identity_separates_the_same_title_at_two_times",
+      "initial": [
+        {
+          "id": "e1",
+          "type": "EVENT",
+          "status": "CONFIRMED",
+          "title": "去医院",
+          "scheduledFor": "2026-10-05T07:00:00Z",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "a"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "e2",
+            "type": "EVENT",
+            "status": "CONFIRMED",
+            "title": "去医院",
+            "scheduledFor": "2026-10-09T07:00:00Z",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "b"
+          }
+        }
+      ],
+      "expect": {
+        "outcome": "created",
+        "store": [
+          {
+            "id": "e1",
+            "type": "EVENT",
+            "status": "CONFIRMED",
+            "title": "去医院",
+            "scheduledFor": "2026-10-05T07:00:00Z",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "a"
+          },
+          {
+            "id": "e2",
+            "type": "EVENT",
+            "status": "CONFIRMED",
+            "title": "去医院",
+            "scheduledFor": "2026-10-09T07:00:00Z",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "confirm_unknown_id_is_memory_not_found",
+      "initial": [],
+      "operations": [
+        {
+          "op": "confirm",
+          "id": "missing"
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_NOT_FOUND"
+      }
+    },
+    {
+      "name": "remember_staged_record_is_memory_not_confirmed",
+      "initial": [],
+      "operations": [
+        {
+          "op": "remember",
+          "record": {
+            "id": "c1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "x"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_NOT_CONFIRMED",
+        "store": []
+      }
+    },
+    {
+      "name": "stage_confirmed_record_is_memory_not_stageable",
+      "initial": [],
+      "operations": [
+        {
+          "op": "stage",
+          "record": {
+            "id": "p1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "x"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_NOT_STAGEABLE",
+        "store": []
+      }
+    },
+    {
+      "name": "confirm_rejected_record_is_invalid_transition",
+      "initial": [
+        {
+          "id": "c1",
+          "type": "PROFILE",
+          "status": "REJECTED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "x"
+        }
+      ],
+      "operations": [
+        {
+          "op": "confirm",
+          "id": "c1"
+        }
+      ],
+      "expect": {
+        "error": "INVALID_TRANSITION"
+      }
+    },
+    {
+      "name": "edit_unknown_id",
+      "initial": [],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "missing",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.dislike",
+            "value": "芹菜"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_NOT_FOUND"
+      }
+    },
+    {
+      "name": "edit_rejected_is_refused_and_changes_nothing",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "REJECTED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.dislike",
+            "value": "芹菜"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_NOT_EDITABLE",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "REJECTED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我不喜欢香菜"
+          }
+        ]
+      }
+    },
+    {
+      "name": "edit_wrong_type_is_refused",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "EVENT",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "title": "去医院",
+            "scheduledFor": "2026-09-26T13:00:00Z"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_TYPE_MISMATCH",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我不喜欢香菜"
+          }
+        ]
+      }
+    },
+    {
+      "name": "edit_unchanged_confirmed_keeps_the_original_provenance",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.dislike",
+            "value": "香菜"
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "unchanged",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我不喜欢香菜"
+          }
+        ],
+        "audit": {
+          "id": "m1",
+          "source": "CONVERSATION",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "我不喜欢香菜",
+          "extractor": "canonical-memory-v1"
+        }
+      }
+    },
+    {
+      "name": "edit_staged_stays_staged_and_becomes_a_user_edit",
+      "initial": [
+        {
+          "id": "s1",
+          "type": "PROFILE",
+          "status": "STAGED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "s1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.dislike",
+            "value": "芹菜"
+          }
+        },
+        {
+          "op": "recall",
+          "query": {}
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "recallAfter": [],
+        "store": [
+          {
+            "id": "s1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "s1"
+        }
+      }
+    },
+    {
+      "name": "edit_confirmed_same_identity_updates_in_place",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.dislike",
+            "value": "芹菜"
+          }
+        },
+        {
+          "op": "recall",
+          "query": {}
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "recallAfter": [
+          "m1"
+        ],
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "m1"
+        }
+      }
+    },
+    {
+      "name": "edit_confirmed_moves_the_identity_and_keeps_the_id",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.like",
+            "value": "香菜"
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.like",
+            "value": "香菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "m1"
+        }
+      }
+    },
+    {
+      "name": "edit_confirmed_into_an_existing_identity_is_refused_untouched",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        },
+        {
+          "id": "m2",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.like",
+          "value": "芹菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我爱吃芹菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "m1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.like",
+            "value": "香菜"
+          }
+        }
+      ],
+      "expect": {
+        "error": "MEMORY_IDENTITY_CONFLICT",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我不喜欢香菜"
+          },
+          {
+            "id": "m2",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.like",
+            "value": "芹菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我爱吃芹菜"
+          }
+        ]
+      }
+    },
+    {
+      "name": "edit_staged_may_move_onto_a_confirmed_identity",
+      "initial": [
+        {
+          "id": "m1",
+          "type": "PROFILE",
+          "status": "CONFIRMED",
+          "attribute": "food.dislike",
+          "value": "香菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我不喜欢香菜"
+        },
+        {
+          "id": "s1",
+          "type": "PROFILE",
+          "status": "STAGED",
+          "attribute": "food.dislike",
+          "value": "芹菜",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "我现在爱吃芹菜"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "s1",
+          "edit": {
+            "type": "PROFILE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "attribute": "food.like",
+            "value": "芹菜"
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "store": [
+          {
+            "id": "m1",
+            "type": "PROFILE",
+            "status": "CONFIRMED",
+            "attribute": "food.dislike",
+            "value": "香菜",
+            "recordedAt": "2026-09-27T10:00:00Z",
+            "excerpt": "我不喜欢香菜"
+          },
+          {
+            "id": "s1",
+            "type": "PROFILE",
+            "status": "STAGED",
+            "attribute": "food.like",
+            "value": "芹菜",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "s1"
+        }
+      }
+    },
+    {
+      "name": "event_time_edit_moves_the_identity",
+      "initial": [
+        {
+          "id": "e1",
+          "type": "EVENT",
+          "status": "CONFIRMED",
+          "title": "去医院",
+          "scheduledFor": "2026-10-05T07:00:00Z",
+          "importance": "HIGH",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "下周三去医院"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "e1",
+          "edit": {
+            "type": "EVENT",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "title": "去医院",
+            "scheduledFor": "2026-10-09T07:00:00Z",
+            "location": "浙一"
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "store": [
+          {
+            "id": "e1",
+            "type": "EVENT",
+            "status": "CONFIRMED",
+            "title": "去医院",
+            "scheduledFor": "2026-10-09T07:00:00Z",
+            "location": "浙一",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "HIGH",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "e1"
+        }
+      }
+    },
+    {
+      "name": "episode_edit_updates_summary_and_emotion",
+      "initial": [
+        {
+          "id": "p1",
+          "type": "EPISODE",
+          "status": "CONFIRMED",
+          "summary": "和室友吵架了",
+          "occurredAt": "2026-09-26T13:00:00Z",
+          "emotionalTone": "委屈",
+          "relations": [
+            "室友"
+          ],
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "昨天和室友吵架了"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "p1",
+          "edit": {
+            "type": "EPISODE",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "summary": "和室友和好了",
+            "occurredAt": "2026-09-26T13:00:00Z",
+            "emotionalTone": "轻松",
+            "relations": [
+              "室友"
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "store": [
+          {
+            "id": "p1",
+            "type": "EPISODE",
+            "status": "CONFIRMED",
+            "summary": "和室友和好了",
+            "occurredAt": "2026-09-26T13:00:00Z",
+            "emotionalTone": "轻松",
+            "relations": [
+              "室友"
+            ],
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "p1"
+        }
+      }
+    },
+    {
+      "name": "relation_edit_moves_the_identity_through_the_role",
+      "initial": [
+        {
+          "id": "r1",
+          "type": "RELATION",
+          "status": "CONFIRMED",
+          "name": "小李",
+          "role": "室友",
+          "recordedAt": "2026-09-27T10:00:00Z",
+          "excerpt": "小李是我室友"
+        }
+      ],
+      "operations": [
+        {
+          "op": "edit",
+          "id": "r1",
+          "edit": {
+            "type": "RELATION",
+            "editedAt": "2026-09-28T10:00:00Z",
+            "name": "小李",
+            "role": "同事",
+            "note": "换工作了"
+          }
+        }
+      ],
+      "expect": {
+        "editOutcome": "updated",
+        "store": [
+          {
+            "id": "r1",
+            "type": "RELATION",
+            "status": "CONFIRMED",
+            "name": "小李",
+            "role": "同事",
+            "note": "换工作了",
+            "recordedAt": "2026-09-28T10:00:00Z",
+            "excerpt": ""
+          }
+        ],
+        "audit": {
+          "source": "USER_EDIT",
+          "importance": "NORMAL",
+          "recordedAt": "2026-09-28T10:00:00Z",
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1",
+          "id": "r1"
+        }
+      }
+    }
+  ]
+}
