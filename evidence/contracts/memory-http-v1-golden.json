@@ -1,0 +1,347 @@
+{
+  "contract": "memory-http",
+  "version": 1,
+  "canonicalSchema": 2,
+  "description": [
+    "Golden payloads for the canonical memory HTTP surface.",
+    "",
+    "This file is the frozen data boundary. Both the Python handler and the Kotlin RemoteMemoryGateway",
+    "read it, so the wire format is verified on both sides instead of assumed to agree.",
+    "",
+    "The record shape is a one-to-one projection of CanonicalMemory using the field names, enum",
+    "spellings and instant formatting that canonical-memory-v2.json already uses. It is not a third",
+    "memory schema: nothing is invented, nothing is dropped, and no field is renamed.",
+    "",
+    "Two version numbers are in play and are not the same thing: `version` here names the HTTP surface,",
+    "`canonicalSchema` names the semantic contract it carries.",
+    "",
+    "Instants on the wire are always canonical UTC (`...Z`). The `normalization` case pins that a client",
+    "or server receiving an offset form re-emits the canonical one, so the same moment never has two",
+    "spellings on the wire."
+  ],
+  "records": [
+    {
+      "name": "profile_with_full_provenance",
+      "json": {
+        "id": "m1",
+        "type": "PROFILE",
+        "status": "CONFIRMED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "NORMAL",
+        "source": "CONVERSATION",
+        "provenance": {
+          "sessionId": "session-1",
+          "messageId": "message-1",
+          "excerpt": "我不喜欢香菜",
+          "extractor": "canonical-memory-v1"
+        },
+        "attribute": "food.dislike",
+        "value": "香菜"
+      }
+    },
+    {
+      "name": "profile_after_a_user_edit",
+      "json": {
+        "id": "m1",
+        "type": "PROFILE",
+        "status": "CONFIRMED",
+        "recordedAt": "2026-09-28T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "HIGH",
+        "source": "USER_EDIT",
+        "provenance": {
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "user-edit-v1"
+        },
+        "attribute": "food.dislike",
+        "value": "芹菜"
+      }
+    },
+    {
+      "name": "event_with_time_and_location",
+      "json": {
+        "id": "e1",
+        "type": "EVENT",
+        "status": "CONFIRMED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "NORMAL",
+        "source": "CONVERSATION",
+        "provenance": {
+          "sessionId": "session-1",
+          "messageId": "message-2",
+          "excerpt": "下周三下午三点去医院",
+          "extractor": "canonical-memory-v1"
+        },
+        "title": "去医院",
+        "scheduledFor": "2026-10-05T07:00:37.123Z",
+        "location": "浙一"
+      }
+    },
+    {
+      "name": "event_without_a_resolved_time",
+      "json": {
+        "id": "e2",
+        "type": "EVENT",
+        "status": "STAGED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "NORMAL",
+        "source": "INFERRED",
+        "provenance": {
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "记得买药",
+          "extractor": "canonical-memory-v1"
+        },
+        "title": "买药",
+        "scheduledFor": null,
+        "location": null
+      }
+    },
+    {
+      "name": "episode_with_relations",
+      "json": {
+        "id": "x1",
+        "type": "EPISODE",
+        "status": "CONFIRMED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "NORMAL",
+        "source": "CONVERSATION",
+        "provenance": {
+          "sessionId": "session-1",
+          "messageId": "message-3",
+          "excerpt": "昨天和室友吵架了",
+          "extractor": "canonical-memory-v1"
+        },
+        "summary": "和室友吵架了",
+        "occurredAt": "2026-09-26T13:00:00Z",
+        "emotionalTone": "委屈",
+        "relations": ["室友", "小李"]
+      }
+    },
+    {
+      "name": "episode_with_no_tone_and_no_relations",
+      "json": {
+        "id": "x2",
+        "type": "EPISODE",
+        "status": "REJECTED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "second-character",
+        "importance": "LOW",
+        "source": "IMPORT",
+        "provenance": {
+          "sessionId": null,
+          "messageId": null,
+          "excerpt": "",
+          "extractor": "canonical-memory-v1"
+        },
+        "summary": "同事换了工作",
+        "occurredAt": "2026-09-25T02:30:00Z",
+        "emotionalTone": null,
+        "relations": []
+      }
+    },
+    {
+      "name": "relation",
+      "json": {
+        "id": "n1",
+        "type": "RELATION",
+        "status": "CONFIRMED",
+        "recordedAt": "2026-09-27T10:00:00Z",
+        "characterScope": "xiaozhi",
+        "importance": "NORMAL",
+        "source": "CONVERSATION",
+        "provenance": {
+          "sessionId": "session-1",
+          "messageId": "message-4",
+          "excerpt": "小李是我室友",
+          "extractor": "canonical-memory-v1"
+        },
+        "name": "小李",
+        "role": "室友",
+        "note": null
+      }
+    }
+  ],
+  "edits": [
+    {
+      "name": "profile_edit",
+      "json": {
+        "type": "PROFILE",
+        "editedAt": "2026-09-28T10:00:00Z",
+        "attribute": "food.like",
+        "value": "芹菜"
+      }
+    },
+    {
+      "name": "event_edit",
+      "json": {
+        "type": "EVENT",
+        "editedAt": "2026-09-28T10:00:00Z",
+        "title": "去复查",
+        "scheduledFor": "2026-10-09T07:00:00Z",
+        "location": null
+      }
+    },
+    {
+      "name": "episode_edit",
+      "json": {
+        "type": "EPISODE",
+        "editedAt": "2026-09-28T10:00:00Z",
+        "summary": "和室友和好了",
+        "occurredAt": "2026-09-26T13:00:00Z",
+        "emotionalTone": "轻松",
+        "relations": ["室友"]
+      }
+    },
+    {
+      "name": "relation_edit",
+      "json": {
+        "type": "RELATION",
+        "editedAt": "2026-09-28T10:00:00Z",
+        "name": "小李",
+        "role": "同事",
+        "note": "换工作了"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "name": "default",
+      "json": {
+        "text": null,
+        "types": ["PROFILE", "EVENT", "EPISODE", "RELATION"],
+        "characterScope": "xiaozhi",
+        "statuses": ["CONFIRMED"],
+        "from": null,
+        "to": null,
+        "limit": 8
+      }
+    },
+    {
+      "name": "windowed_events_only",
+      "json": {
+        "text": null,
+        "types": ["EVENT"],
+        "characterScope": null,
+        "statuses": ["CONFIRMED", "STAGED"],
+        "from": "2026-10-04T00:00:00Z",
+        "to": "2026-10-06T00:00:00Z",
+        "limit": 3
+      }
+    }
+  ],
+  "errors": [
+    {
+      "name": "not_found",
+      "status": 404,
+      "body": { "code": "MEMORY_NOT_FOUND", "message": "no memory with id m9", "id": "m9" },
+      "expectException": "MemoryNotFoundException"
+    },
+    {
+      "name": "not_confirmed",
+      "status": 400,
+      "body": {
+        "code": "MEMORY_NOT_CONFIRMED",
+        "message": "memory m1 is STAGED, expected CONFIRMED",
+        "id": "m1",
+        "status": "STAGED"
+      },
+      "expectException": "MemoryNotConfirmedException"
+    },
+    {
+      "name": "not_stageable",
+      "status": 400,
+      "body": {
+        "code": "MEMORY_NOT_STAGEABLE",
+        "message": "memory m1 is CONFIRMED, expected STAGED",
+        "id": "m1",
+        "status": "CONFIRMED"
+      },
+      "expectException": "MemoryNotStageableException"
+    },
+    {
+      "name": "invalid_transition",
+      "status": 409,
+      "body": {
+        "code": "INVALID_TRANSITION",
+        "message": "memory m1 is REJECTED and cannot become CONFIRMED",
+        "id": "m1",
+        "fromStatus": "REJECTED",
+        "toStatus": "CONFIRMED"
+      },
+      "expectException": "MemoryTransitionException"
+    },
+    {
+      "name": "not_editable",
+      "status": 409,
+      "body": {
+        "code": "MEMORY_NOT_EDITABLE",
+        "message": "memory m1 is REJECTED, which cannot be edited",
+        "id": "m1",
+        "status": "REJECTED"
+      },
+      "expectException": "MemoryNotEditableException"
+    },
+    {
+      "name": "type_mismatch",
+      "status": 400,
+      "body": {
+        "code": "MEMORY_TYPE_MISMATCH",
+        "message": "memory m1 is PROFILE but the edit is for EVENT",
+        "id": "m1",
+        "expectedType": "EVENT",
+        "actualType": "PROFILE"
+      },
+      "expectException": "MemoryTypeMismatchException"
+    },
+    {
+      "name": "identity_conflict",
+      "status": 409,
+      "body": {
+        "code": "MEMORY_IDENTITY_CONFLICT",
+        "message": "memory m1 would become the same fact as m2",
+        "id": "m1",
+        "conflictingId": "m2",
+        "characterScope": "xiaozhi",
+        "identityKey": "food.like"
+      },
+      "expectException": "MemoryIdentityConflictException"
+    },
+    {
+      "name": "unauthorised",
+      "status": 401,
+      "body": { "code": "UNAUTHORIZED", "message": "token required" },
+      "expectException": "MemoryTransportException"
+    },
+    {
+      "name": "wrong_subject",
+      "status": 403,
+      "body": { "code": "FORBIDDEN", "message": "token subject does not match device" },
+      "expectException": "MemoryTransportException"
+    },
+    {
+      "name": "unrecognised_code_fails_closed",
+      "status": 409,
+      "body": { "code": "SOMETHING_NEW", "message": "a code this client does not know" },
+      "expectException": "MemoryTransportException"
+    }
+  ],
+  "normalization": [
+    {
+      "name": "offset_instant_re_emits_as_utc",
+      "input": "2026-09-27T18:00:00+08:00",
+      "output": "2026-09-27T10:00:00Z"
+    },
+    {
+      "name": "milliseconds_are_preserved",
+      "input": "2026-10-05T07:00:37.123Z",
+      "output": "2026-10-05T07:00:37.123Z"
+    }
+  ]
+}
