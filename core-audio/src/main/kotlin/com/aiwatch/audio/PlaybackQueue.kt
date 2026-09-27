@@ -56,6 +56,10 @@ class PlaybackQueue(
     fun begin(generation: Long) = synchronized(lock) {
         check(!closed)
         flushLocked()
+        // begin() is the new playback-turn boundary, so per-turn first-write instrumentation restarts
+        // here. Deliberately NOT inside flushLocked(): a flush also happens on interrupt and reconnect,
+        // and those are not new turns - which is why the interrupt path can pauseAndFlush several times.
+        firstWriteReported = false
         this.generation = generation
         accepting = true
     }
