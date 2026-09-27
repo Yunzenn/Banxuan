@@ -320,7 +320,7 @@ class XiaozhiVoiceSession(
 
     /** Starts a new turn: clears the latency trace and the per-turn message anchors. */
     private fun beginTurn() {
-        mutableLatency.value = LatencyTrace(releaseAt = SystemClock.elapsedRealtime())
+        mutableLatency.value = LatencyTrace(releaseAt = now())
         currentUserMessageId = null
         currentCompanionMessageId = null
     }
