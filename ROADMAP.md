@@ -212,7 +212,7 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 | 版本 | 名称 | 用户能得到什么 | 前置 | 主要验收 |
 |---|---|---|---|---|
 | v0.1 | Companion Shell | 打开看到角色 / 最近消息 / PTT / 四态 / 设置 | — | ✅ 410×502@320dpi 无溢出；三测试通过 |
-| v0.2 | Voice Core | 软件内部真正跑通 Session 状态、气泡、埋点、打断 | 无 | Contract Harness 驱动 `LISTENING→THINKING→SPEAKING→IDLE`；STT/TTS 气泡、latency、barge-in 全部执行 |
+| v0.2 | Voice Core | 软件内部真正跑通 Session 状态、气泡、埋点、打断 | 无 | ✅ `1f32417`：P0-2B contract A–J **10/10**（emulator-5554 / API 28）；`releaseToFirstAudioMs=360`；两轮首写埋点恢复；打断顺序 `pauseAndFlush→abort→pauseAndFlush→disconnect→reconnect`、stale samples=0。**模拟器证据，非 CD12Max 真机** |
 | v0.3 | Connected Voice | 真能"按住说话 → 听到回复" | **endpoint** | `PTT→ASR→LLM→TTS→AudioTrack`；`t_release→first_audio` ≈ <1.2 s |
 | v0.4 | Memory Companion | 小智记得住，第二次聊天会主动用过去信息 | 无手表 | CanonicalMemory、画像/事件/经历/关系、Memory Gateway、"我的记忆"可编辑删除 |
 | v0.5 | Memory Beta | 记忆从"能存"到"会用" | 无手表 | 候选检索、时间衰减、去重、**条件式** Jev rerank、隔天回忆测试 |
