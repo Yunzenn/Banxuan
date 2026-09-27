@@ -86,12 +86,31 @@ data class Provenance(
 /**
  * Content identity: what makes two memories "the same fact".
  *
- * This is what de-duplication keys on, and it is deliberately *not* the whole record. Two
- * [ProfileMemory] records with the same [ProfileMemory.attribute] but different values are the same
- * fact with a new value - that is an update, not a second memory. Two events with the same title at
- * different times are genuinely different facts.
+ * This is deliberately *not* the whole record, and deliberately *not* on its own the de-duplication key -
+ * see [ScopedMemoryIdentity]. Two [ProfileMemory] records with the same [ProfileMemory.attribute] but
+ * different values are the same fact with a new value: an update, not a second memory. Two events with
+ * the same title at different times are genuinely different facts.
  */
 data class MemoryIdentity(val type: MemoryType, val key: String)
+
+/**
+ * The key a memory is actually unique by: content identity **within one character**.
+ *
+ * De-duplication may never key on [MemoryIdentity] alone. Memory is explicitly scoped to a character, so
+ * if two characters both know that the user dislikes 香菜 those are two records. Collapsing them would let
+ * one character silently overwrite another character's memory, which is both a correctness bug and a
+ * broken promise about what a character knows.
+ */
+data class ScopedMemoryIdentity(
+    val characterScope: CharacterScope,
+    val identity: MemoryIdentity,
+)
+
+/**
+ * Content identity qualified by ownership. This is the de-duplication key; [identity] alone is not.
+ */
+val CanonicalMemory.scopedIdentity: ScopedMemoryIdentity
+    get() = ScopedMemoryIdentity(characterScope, identity)
 
 /**
  * Normalises a fact before it becomes part of a [MemoryIdentity].
