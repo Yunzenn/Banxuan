@@ -229,6 +229,10 @@ class MemoryQuery:
 class RememberOutcome:
     kind: str  # "created" | "updated" | "unchanged"
     memory: Memory
+    #: The record as it was, present only when ``kind == "updated"``. Carried so the HTTP surface can
+    #: send it and the client can rebuild a faithful "updated" outcome instead of inventing a previous
+    #: record it never saw.
+    previous: Optional[Memory] = None
 
 
 @dataclass(frozen=True)
@@ -279,6 +283,8 @@ class EditOutcome:
 
     kind: str
     memory: Memory
+    #: The record as it was, present only when ``kind == "updated"``; see :class:`RememberOutcome`.
+    previous: Optional[Memory] = None
 
 
 class MemoryError(Exception):
@@ -527,7 +533,7 @@ class CanonicalMemoryService:
 
         updated = memory.with_id(existing.id)
         await self._store.put(updated)
-        return RememberOutcome("updated", updated)
+        return RememberOutcome("updated", updated, previous=existing)
 
     async def edit(self, memory_id: str, edit: MemoryEdit) -> EditOutcome:
         """Correct the content of an existing memory.
@@ -582,7 +588,7 @@ class CanonicalMemoryService:
             extractor=USER_EDIT_EXTRACTOR,
         )
         await self._store.put(written)
-        return EditOutcome("updated", written)
+        return EditOutcome("updated", written, previous=existing)
 
     async def recall(self, query: MemoryQuery = MemoryQuery()) -> List[Memory]:
         kept = [
