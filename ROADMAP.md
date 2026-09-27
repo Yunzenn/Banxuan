@@ -1,4 +1,4 @@
-# ROADMAP — xuanwearagent / 小智腕上陪伴
+# ROADMAP — Banxuan / 伴星
 
 Plan of record. Kept short on purpose: it exists so the Gate is not forgotten and regressions are caught,
 not as a development phase of its own.
