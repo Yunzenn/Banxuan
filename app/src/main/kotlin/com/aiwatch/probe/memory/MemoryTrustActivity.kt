@@ -1,19 +1,27 @@
 package com.aiwatch.probe.memory
 
 import android.app.Activity
+import android.content.res.ColorStateList
 import android.os.Bundle
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import com.aiwatch.memory.CanonicalMemory
+import com.aiwatch.memory.EditOutcome
 import com.aiwatch.memory.Importance
 import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
+import com.aiwatch.memory.MemoryIdentityConflictException
 import com.aiwatch.memory.MemorySource
 import com.aiwatch.memory.MemoryStatus
 import com.aiwatch.memory.MemoryType
 import com.aiwatch.probe.R
 import com.aiwatch.probe.product.ProductUi
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +68,19 @@ class MemoryTrustActivity : Activity() {
 
     /** The record whose delete is awaiting its second confirmation. Inline, not a dialog. */
     private var pendingDelete: MemoryId? = null
+
+    /** The record currently being edited, and its draft. At most one at a time. */
+    private var editing: MemoryId? = null
+    private var draft: MemoryEditDraft? = null
+
+    /**
+     * The open editor's error line.
+     *
+     * Held as a reference so a failed save can report in place. Re-rendering the list instead would
+     * rebuild every field and throw away exactly the text the user just typed - the only copy of what
+     * she meant - as well as the caret position.
+     */
+    private var editorError: android.widget.TextView? = null
 
     private var memories: List<CanonicalMemory> = emptyList()
     private var busy = false
@@ -171,6 +192,7 @@ class MemoryTrustActivity : Activity() {
 
     private fun renderList() {
         content.removeAllViews()
+        editorError = null
         val visible = memories
             .filter { filter == null || it.status == filter }
             .let(MemoryDisplay::defaultOrder)
@@ -182,6 +204,14 @@ class MemoryTrustActivity : Activity() {
     }
 
     private fun card(memory: CanonicalMemory): View {
+        // Editing replaces the card rather than appending a form underneath it. A staged card already
+        // carries two buttons on one row in a ~185dp content width; a third would repeat the clipping
+        // that the layout regression test exists to catch.
+        val openDraft = draft
+        if (editing == memory.id && openDraft != null) {
+            return editor(memory, openDraft)
+        }
+
         val box = ui.column().apply {
             background = ui.shape(ui.surface)
             setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(12))
@@ -196,7 +226,25 @@ class MemoryTrustActivity : Activity() {
                 append(getString(R.string.memory_importance_high))
             }
         }
-        box.addView(ui.text(eyebrow, 12f, ui.accent))
+        // The edit affordance sits on the eyebrow row, which has spare width, rather than in the action
+        // row, which does not. A rejected memory gets none: the gateway refuses to edit it, and offering
+        // a control that can only fail would be worse than offering nothing.
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        headerRow.addView(ui.text(eyebrow, 12f, ui.accent), LinearLayout.LayoutParams(0, -2, 1f))
+        if (memory.status != MemoryStatus.REJECTED) {
+            headerRow.addView(
+                compact(ui.button(getString(R.string.memory_action_edit)) { beginEdit(memory) }).apply {
+                    setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2))
+                    minHeight = ui.dp(28)
+                    tag = TAG_EDIT + memory.id.value
+                },
+                LinearLayout.LayoutParams(-2, -2),
+            )
+        }
+        box.addView(headerRow)
         box.addView(ui.text(MemoryDisplay.headline(memory), 17f))
 
         if (MemoryDisplay.isUndated(memory)) {
@@ -270,6 +318,181 @@ class MemoryTrustActivity : Activity() {
             MemoryStatus.REJECTED -> Unit
         }
         return row
+    }
+
+    // ---------------------------------------------------------------- editing
+
+    /**
+     * The editor, in place of the card's content and actions.
+     *
+     * Only 取消 and 保存 are offered while editing: leaving confirm/reject/delete on screen next to a
+     * half-typed correction invites the user to act on a record whose content is no longer what she is
+     * looking at.
+     */
+    private fun editor(memory: CanonicalMemory, draft: MemoryEditDraft): View {
+        val box = ui.column().apply {
+            background = ui.shape(ui.surface)
+            setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(12))
+        }
+        box.addView(
+            ui.text(
+                getString(R.string.memory_edit_heading, getString(typeLabel(memory.type))),
+                12f,
+                ui.accent,
+            ),
+        )
+
+        draft.keys.forEach { key ->
+            box.addView(ui.text(getString(fieldLabel(key)), 12f, ui.muted))
+            box.addView(field(draft, key))
+        }
+
+        val error = ui.text("", 12f, ui.accent).apply { visibility = View.GONE }
+        editorError = error
+        box.addView(error)
+
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fun slot(button: Button) {
+            button.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8))
+            row.addView(button, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(4) })
+        }
+        ui.button(getString(android.R.string.cancel)) { cancelEdit() }
+            .also { it.tag = TAG_EDIT_CANCEL + memory.id.value }.let(::slot)
+        ui.button(getString(R.string.product_save), primary = true) { saveEdit(memory) }
+            .also { it.tag = TAG_EDIT_SAVE + memory.id.value }.let(::slot)
+        box.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = ui.dp(8) })
+        return box
+    }
+
+    /**
+     * One text field, writing straight into the draft.
+     *
+     * The draft rather than the view is the source of truth while editing, so a failed save can report
+     * in place without rebuilding anything and losing the caret.
+     */
+    private fun field(draft: MemoryEditDraft, key: String): EditText {
+        val input = EditText(this).apply {
+            setTextColor(ui.ink)
+            setHintTextColor(ui.muted)
+            backgroundTintList = ColorStateList.valueOf(ui.accent)
+            inputType = InputType.TYPE_CLASS_TEXT
+            setSingleLine(true)
+            setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(6))
+            minHeight = ui.dp(44)
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+            tag = TAG_EDIT_FIELD + key
+        }
+        input.setText(draft.text(key))
+        input.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                draft.set(key, s?.toString().orEmpty())
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+        })
+        return input
+    }
+
+    private fun beginEdit(memory: CanonicalMemory) {
+        editing = memory.id
+        draft = MemoryEditDraft(memory)
+        pendingDelete = null
+        feedback.visibility = View.GONE
+        renderList()
+    }
+
+    private fun finishEditing() {
+        editing = null
+        draft = null
+        editorError = null
+    }
+
+    private fun cancelEdit() {
+        // No gateway call of any kind: cancelling must not be able to change anything.
+        finishEditing()
+        renderList()
+    }
+
+    /**
+     * Report a problem without tearing the editor down.
+     *
+     * This is the whole reason editing does not reuse `mutate()`. That path re-reads the gateway and
+     * re-renders on every failure, which would recreate the fields from the draft's last known state -
+     * fine for a conflict, but it also clears the caret, and for any failure it signals "your input is
+     * gone" when the user's typing is the only copy of what she meant.
+     */
+    private fun showEditorError(res: Int) {
+        editorError?.setText(res)
+        editorError?.visibility = View.VISIBLE
+    }
+
+    private fun saveEdit(memory: CanonicalMemory) {
+        val openDraft = draft ?: return
+        val gateway = MemoryGatewayRegistry.resolve() ?: return
+        if (busy) return
+
+        // Input validation is the screen's job and stays out of the gateway contract: an empty required
+        // field or an unparseable time is not a memory-semantics error, and nothing is called for it.
+        val problem = openDraft.problem()
+        if (problem != null) {
+            showEditorError(
+                if (problem == EditProblem.TIME_UNPARSEABLE) {
+                    R.string.memory_edit_time_invalid
+                } else {
+                    R.string.memory_edit_required
+                },
+            )
+            return
+        }
+
+        val edit = openDraft.build(Instant.now())
+        setBusy(true)
+        scope.launch {
+            try {
+                val outcome = withContext(Dispatchers.IO) { gateway.edit(memory.id, edit) }
+                // The gateway is the source of truth, and an identity-moving edit can reorder the list,
+                // so the screen re-reads rather than pushing the draft back into `memories`.
+                memories = withContext(Dispatchers.IO) { gateway.list() }
+                finishEditing()
+                feedback.setText(
+                    if (outcome is EditOutcome.Unchanged) {
+                        R.string.memory_edit_unchanged
+                    } else {
+                        R.string.memory_edit_saved
+                    },
+                )
+                feedback.visibility = View.VISIBLE
+                renderList()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: MemoryIdentityConflictException) {
+                // The gateway wrote nothing, so the editor stays open with the user's text intact and
+                // says why. Refreshing here would delete the only copy of what she meant.
+                showEditorError(R.string.memory_edit_conflict)
+            } catch (_: Exception) {
+                showEditorError(R.string.memory_edit_failed)
+            } finally {
+                setBusy(false)
+            }
+        }
+    }
+
+    private fun fieldLabel(key: String): Int = when (key) {
+        EditField.ATTRIBUTE -> R.string.memory_field_attribute
+        EditField.VALUE -> R.string.memory_field_value
+        EditField.TITLE -> R.string.memory_field_title
+        EditField.SCHEDULED_FOR -> R.string.memory_field_scheduled
+        EditField.LOCATION -> R.string.memory_field_location
+        EditField.SUMMARY -> R.string.memory_field_summary
+        EditField.OCCURRED_AT -> R.string.memory_field_occurred
+        EditField.EMOTIONAL_TONE -> R.string.memory_field_tone
+        EditField.RELATIONS -> R.string.memory_field_relations
+        EditField.NAME -> R.string.memory_field_name
+        EditField.ROLE -> R.string.memory_field_role
+        EditField.NOTE -> R.string.memory_field_note
+        else -> error("unknown edit field '$key'")
     }
 
     // ---------------------------------------------------------------- actions
@@ -391,5 +614,9 @@ class MemoryTrustActivity : Activity() {
         const val TAG_DELETE_CONFIRM = "memory:delete-confirm:"
         const val TAG_DELETE_CANCEL = "memory:delete-cancel:"
         const val TAG_FILTER = "memory:filter"
+        const val TAG_EDIT = "memory:edit:"
+        const val TAG_EDIT_SAVE = "memory:edit-save:"
+        const val TAG_EDIT_CANCEL = "memory:edit-cancel:"
+        const val TAG_EDIT_FIELD = "memory:edit-field:"
     }
 }
