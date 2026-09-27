@@ -34,8 +34,12 @@ dependencies {
     androidTestImplementation("junit:junit:4.13.2")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     androidTestImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
+    // Declared explicitly rather than relying on androidTestImplementation extending implementation:
+    // the memory trust instrumentation test drives the real :core-memory types.
+    androidTestImplementation(project(":core-memory"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation(project(":core-protocol"))
     implementation(project(":core-audio"))
+    implementation(project(":core-memory"))
     // Live2D adapter: official Cubism framework as a Gradle module + local Core AAR. DEV-ONLY (P2B-1A).
 }

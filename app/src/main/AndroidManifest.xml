@@ -13,6 +13,7 @@
         <activity android:name=".DebugSessionActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="false" />
         <activity android:name=".product.SettingsActivity" android:exported="false" />
+        <activity android:name=".memory.MemoryTrustActivity" android:exported="false" />
         <!-- P0-1 launcher: the wrist companion Home. -->
         <activity
             android:name=".home.CompanionActivity"

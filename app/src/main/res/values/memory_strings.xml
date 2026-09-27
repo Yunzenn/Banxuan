@@ -1,0 +1,59 @@
+<resources>
+    <string name="memory_title">我的记忆</string>
+    <string name="memory_filter">筛选</string>
+    <string name="memory_filter_title">显示哪些</string>
+
+    <!-- Unavailable state. The product path has no gateway yet, and it must say so rather than
+         falling back to an in-memory store, which would look like a working memory that forgets
+         everything on restart. -->
+    <string name="memory_unavailable_title">记忆服务尚未连接</string>
+    <string name="memory_unavailable_body">本机还没有连接到记忆服务，因此这里不会显示任何记忆。连接服务器后，这里会列出小智记得的事，你可以查看、确认、忽略或删除。</string>
+    <string name="memory_unavailable_note">本机不保存记忆，也不会用示例数据代替真实记忆。</string>
+
+    <string name="memory_empty">这个分类下还没有记忆。</string>
+    <string name="memory_busy">正在读取…</string>
+    <string name="memory_error">读取记忆失败，请稍后再试。没有做任何修改。</string>
+    <string name="memory_action_error">操作失败，记忆没有改变。</string>
+
+    <string name="memory_filter_all">全部</string>
+    <string name="memory_filter_staged">待确认</string>
+    <string name="memory_filter_confirmed">已记住</string>
+    <string name="memory_filter_rejected">已忽略</string>
+
+    <string name="memory_status_staged">待确认</string>
+    <string name="memory_status_confirmed">已记住</string>
+    <string name="memory_status_rejected">已忽略</string>
+
+    <string name="memory_type_profile">偏好</string>
+    <string name="memory_type_event">事件</string>
+    <string name="memory_type_episode">经历</string>
+    <string name="memory_type_relation">关系</string>
+
+    <!-- reject() keeps a negative signal, so the button must not say 删除. -->
+    <string name="memory_action_confirm">确认</string>
+    <string name="memory_action_ignore">忽略</string>
+    <string name="memory_action_delete">删除</string>
+
+    <string name="memory_confirm_done">已确认。小智会记住这件事。</string>
+    <string name="memory_ignore_done">已忽略。它不会进入对话，但仍可在「已忽略」中查看。</string>
+    <string name="memory_delete_done">已删除。小智不再记得这件事。</string>
+    <string name="memory_delete_confirm">删除后小智不再记得这件事，也无法恢复。确定删除？</string>
+
+    <string name="memory_source">来源：%1$s</string>
+    <string name="memory_source_conversation">对话中发现</string>
+    <string name="memory_source_user_edit">你的修改</string>
+    <string name="memory_source_inferred">小智推断</string>
+    <string name="memory_source_import">导入</string>
+
+    <string name="memory_excerpt">「%1$s」</string>
+    <string name="memory_event_line">%1$s · %2$s</string>
+    <string name="memory_location">地点：%1$s</string>
+    <string name="memory_episode_emotion">情绪：%1$s</string>
+    <string name="memory_episode_relations">相关：%1$s</string>
+    <string name="memory_relation_line">%1$s（%2$s）</string>
+    <string name="memory_importance_high">重要</string>
+    <string name="memory_undated">时间未定</string>
+
+    <string name="memory_entry">我的记忆</string>
+    <string name="memory_entry_hint">看看小智相信什么，并确认、忽略或删除</string>
+</resources>
