@@ -317,6 +317,36 @@ class DefaultMemoryGatewayContractTest {
         assertNull(store.getById(candidate.id), "the superseded candidate should not linger")
     }
 
+    @Test
+    fun `confirming an unchanged proposal preserves the confirmed record and its provenance`() = runTest {
+        val original = assertIs<RememberOutcome.Created>(
+            gateway.remember(profile("food.dislike", "香菜", recordedAt = EARLY, excerpt = "最早那一句")),
+        ).memory
+
+        // Same fact, same content, but a later proposal envelope. An identity comparison would call this a
+        // change, because a ProfileMemory's identity deliberately excludes its value.
+        val candidate = profile(
+            attribute = "food.dislike",
+            value = "香菜",
+            status = MemoryStatus.STAGED,
+            recordedAt = LATE,
+            excerpt = "后来说的同一件事",
+        )
+        gateway.stage(listOf(candidate))
+
+        val confirmed = gateway.confirm(candidate.id)
+
+        assertEquals(original.id, confirmed.id)
+        assertEquals(EARLY, confirmed.recordedAt, "confirming something already true refreshed it")
+        assertEquals(
+            "最早那一句",
+            confirmed.provenance.excerpt,
+            "the original provenance was overwritten by a redundant proposal",
+        )
+        assertNull(store.getById(candidate.id), "the redundant proposal should not linger")
+        assertEquals(1, confirmedProfiles().size)
+    }
+
     // --- the retrievability claim, and only that claim ---
 
     @Test
