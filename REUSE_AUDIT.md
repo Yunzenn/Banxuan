@@ -227,6 +227,28 @@ small talk / the current turn already carries the needed context   -> no rerank
 PROFILE or EVENT query, near-tied candidate scores, or cross-event association   -> Jev Recall
 ```
 
+## AndroidX Room and the official cache samples (2026-09-27)
+
+Checked while building `:core-memory-cache-android`, because "add a cache" is exactly the kind of task
+where a hand-rolled persistence layer gets written by accident.
+
+| Project | Licence | Status | Intended use |
+|---|---|---|---|
+| AndroidX Room (`androidx.room:room-runtime/room-ktx/room-compiler`) | Apache-2.0 | **DIRECT** | The persistence layer itself, via KSP. No custom SQLite wrapper |
+| `android/nowinandroid` — `OfflineFirstNewsRepository`, `NewsResourceDao`, `NiaDatabase` | Apache-2.0 | **ADAPT** | Cache topology: reads come from local storage, the network result is written back, DAO uses `@Upsert`, schema is exported |
+| `android/architecture-components-samples` `NetworkBoundResource` | Apache-2.0 | **REFERENCE** | The classic cache-then-network shape. Repository is archived, so it is read and not imported |
+| `android/architecture-samples` Todo repository | Apache-2.0 | **REJECT (mutation pattern)** | It writes locally and pushes to the network asynchronously, and its own comments say a real app needs more robust sync. That is precisely the offline-mutation model rejected here |
+| `JieRobot/wanyu-ai-android` Room/staging | MIT | **REFERENCE** | Its staging experience is readable, but it lets the client own memory authority, which is the opposite of this architecture |
+
+Where Banxuan is deliberately more conservative than Now in Android: memory is not a news cache. NIA's
+local repository can act as the app's source of truth; here the server stays the canonical authority and
+Room holds only a last-known copy. There is no offline mutation queue, no dirty flag, no retry worker and
+no optimistic local confirm, because "she has stopped believing this" is not a state a product about
+trust may be in before the authority has accepted it.
+
+Room is also used exactly as published - official dependency, KSP, `@Upsert`, exported schema - with no
+custom SQLite layer on top.
+
 ## `stixez/droid-mcp` — device capability layer (2026-09-26)
 
 Candidate for the future **G3 Watch Operator**. Verified by the user directly against the repository

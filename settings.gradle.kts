@@ -15,7 +15,14 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "AIWatchProbe"
-include(":app", ":core-protocol", ":core-audio", ":core-memory", ":core-memory-remote")
+include(
+    ":app",
+    ":core-protocol",
+    ":core-audio",
+    ":core-memory",
+    ":core-memory-remote",
+    ":core-memory-cache-android",
+)
 
 // The Cubism SDK may not be redistributed, so :core-live2d only exists where the SDK does. Test the SDK
 // root itself rather than its parent: a leftover empty third_party/live2d would otherwise include a

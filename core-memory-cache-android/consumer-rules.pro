@@ -1,0 +1,1 @@
+# Room is compiled ahead of time by KSP; no reflective keep rules are required.
