@@ -34,6 +34,11 @@ class CanonicalMemoryIdentityTest {
             "  food.dislike  ",
             "food.dislike。",
             "food. dislike",
+            // Whitespace before the trailing punctuation. Stripping only the punctuation would leave
+            // that space behind and fold this to "food.dislike ", a different identity - a duplicate
+            // memory produced by nothing but a stray space.
+            "food. dislike 。",
+            "  Food. Dislike 。 ",
         )
 
         val keys = variants.map { profile(attribute = it, value = "香菜").identity.key }.toSet()
