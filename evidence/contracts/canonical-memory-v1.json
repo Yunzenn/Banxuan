@@ -1,0 +1,221 @@
+{
+  "contract": "canonical-memory",
+  "version": 1,
+  "description": [
+    "Language-neutral semantic contract for CanonicalMemory. Both the Kotlin executable spec",
+    "(core-memory/DefaultMemoryGateway) and the Python server authority",
+    "(evidence/server/canonical_memory.py) must satisfy every case in this file.",
+    "Only cross-language invariants belong here. Language-specific API shape, exception class",
+    "hierarchies and nullability rules stay in each side's native tests.",
+    "Every id and instant is fixed literal data: no random UUIDs, no current time."
+  ],
+  "errorCodes": [
+    "MEMORY_NOT_FOUND",
+    "MEMORY_NOT_CONFIRMED",
+    "MEMORY_NOT_STAGEABLE",
+    "INVALID_TRANSITION"
+  ],
+  "outcomes": ["created", "updated", "unchanged"],
+  "cases": [
+    {
+      "name": "remember_same_fact_same_content_is_unchanged",
+      "initial": [],
+      "operations": [
+        { "op": "remember", "record": { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "不喜欢香菜" } },
+        { "op": "remember", "record": { "id": "p2", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "又说不喜欢香菜" } }
+      ],
+      "expect": {
+        "outcome": "unchanged",
+        "store": [
+          { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "不喜欢香菜" }
+        ]
+      }
+    },
+    {
+      "name": "remember_correction_updates_in_place_and_keeps_id",
+      "initial": [],
+      "operations": [
+        { "op": "remember", "record": { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "不喜欢香菜" } },
+        { "op": "remember", "record": { "id": "p2", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "现在不爱吃芹菜" } }
+      ],
+      "expect": {
+        "outcome": "updated",
+        "store": [
+          { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "现在不爱吃芹菜" }
+        ]
+      }
+    },
+    {
+      "name": "identity_folds_attribute_padding_but_not_free_text",
+      "initial": [
+        { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" }
+      ],
+      "operations": [
+        { "op": "remember", "record": { "id": "p2", "type": "PROFILE", "status": "CONFIRMED", "attribute": "  food. dislike 。", "value": "香菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "y" } }
+      ],
+      "expect": {
+        "outcome": "unchanged",
+        "store": [
+          { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" }
+        ]
+      }
+    },
+    {
+      "name": "character_scopes_do_not_deduplicate_each_other",
+      "initial": [],
+      "operations": [
+        { "op": "remember", "record": { "id": "a1", "type": "PROFILE", "status": "CONFIRMED", "characterScope": "xiaozhi", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "a" } },
+        { "op": "remember", "record": { "id": "b1", "type": "PROFILE", "status": "CONFIRMED", "characterScope": "other", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "b" } },
+        { "op": "remember", "record": { "id": "a2", "type": "PROFILE", "status": "CONFIRMED", "characterScope": "xiaozhi", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "c" } }
+      ],
+      "expect": {
+        "outcome": "updated",
+        "store": [
+          { "id": "a1", "type": "PROFILE", "status": "CONFIRMED", "characterScope": "xiaozhi", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "c" },
+          { "id": "b1", "type": "PROFILE", "status": "CONFIRMED", "characterScope": "other", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "b" }
+        ]
+      }
+    },
+    {
+      "name": "stage_then_confirm_makes_candidate_visible_to_recall",
+      "initial": [],
+      "operations": [
+        { "op": "stage", "record": { "id": "c1", "type": "PROFILE", "status": "STAGED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "s" } },
+        { "op": "recall", "query": {} },
+        { "op": "confirm", "id": "c1" },
+        { "op": "recall", "query": {} }
+      ],
+      "expect": {
+        "recallBefore": [],
+        "recallAfter": ["c1"],
+        "store": [
+          { "id": "c1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "s" }
+        ]
+      }
+    },
+    {
+      "name": "reject_keeps_candidate_out_of_recall_but_listable",
+      "initial": [],
+      "operations": [
+        { "op": "stage", "record": { "id": "c1", "type": "PROFILE", "status": "STAGED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "s" } },
+        { "op": "reject", "id": "c1" },
+        { "op": "recall", "query": {} },
+        { "op": "list", "statuses": ["REJECTED"] }
+      ],
+      "expect": {
+        "recallAfter": [],
+        "listAfter": ["c1"],
+        "store": [
+          { "id": "c1", "type": "PROFILE", "status": "REJECTED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "s" }
+        ]
+      }
+    },
+    {
+      "name": "confirm_changed_proposal_corrects_confirmed_and_keeps_its_id",
+      "initial": [
+        { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "原句" }
+      ],
+      "operations": [
+        { "op": "stage", "record": { "id": "c1", "type": "PROFILE", "status": "STAGED", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "新句" } },
+        { "op": "confirm", "id": "c1" }
+      ],
+      "expect": {
+        "store": [
+          { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "芹菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "新句" }
+        ]
+      }
+    },
+    {
+      "name": "confirm_unchanged_proposal_preserves_record_and_provenance",
+      "initial": [
+        { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "最早那一句" }
+      ],
+      "operations": [
+        { "op": "stage", "record": { "id": "c1", "type": "PROFILE", "status": "STAGED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-28T10:00:00Z", "excerpt": "后来说的同一件事" } },
+        { "op": "confirm", "id": "c1" }
+      ],
+      "expect": {
+        "store": [
+          { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "最早那一句" }
+        ]
+      }
+    },
+    {
+      "name": "forget_removes_and_second_attempt_is_false",
+      "initial": [
+        { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" }
+      ],
+      "operations": [
+        { "op": "forget", "id": "p1" },
+        { "op": "forget", "id": "p1" },
+        { "op": "recall", "query": {} }
+      ],
+      "expect": {
+        "forgetResults": [true, false],
+        "recallAfter": [],
+        "store": []
+      }
+    },
+    {
+      "name": "recall_window_matches_event_scheduled_time_only",
+      "initial": [
+        { "id": "e1", "type": "EVENT", "status": "CONFIRMED", "title": "取报告", "scheduledFor": "2026-10-01T02:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "a" },
+        { "id": "e2", "type": "EVENT", "status": "CONFIRMED", "title": "复诊", "scheduledFor": "2026-10-05T02:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "b" },
+        { "id": "e3", "type": "EVENT", "status": "CONFIRMED", "title": "买药", "scheduledFor": null, "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "c" },
+        { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "d" }
+      ],
+      "operations": [
+        { "op": "recall", "query": { "from": "2026-10-04T00:00:00Z", "to": "2026-10-06T00:00:00Z" } }
+      ],
+      "expect": {
+        "recallAfter": ["e2"]
+      }
+    },
+    {
+      "name": "event_identity_separates_the_same_title_at_two_times",
+      "initial": [
+        { "id": "e1", "type": "EVENT", "status": "CONFIRMED", "title": "去医院", "scheduledFor": "2026-10-05T07:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "a" }
+      ],
+      "operations": [
+        { "op": "remember", "record": { "id": "e2", "type": "EVENT", "status": "CONFIRMED", "title": "去医院", "scheduledFor": "2026-10-09T07:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "b" } }
+      ],
+      "expect": {
+        "outcome": "created",
+        "store": [
+          { "id": "e1", "type": "EVENT", "status": "CONFIRMED", "title": "去医院", "scheduledFor": "2026-10-05T07:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "a" },
+          { "id": "e2", "type": "EVENT", "status": "CONFIRMED", "title": "去医院", "scheduledFor": "2026-10-09T07:00:00Z", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "b" }
+        ]
+      }
+    },
+    {
+      "name": "confirm_unknown_id_is_memory_not_found",
+      "initial": [],
+      "operations": [{ "op": "confirm", "id": "missing" }],
+      "expect": { "error": "MEMORY_NOT_FOUND" }
+    },
+    {
+      "name": "remember_staged_record_is_memory_not_confirmed",
+      "initial": [],
+      "operations": [
+        { "op": "remember", "record": { "id": "c1", "type": "PROFILE", "status": "STAGED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" } }
+      ],
+      "expect": { "error": "MEMORY_NOT_CONFIRMED", "store": [] }
+    },
+    {
+      "name": "stage_confirmed_record_is_memory_not_stageable",
+      "initial": [],
+      "operations": [
+        { "op": "stage", "record": { "id": "p1", "type": "PROFILE", "status": "CONFIRMED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" } }
+      ],
+      "expect": { "error": "MEMORY_NOT_STAGEABLE", "store": [] }
+    },
+    {
+      "name": "confirm_rejected_record_is_invalid_transition",
+      "initial": [
+        { "id": "c1", "type": "PROFILE", "status": "REJECTED", "attribute": "food.dislike", "value": "香菜", "recordedAt": "2026-09-27T10:00:00Z", "excerpt": "x" }
+      ],
+      "operations": [{ "op": "confirm", "id": "c1" }],
+      "expect": { "error": "INVALID_TRANSITION" }
+    }
+  ]
+}

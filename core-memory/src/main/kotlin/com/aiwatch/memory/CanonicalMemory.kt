@@ -124,7 +124,7 @@ fun normalizeFact(text: String): String =
     text.trim()
         .lowercase()
         .replace(WHITESPACE, " ")
-        .trimEnd(*TRAILING_PUNCTUATION)
+        .replace(TRAILING_NOISE, "")
 
 /**
  * Normalises a dotted attribute path such as `food.dislike`.
@@ -140,7 +140,16 @@ fun normalizeAttributePath(path: String): String =
 
 private val WHITESPACE = Regex("\\s+")
 private val ATTRIBUTE_SEPARATOR_PADDING = Regex("\\s*\\.\\s*")
-private val TRAILING_PUNCTUATION = charArrayOf('.', '。', '．', '!', '！', ',', '，', ';', '；')
+
+/**
+ * A trailing run of whitespace and punctuation, stripped together.
+ *
+ * Stripping punctuation alone leaves the whitespace that preceded it, so `food. dislike 。` would fold to
+ * `food. dislike ` and then to `food.dislike ` - a different identity from `food.dislike`, producing a
+ * duplicate memory out of nothing but a stray space. Found by the shared cross-language contract in
+ * `evidence/contracts/canonical-memory-v1.json`, which is precisely why that file exists.
+ */
+private val TRAILING_NOISE = Regex("[\\s.。．!！,，;；]+$")
 
 /**
  * One typed memory record.
