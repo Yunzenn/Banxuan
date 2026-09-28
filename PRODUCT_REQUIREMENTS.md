@@ -489,3 +489,445 @@ action card 与对话区**抢同一块空间**。
 
 文档与内部讨论改称 **Companion Agent Runtime**／**腕上陪伴智能体**。
 不改 `applicationId` 与包名——那是产品化步骤，不应在开发中途动。
+
+---
+
+## 19. 产品定位与 Context Awareness 定义（2026-09-28 冻结）
+
+### 19.1 一句话定位
+
+> **Banxuan / 伴星是一个长期认识用户、理解用户此刻所处情境，并能通过自然语言直接操作整块 Android 手表的角色型个人 AI Agent。**
+
+内部定位继续使用 **Companion Agent Runtime / 腕上陪伴智能体**。
+
+它不是"手表版 ChatGPT"，也不是"给聊天机器人套一个二次元角色"。价值来自三个用户可感知的能力面：
+
+```text
+Companion   人格、声音、角色存在感、自然交流
+Memory      长期认识用户，记住关系、偏好、事件与过去
+Operator    真正替用户操作这块 Android 手表
+```
+
+在三者之下增加一个**横向基础能力**：
+
+```text
+Context / Awareness
+知道"现在是什么时候、设备是什么状态、用户大概在做什么"
+```
+
+```text
+                         小智 Agent
+                             │
+                      Context / Awareness
+                    当前时间 · 设备 · 活动
+                             │
+             ┌───────────────┼───────────────┐
+             ▼               ▼               ▼
+        Companion          Memory          Operator
+          陪伴              持续性            行动力
+```
+
+**Context 不是第四个 Gate，也不是独立产品面。** 它是 Companion / Memory / Operator 共同使用的感知底座。
+G1 / G2 / G3 定义不变，**不另设 G4**；Context 服务于三个 Gate，并在 G1/G2 稳定后逐渐进入产品路径。
+
+### 19.2 为什么必须是一块手表
+
+"为什么不用手机上的普通 AI App？"——答案不能是"更方便打开 / 能语音聊天 / 二次元好看"，这些都不足以形成长期差异。
+手表真正不可替代的是：
+
+```text
+Persistent Presence      它一直戴在用户身上
+Immediate Context        它离用户的身体、时间、行为与设备状态更近
+Immediate Action         它就是当前需要被操作的设备
+Low-friction Interaction 抬腕、说一句话、得到反馈，不需要拿出另一台设备
+```
+
+因此最终形态不是"用户 → 打开 App → 提问 → 收到回答"，而是：
+
+```text
+时间 / 日历 / 活动 / 设备状态
+             │
+      Context Snapshot
+             │
+      ┌──────┴──────┐
+用户主动说话      有意义的事件
+      └──────┬──────┘
+             ▼
+         小智 Agent ── Memory + Persona ── 判断是否回应
+             │
+    对话 / 提醒 / 操作设备
+```
+
+这才是"角色住在手表里"，而不是"把一个聊天 App 缩小到手腕上"。
+
+### 19.3 产品核心公式
+
+```text
+Companion Agent = Persona + Long-term Memory + Situational Context + Device Agency
+```
+
+```text
+Persona   "她是谁？"
+Memory    "她认识我吗？"
+Context   "她知道我现在大概在干什么吗？"
+Agency    "她能替我做什么？"
+```
+
+任何一个都不能替代其他三个。只有 Persona 是角色聊天机器人；只有 Memory 是有历史记录的聊天机器人；
+只有 Context 是传感器 dashboard；只有 Agency 是语音遥控器。四者结合才是完整产品。
+
+### 19.4 Context 的定义
+
+> **为了让 Agent 正确理解"此时此刻"，而提供的一小组有界、结构化、可解释的当前状态。**
+
+第一版可接受的 `ContextSnapshot`：
+
+```text
+time       localTime · dayOfWeek
+device     batteryLevel · charging · screenInteractive
+activity   foregroundApp? · steps? · coarseMotion?        optional
+schedule   nextCalendarEvent?                             optional
+health     heartRate?                                     optional / hardware-gated
+```
+
+**重点是问号。** Context 必须允许 `sensor unavailable` / `permission denied` / `feature disabled` /
+`ROM does not expose capability`。**不存在的上下文必须保持 absent，不得猜测。**
+
+### 19.5 Context 与 Memory 必须严格分离
+
+```text
+Context = "现在是什么状态"
+Memory  = "她长期相信什么"
+```
+
+```text
+Context: heartRate = 135 bpm          ×→  Memory: "用户心率经常很高"
+Context: foregroundApp = Bilibili
+         localTime = 02:17            ×→  Memory: "用户喜欢熬夜刷 B 站"
+```
+
+从 Context 形成长期 Memory **必须经过独立的 memory extraction / staging 规则**；涉及敏感属性时默认更保守。
+
+```text
+Context Provider → Context Snapshot → Conversation / Agent Decision
+                                            ×  不允许直接写入
+                                            ▼
+                                      CanonicalMemory
+```
+
+CanonicalMemory 仍然只有 server-side authority 能决定。**Context 永远不能成为第二套 memory authority。**
+
+### 19.6 不做 Always-on Microphone
+
+"陪伴"不等于"全天监听"。明确不采用：
+
+```text
+24h microphone capture · continuous ambient speech recording
+continuous cloud ASR · third-party conversation collection
+```
+
+主动陪伴优先使用：时间、日历、屏幕状态、设备状态、App 使用事件、步数、低频运动事件、可选健康读数，
+并且只在有意义变化出现时触发：
+
+```text
+廉价本地事件 → Local Gate → 有必要？
+                             ├─ 否 → 静默
+                             └─ 是 → 上传最小 Context Summary → Agent
+                                                              → NO_ACTION / 回复 / 提醒
+```
+
+模型必须允许 **`NO_ACTION`**。"每次检测到上下文都找用户说话"本身就是产品失败。
+
+### 19.7 Proactive Companion 的正确形态
+
+必须同时满足：
+
+```text
+Relevant         真的和用户当前状态有关
+Sparse           频率克制
+Non-repetitive   避免一天重复提醒同一件事
+Interruptible    用户可以关闭或降低主动频率
+Explainable      用户可以知道"为什么现在提醒我"
+```
+
+典型场景：`14:47` 下一日历事件 `15:00` →"你三点不是还有课吗？"；`22:40` 明天 `07:00` 有重要 EVENT
+→"明早还有那个安排，要不要早点休息？"；刚完成一段运动（真机可靠可获得时）→"刚运动完？缓一会儿再继续吧。"；
+低电量 + 用户要求执行较长任务 →"现在只剩 8% 了，这个任务可能比较耗电。"
+
+**不是**：每 20 分钟强行找一次话题。
+
+### 19.8 数据最小化原则
+
+```text
+collect less · store less · send less · retain less
+```
+
+Raw sensor stream 尽量留在设备侧。服务端优先收到 `walking` 而不是 `10 分钟 × 50 Hz accelerometer raw stream`；
+优先收到 `heart_rate = 88, measuredAt = ...` 而不是长时间连续 PPG；优先收到 `screenInteractive = true`
+而不是持续屏幕录制。**长期保存必须与"临时用于理解当前情境"分开。**
+
+### 19.9 复用审计：Context / Awareness
+
+#### Android platform APIs — DIRECT
+
+第一选择不是第三方框架，而是 Android 自带能力：
+
+```text
+SensorManager · BatteryManager · PowerManager · UsageStatsManager
+BroadcastReceiver · CalendarContract · AlarmManager · PackageManager feature detection
+```
+
+理由：API 28 可用、零额外 runtime、体积最小、行为最容易审计、最符合 CD12Max 的硬件限制。
+
+#### RADAR-base / radar-commons-android — ADAPT（Apache-2.0）
+
+不引入完整 RADAR framework。重点借鉴：
+
+```text
+PhoneUsageManager.kt     UsageStatsManager · 增量 queryEvents · foreground/background event
+                         ACTION_USER_PRESENT · ACTION_SCREEN_OFF · shutdown/boot state
+BatteryLevelReceiver.kt  ACTION_BATTERY_CHANGED
+PhoneSensorManager.kt    SensorManager · sampling interval · sensor availability
+```
+
+特别有价值的是 **保存 `lastTimestamp`，下一次只 query 新增 usage events**，而不是反复扫描全部历史。
+
+```text
+full RADAR dependency      REJECT
+specific collection code   ADAPT
+architecture               REFERENCE
+```
+
+#### Home Assistant Android — ADAPT（Apache-2.0）
+
+轻量 sensor donor，与本项目设计原则高度一致：
+
+```text
+HeartRateSensorManager.kt  FEATURE_SENSOR_HEART_RATE · TYPE_HEART_RATE · BODY_SENSORS
+                           accuracy check · 拿到有效读数后立即 unregisterListener()
+StepsSensorManager.kt      FEATURE_SENSOR_STEP_COUNTER · TYPE_STEP_COUNTER · 单次读取后 unregister
+```
+
+> 不持续采集可以按需取得的信息。
+
+只借采样模式与异常处理，不引入 HA 整个应用架构。`whole HA wearable stack` = REJECT。
+
+历史 issue 也提醒：手表系统不一定按预期及时返回有效心率，因此**必须真机 probe，不能把"API 存在"当成"设备可用"**。
+
+#### AWARE Framework — REFERENCE（Apache-2.0）
+
+已完整解决 hardware/software context、前台服务、采集、数据库、同步、Accessibility-based context，
+但完整 Android stack 过重、工程结构较老、持续运行需要较强后台保活。价值在 **Context source inventory、
+permissions inventory、后台运行失败模式、OEM battery optimization 经验**。`full dependency` = REJECT。
+
+#### RADAR-pRMT — REFERENCE（Apache-2.0）
+
+成熟 passive monitoring architecture（长期运行、插件式 sensor provider、Android 7+），但带 Firebase、
+Kafka / remote configuration、研究数据采集导向，以及大量本产品不需要的模块。不作为 product dependency。
+
+#### Beiwe Android — REFERENCE ONLY（BSD-3-Clause）
+
+成熟的 digital phenotyping 采集器。值得参考：长期后台任务恢复、sensor frequency configuration、
+accelerometer / gyro collection、battery / idle state handling、data minimization by product flavor。
+同时是**重要的反面参考**：background location、ambient audio、大量持续行为采集 —— 技术上可行，
+不代表 Banxuan 应该做。
+
+#### TOM-Client-WearOS — REFERENCE（MIT）
+
+值得借鉴 `Wear sensor → local Room → WebSocket → server` 这条结构。但它 `minSdk 30`，依赖 Wear OS、
+Wear Health Services、Wear Compose、Hilt、WorkManager、Ktor；本项目是 API 28 / Full Android / Native Views。
+`architecture` = REFERENCE，`code / direct dependency` = REJECT。
+
+#### `Cheiineeey/always-here` — REFERENCE ONLY（**许可证矛盾**）
+
+产品思想值得参考：dynamic proactive interval、quiet hours、activity-aware triggering、health-aware tone、
+LLM may choose `NO_ACTION`、anti-repetition。
+
+但仓库存在**许可矛盾**：
+
+```text
+README : MIT
+LICENSE: AGPL-3.0
+```
+
+因此在上游澄清前：`copy code` = **REJECT**，`product idea` = REFERENCE。
+**不得按照 README 的 MIT 声明复制实现。**
+
+#### `OPPO-Mente-Lab/X-OmniClaw` — REFERENCE（Apache-2.0）
+
+最值得学习的是把 Agent runtime 定义为 `Perception → Reasoning → Execution → Verification`，
+并让 UI state、real-world context、speech、scheduled trigger、memory、action 进入同一个 runtime。
+但它的 Android 工程同时使用 Compose、Chaquopy/Python、ONNX Runtime、ML Kit、Retrofit、NanoHTTPD、
+多模态本地推理与大量权限，**不符合 CD12Max 的资源预算**。
+
+```text
+Agent architecture   REFERENCE
+dependency           REJECT
+copy whole runtime   REJECT
+```
+
+未来 G3 的 `observe → decide → act → observe` 设计可继续参考。
+
+#### `stixez/droid-mcp` — 已审计，不重复
+
+沿用既有结论 `REFERENCE / CANDIDATE`。`droid-mcp-core` 会引入 Ktor / Netty / SSE 等运行时成本，
+G1/G2 完成前不进入 production path。它属于 **Operator reuse audit**，
+**不重新包装成 Context framework**。
+
+### 19.10 Context 第一阶段只做 capability probe
+
+**现在禁止直接建设完整 Context subsystem。** 首先在 CD12Max 真机执行 **`C2 Context Capability Probe`**。
+C2 不实现产品能力，只回答事实：
+
+```text
+SensorManager.getSensorList(TYPE_ALL)
+TYPE_HEART_RATE / TYPE_STEP_COUNTER / TYPE_STEP_DETECTOR / TYPE_SIGNIFICANT_MOTION 是否存在
+UsageStats 是否可授权并正确返回
+后台 BroadcastReceiver 行为
+screen on/off/user-present 行为
+Calendar Provider 是否存在
+后台进程实际存活情况
+```
+
+然后测功耗，至少比较 `baseline` → `+ screen/device event only` → `+ step counter` →
+`+ low-frequency motion sampling` → `+ periodic heart-rate request`，记录
+`battery drop/hour · CPU · RSS · wakeups · temperature · background survival`。
+
+**没有真机数字，不宣称"低功耗 Context 可行"。**
+
+### 19.11 Context 第一版建议范围
+
+真机 Gate 通过后，按价值/成本排序：
+
+```text
+Tier 0  time · battery · charging · screen state
+Tier 1  calendar · foreground app / app transition
+Tier 2  step counter · significant motion
+Tier 3  heart rate
+Tier 4  raw accelerometer-derived activity recognition     默认不做
+```
+
+如果 OEM 已提供 step counter / significant motion / heart rate，**就不自己训练 HAR 模型**。
+
+> 有系统传感器语义，就不从原始 accelerometer 重新推断同一个东西。
+
+### 19.12 不允许为了 Context 引入的东西
+
+在真机数据证明必要之前，不引入：
+
+```text
+AWARE full framework · RADAR full framework · Wear Health Services
+Google Activity Recognition dependency · TensorFlow Lite HAR · ONNX HAR
+WorkManager framework dependency · 连续 GPS · continuous microphone · continuous camera
+raw sensor cloud streaming · 新的 vector DB · 新的 state framework
+```
+
+尤其：**"为了判断用户是不是在走路" → 加一个神经网络**，在设备已有 `TYPE_STEP_COUNTER / significant motion`
+时属于重复造轮子。
+
+### 19.13 Context 的本地接口应保持极薄
+
+```text
+ContextProvider   snapshot()
+ContextSnapshot   timestamp · fields
+```
+
+不同来源独立：`DeviceContextProvider` / `UsageContextProvider` / `CalendarContextProvider` /
+`MotionContextProvider` / `HealthContextProvider`。**不存在"大一统 ContextEngine"。**
+
+Aggregator 只负责读取、组合、过期判断、最小化；**不负责**记忆 dedup、人格逻辑、医疗推断、
+Agent planning、tool execution。
+
+### 19.14 Context 的服务器输出必须是结构化摘要
+
+不把大量 raw data 塞进 prompt：
+
+```text
+<context>
+local_time: 22:41
+battery: 31%
+charging: false
+screen: interactive
+activity: recently_active
+steps_today: 6842
+next_event:
+  title: 算法课
+  starts_in: 39m
+</context>
+```
+
+而不是"过去两小时每秒 sensor records"。**Context 必须有 TTL**；过期信息不得继续冒充"现在"。
+
+### 19.15 Context 与主动触发之间必须有 Local Gate
+
+不要每获得一次 Context 就调用 LLM。先用确定规则过滤：
+
+```text
+if quietHours:                          stop
+if userSpokeWithin(10 min):             stop
+if sameReasonNotifiedWithin(2 h):       stop
+if noMeaningfulContextChange:           stop
+otherwise:                              ask Agent
+```
+
+最后 Agent 仍然可以输出 `NO_ACTION`。这样主动陪伴才不会退化成通知骚扰器。
+
+### 19.16 产品隐私姿态
+
+原则不是"知道用户越多越好"，而是：
+
+> **用尽可能少的数据，让角色拥有足够的情境理解。**
+
+默认：`raw sensors local · derived state preferred · health optional · foreground-app awareness optional ·
+location off · camera off · ambient microphone off`。敏感 Context 必须单独授权。
+
+用户必须能看到"她现在可以感知什么"，并随时关闭某一类来源。**关闭后必须是真正停止采集，
+而不是只从 UI 隐藏。**
+
+### 19.17 与普通聊天 AI 的最终区别
+
+普通聊天产品的基础交互模型是"用户来找 AI"；Banxuan 希望建立的是"AI 长期在用户自己的设备里"。
+
+二次元角色不是 moat，语音本身不是 moat，LLM 本身更不是 moat。真正难复制的是：
+
+> **长期关系状态 + 当前情境 + 设备行动能力，在同一个可信任角色中连续存在。**
+
+### 19.18 冻结后的产品定义
+
+以后所有新功能都应该回答：
+
+```text
+它是否让小智更会陪伴？
+它是否让她更了解这个用户？
+它是否让她更理解此刻？
+它是否让她更能替用户做事？
+```
+
+四个问题全部为否 → **不做。**
+
+> **Banxuan / 伴星不是运行在手表上的聊天机器人，而是一个长期认识用户、能够理解当前情境、
+> 以固定角色持续陪伴，并能直接操作其 Android 手表的个人 AI Agent。**
+
+```text
+Voice      让她能交流
+Memory     让她认识你
+Context    让她理解现在
+Operator   让她能行动
+Persona    让以上能力属于"同一个人"
+```
+
+这就是 **Companion Agent Runtime**。
+
+### 19.19 两个执行决策（本轮冻结）
+
+```text
+1. Context 不单独立项。
+   实现 = Android platform APIs DIRECT + RADAR / Home Assistant 小范围 ADAPT。
+   AWARE / RADAR-pRMT / Beiwe / TOM 整套引进 = 过度工程。
+
+2. Context 不插队。
+   先让 (d) 组合同步层收绿、把 remote / cache / UI 真实接起来。
+   Context 现在只作为产品定位与未来硬件 Gate 写入本正本。
+   CD12Max 可连接时，一次 C2 Context Capability Probe 就能决定后面 80% 的方案：
+   若系统已暴露 step counter / heart rate / significant motion，连 HAR 都不必写。
+```

@@ -249,6 +249,42 @@ trust may be in before the authority has accepted it.
 Room is also used exactly as published - official dependency, KSP, `@Upsert`, exported schema - with no
 custom SQLite layer on top.
 
+## Context / Awareness sources (2026-09-28)
+
+Checked before writing any Context code, because "give the agent situational awareness" is exactly the
+kind of goal that turns into adopting a research-grade instrumentation framework.
+
+**The first choice is not a framework at all.** Android's own APIs cover the Tier 0–2 sources, are present
+on API 28, add no runtime, and are the easiest thing to audit:
+
+```text
+SensorManager · BatteryManager · PowerManager · UsageStatsManager
+BroadcastReceiver · CalendarContract · AlarmManager · PackageManager feature detection
+```
+
+| Project | Licence | Status | Intended use |
+|---|---|---|---|
+| Android platform APIs | — | **DIRECT** | Everything at Tier 0–2. No third-party instrumentation framework |
+| `RADAR-base/radar-commons-android` | Apache-2.0 | **ADAPT** | `PhoneUsageManager`'s incremental `queryEvents` with a saved `lastTimestamp` rather than rescanning history; battery receiver; sensor availability handling |
+| `home-assistant/android` | Apache-2.0 | **ADAPT** | `HeartRateSensorManager` / `StepsSensorManager`: read a `TYPE_HEART_RATE` or `TYPE_STEP_COUNTER` value and **unregister immediately**. Sampling pattern only |
+| `AWARE Framework` | Apache-2.0 | **REFERENCE** | Context source and permission inventory; background-run failure modes; OEM battery-optimisation experience. Whole stack rejected as too heavy |
+| `RADAR-base/RADAR-pRMT` | Apache-2.0 | **REFERENCE** | Long-running passive-monitoring architecture. Carries Firebase, remote configuration and a research pipeline this product does not need |
+| `beiwe/beiwe-android` | BSD-3-Clause | **REFERENCE ONLY** | Background-task recovery and frequency configuration. Also the **anti-pattern reference**: background location, ambient audio and continuous behaviour collection are technically possible and explicitly not what this product does |
+| `TOM-Client-WearOS` | MIT | **REFERENCE** | The `sensor → local Room → WebSocket → server` shape. `minSdk 30` plus Wear OS / Wear Health Services / Compose / Hilt / WorkManager / Ktor, against API 28 Full Android with native Views |
+| `Cheiineeey/always-here` | **README says MIT, LICENSE is AGPL-3.0** | **REFERENCE ONLY** | Proactive interval, quiet hours, activity-aware triggering, `NO_ACTION`, anti-repetition. **No code may be copied until upstream reconciles the licence** — the README's MIT claim is not the repository's licence |
+| `OPPO-Mente-Lab/X-OmniClaw` | Apache-2.0 | **REFERENCE** | `Perception → Reasoning → Execution → Verification` as one Agent runtime. Its Android side ships Compose, Chaquopy/Python, ONNX Runtime, ML Kit, Retrofit and NanoHTTPD, which is far outside this device's budget |
+
+Two things this audit settles, both recorded in `PRODUCT_REQUIREMENTS.md` §19:
+
+* **Context does not become its own project.** Platform APIs direct, plus small ADAPT from RADAR and Home
+  Assistant. Pulling in AWARE, RADAR-pRMT, Beiwe or TOM wholesale would be over-engineering.
+* **No HAR model.** If the device already exposes a step counter, significant motion or heart rate, deriving
+  "is the user walking" from raw accelerometer data would be rebuilding something the system already
+  provides. Tier 4 is off by default until a real device says otherwise.
+
+The licence discrepancy on `always-here` is the second time a README and a LICENSE file have disagreed in
+this audit; the LICENSE file governs, and an unverified licence is written as unverified.
+
 ## `stixez/droid-mcp` — device capability layer (2026-09-26)
 
 Candidate for the future **G3 Watch Operator**. Verified by the user directly against the repository
