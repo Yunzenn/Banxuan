@@ -66,7 +66,12 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: JVM tests
-        run: ./gradlew :core-protocol:test :core-audio:test :core-memory:test --console=plain
+        run: |
+          ./gradlew :core-protocol:test :core-audio:test :core-memory:test --console=plain
+          # The composition layer is pure logic over two interfaces, so it runs here rather than only on
+          # an emulator. What it enforces is ordering - remote first, cache second, nothing written when
+          # the authority refuses - which is worth checking on every change.
+          ./gradlew :app:testDebugUnitTest --console=plain
 
       # The shared canonical-memory contract is enforced on both sides, and both sides run in
       # this gate: the Kotlin conformance runner is inside :core-memory:test above, and the
