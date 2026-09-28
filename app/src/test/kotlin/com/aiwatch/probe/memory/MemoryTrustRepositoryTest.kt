@@ -30,8 +30,6 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
 /**
@@ -73,7 +71,7 @@ class MemoryTrustRepositoryTest {
         val emitted = mutableListOf<MemoryTrustSnapshot>()
 
         val collector = launch { repository().snapshots().collect { emitted += it } }
-        advanceUntilIdle()
+        testScheduler.advanceUntilIdle()
 
         assertEquals(1, emitted.size, "the cached view must be rendered before the remote call returns")
         assertEquals(
@@ -269,10 +267,11 @@ class MemoryTrustRepositoryTest {
     // ---------------------------------------------------------------- ordering
 
     @Test
-    fun aMutationCannotOverwriteANewerRefreshProjection() = runTest {
-        // The race this prevents: a refresh reads the old set, a confirm succeeds, then the refresh
-        // finishes and replaces the cache with the stale projection - leaving the screen showing a
-        // candidate as staged while the authority already holds it as confirmed.
+    fun refreshAndMutationAreSerializedSoTheNewerMutationWins() = runTest {
+        // What this pins is serialisation and ordering, not one literal interleaving. Without the lock a
+        // refresh that read the old set could finish after a mutation and replace the cache with the
+        // stale projection, leaving the screen showing a candidate as staged while the authority already
+        // holds it as confirmed.
         val gate = CompletableDeferred<Unit>()
         gateway.blockList = gate
         gateway.records = listOf(profile("m1", MemoryStatus.STAGED))
@@ -280,10 +279,10 @@ class MemoryTrustRepositoryTest {
         val repo = repository()
 
         val refreshing = launch { repo.refresh() }
-        runCurrent()
+        testScheduler.runCurrent()
 
         val confirming = launch { repo.confirm(MemoryId("m1")) }
-        runCurrent()
+        testScheduler.runCurrent()
 
         assertTrue(
             gateway.calls.none { it == "confirm" },
@@ -293,11 +292,18 @@ class MemoryTrustRepositoryTest {
         gate.complete(Unit)
         // runCurrent rather than join: draining the scheduler keeps this deterministic, and asserting
         // completion instead of joining cannot hang the test if something never resumes.
-        runCurrent()
+        testScheduler.runCurrent()
 
         assertTrue(refreshing.isCompleted, "the refresh did not finish")
         assertTrue(confirming.isCompleted, "the mutation did not finish")
-        assertEquals(listOf("list", "confirm", "cache:upsert"), journal)
+        // cache:replace is necessarily between them: the refresh projects the old full snapshot into the
+        // cache before it releases the lock, and only then does the mutation reach the authority. That
+        // ordering is the whole point - the mutation's projection is the one that survives.
+        assertEquals(
+            listOf("list", "cache:replace", "confirm", "cache:upsert"),
+            journal,
+            "the refresh must finish its cache projection before the mutation reaches the authority",
+        )
         assertEquals(MemoryStatus.CONFIRMED, cache.stored(SUBJECT).single().status)
     }
 
