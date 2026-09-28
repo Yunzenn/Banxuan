@@ -93,7 +93,7 @@ data class MutationResult<T>(val value: T, val cacheUpdated: Boolean)
  * exist - the remote authority and a local last-known copy - and its own logic is limited to ordering
  * and freshness.
  *
- * Two rules it does enforce:
+ * Two rules it does enforce, and one invariant its callers must hold:
  *
  * * **Remote first.** A mutation reaches the authority before anything is written locally, and any
  *   remote failure leaves the cache untouched. There is no optimistic local confirm, no dirty flag and
@@ -103,6 +103,27 @@ data class MutationResult<T>(val value: T, val cacheUpdated: Boolean)
  *   finish after a mutation and overwrite the newer projection, leaving the cache showing a candidate
  *   as staged while the authority already holds it as confirmed. That would not change the authority,
  *   but it would make this screen show a wrong answer about what she believes.
+ *
+ * ### Composition owner invariant (frozen; enforced at production wiring)
+ *
+ * ```text
+ * For one authenticated subject, every remote -> cache memory projection performed by the trust UI
+ * must go through one long-lived MemoryTrustRepository instance owned by the production composition
+ * scope. The Activity must not construct a repository per refresh or per mutation.
+ * ```
+ *
+ * The [Mutex] above serialises operations **within one instance**. It cannot serialise two instances, so
+ * a per-action repository would silently reintroduce the ordering race this class exists to close - and
+ * would do it while every test still passed, because tests hold a single instance.
+ *
+ * The owner may be the composition root of the Activity's own lifetime, or a genuinely higher scope if
+ * one exists later. **No manager, coordinator or service-locator layer is introduced for this.** All
+ * that is required is that the same subject's trust surface receives the same instance for its lifetime.
+ *
+ * This is a statement about wiring, not behaviour, so it has no test here: with no production wiring yet,
+ * a guard would only prove that nobody has made the mistake so far. It is enforced when the Activity is
+ * wired, by showing that one lifetime's refresh/confirm/reject/edit/forget share an instance and that no
+ * action handler constructs one.
  */
 class MemoryTrustRepository(
     private val subjectId: String,
