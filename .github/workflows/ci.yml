@@ -66,7 +66,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: JVM tests
-        run: ./gradlew :core-protocol:test :core-audio:test :core-memory:test --console=plain
+        run: ./gradlew :core-protocol:test :core-audio:test :core-memory:test :core-memory-remote:test --console=plain
 
       # The shared canonical-memory contract is enforced on both sides, and both sides run in
       # this gate: the Kotlin conformance runner is inside :core-memory:test above, and the
