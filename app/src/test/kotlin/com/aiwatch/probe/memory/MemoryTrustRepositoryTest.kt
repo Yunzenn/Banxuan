@@ -31,6 +31,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
 /**
@@ -279,10 +280,10 @@ class MemoryTrustRepositoryTest {
         val repo = repository()
 
         val refreshing = launch { repo.refresh() }
-        advanceUntilIdle()
+        runCurrent()
 
         val confirming = launch { repo.confirm(MemoryId("m1")) }
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(
             gateway.calls.none { it == "confirm" },
@@ -290,9 +291,12 @@ class MemoryTrustRepositoryTest {
         )
 
         gate.complete(Unit)
-        refreshing.join()
-        confirming.join()
+        // runCurrent rather than join: draining the scheduler keeps this deterministic, and asserting
+        // completion instead of joining cannot hang the test if something never resumes.
+        runCurrent()
 
+        assertTrue(refreshing.isCompleted, "the refresh did not finish")
+        assertTrue(confirming.isCompleted, "the mutation did not finish")
         assertEquals(listOf("list", "confirm", "cache:upsert"), journal)
         assertEquals(MemoryStatus.CONFIRMED, cache.stored(SUBJECT).single().status)
     }
@@ -329,7 +333,10 @@ class MemoryTrustRepositoryTest {
     @Test
     fun aCancelledCacheReadPropagates() = runTest {
         // `runCatching` would swallow this and let work continue after the coroutine that owned it is
-        // gone, which breaks structured concurrency in the one class whose job is ordering.
+        // gone, which breaks structured concurrency in the one class whose job is ordering. The gateway
+        // must fail first: only the fallback path reads the cache, so a successful refresh never
+        // exercises this.
+        gateway.failList = true
         cache.cancelOnRead = true
 
         assertFailsWith<CancellationException> { repository().refresh() }
