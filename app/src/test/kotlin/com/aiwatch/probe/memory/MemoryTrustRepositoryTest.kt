@@ -4,7 +4,6 @@ import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.CharacterScope
 import com.aiwatch.memory.EditOutcome
 import com.aiwatch.memory.Importance
-import com.aiwatch.memory.MemoryCache
 import com.aiwatch.memory.MemoryEdit
 import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
@@ -19,6 +18,7 @@ import com.aiwatch.memory.Provenance
 import com.aiwatch.memory.RememberOutcome
 import com.aiwatch.memory.ScopedMemoryIdentity
 import com.aiwatch.memory.cache.CachedMemorySnapshot
+import com.aiwatch.memory.cache.MemoryCache
 import java.io.IOException
 import java.time.Instant
 import kotlin.test.Test
@@ -27,6 +27,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -74,7 +75,11 @@ class MemoryTrustRepositoryTest {
         advanceUntilIdle()
 
         assertEquals(1, emitted.size, "the cached view must be rendered before the remote call returns")
-        assertEquals(Freshness.STALE, emitted[0].freshness)
+        assertEquals(
+            Freshness.CACHED,
+            emitted[0].freshness,
+            "before the refresh concludes there is nothing to report as failed",
+        )
         assertEquals(SYNCED_AT, emitted[0].lastFullSyncAt, "the screen must be able to say how old this is")
         assertEquals(listOf("m1"), emitted[0].records.map { it.id.value })
 
@@ -292,6 +297,60 @@ class MemoryTrustRepositoryTest {
         assertEquals(MemoryStatus.CONFIRMED, cache.stored(SUBJECT).single().status)
     }
 
+    @Test
+    fun aFailedRefreshTurnsTheCachedViewStale() = runTest {
+        cache.seed(SUBJECT, listOf(profile("m1")), SYNCED_AT)
+        gateway.failList = true
+        val emitted = mutableListOf<MemoryTrustSnapshot>()
+
+        repository().snapshots().collect { emitted += it }
+
+        // CACHED first, STALE once the refresh has actually concluded and failed. Labelling the first
+        // frame STALE would put "offline" on screen on every ordinary launch.
+        assertEquals(listOf(Freshness.CACHED, Freshness.STALE), emitted.map { it.freshness })
+        assertEquals(SYNCED_AT, emitted.last().lastFullSyncAt)
+    }
+
+    @Test
+    fun aSuccessfulRefreshReplacesTheCachedViewWithFreshRecords() = runTest {
+        cache.seed(SUBJECT, listOf(profile("old")), SYNCED_AT)
+        gateway.records = listOf(profile("new"))
+        val emitted = mutableListOf<MemoryTrustSnapshot>()
+
+        repository().snapshots().collect { emitted += it }
+
+        assertEquals(listOf(Freshness.CACHED, Freshness.FRESH), emitted.map { it.freshness })
+        assertEquals(listOf("old"), emitted.first().records.map { it.id.value })
+        assertEquals(listOf("new"), emitted.last().records.map { it.id.value })
+    }
+
+    // ---------------------------------------------------------------- cancellation is not swallowed
+
+    @Test
+    fun aCancelledCacheReadPropagates() = runTest {
+        // `runCatching` would swallow this and let work continue after the coroutine that owned it is
+        // gone, which breaks structured concurrency in the one class whose job is ordering.
+        cache.cancelOnRead = true
+
+        assertFailsWith<CancellationException> { repository().refresh() }
+    }
+
+    @Test
+    fun aCancelledCacheReplacePropagates() = runTest {
+        gateway.records = listOf(profile("m1"))
+        cache.cancelOnWrite = true
+
+        assertFailsWith<CancellationException> { repository().refresh() }
+    }
+
+    @Test
+    fun aCancelledMutationCacheWritePropagates() = runTest {
+        gateway.confirmResult = profile("m1", MemoryStatus.CONFIRMED)
+        cache.cancelOnWrite = true
+
+        assertFailsWith<CancellationException> { repository().confirm(MemoryId("m1")) }
+    }
+
     // ---------------------------------------------------------------- fakes
 
     private class FakeGateway(private val journal: MutableList<String>) : MemoryGateway {
@@ -361,6 +420,8 @@ class MemoryTrustRepositoryTest {
         val writes = mutableListOf<String>()
         var replaced = mutableListOf<String>()
         var failWrites = false
+        var cancelOnRead = false
+        var cancelOnWrite = false
 
         fun seed(subjectId: String, records: List<CanonicalMemory>, syncedAt: Instant) {
             bySubject[subjectId] = records.toMutableList()
@@ -370,10 +431,10 @@ class MemoryTrustRepositoryTest {
         fun stored(subjectId: String): List<CanonicalMemory> = bySubject[subjectId].orEmpty()
         fun lastFullSyncAt(subjectId: String): Instant? = syncAt[subjectId]
 
-        override suspend fun snapshot(subjectId: String): CachedMemorySnapshot = CachedMemorySnapshot(
-            records = stored(subjectId),
-            lastFullSyncAt = syncAt[subjectId],
-        )
+        override suspend fun snapshot(subjectId: String): CachedMemorySnapshot {
+            if (cancelOnRead) throw CancellationException("screen went away")
+            return CachedMemorySnapshot(records = stored(subjectId), lastFullSyncAt = syncAt[subjectId])
+        }
 
         override suspend fun replaceFullSnapshot(
             subjectId: String,
@@ -382,6 +443,7 @@ class MemoryTrustRepositoryTest {
         ) {
             journal += "cache:replace"
             writes += "replace"
+            if (cancelOnWrite) throw CancellationException("screen went away")
             if (failWrites) throw IllegalStateException("disk full")
             replaced += "cached_memory"
             bySubject[subjectId] = records.toMutableList()
@@ -391,6 +453,7 @@ class MemoryTrustRepositoryTest {
         override suspend fun upsert(subjectId: String, records: List<CanonicalMemory>) {
             journal += "cache:upsert"
             writes += "upsert"
+            if (cancelOnWrite) throw CancellationException("screen went away")
             if (failWrites) throw IllegalStateException("disk full")
             val bucket = bySubject.getOrPut(subjectId) { mutableListOf() }
             records.forEach { record ->
@@ -402,6 +465,7 @@ class MemoryTrustRepositoryTest {
         override suspend fun delete(subjectId: String, id: MemoryId) {
             journal += "cache:delete"
             writes += "delete"
+            if (cancelOnWrite) throw CancellationException("screen went away")
             if (failWrites) throw IllegalStateException("disk full")
             bySubject[subjectId]?.removeAll { it.id == id }
         }

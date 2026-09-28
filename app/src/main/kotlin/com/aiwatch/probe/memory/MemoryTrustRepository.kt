@@ -2,11 +2,11 @@ package com.aiwatch.probe.memory
 
 import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.EditOutcome
-import com.aiwatch.memory.MemoryCache
 import com.aiwatch.memory.MemoryEdit
 import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
 import com.aiwatch.memory.MemoryStatus
+import com.aiwatch.memory.cache.MemoryCache
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -14,19 +14,30 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** How current the records in a [MemoryTrustSnapshot] are. */
+/**
+ * How current the records in a [MemoryTrustSnapshot] are.
+ *
+ * [CACHED] and [STALE] are separate states, and conflating them would put a false statement on screen on
+ * every ordinary launch: a cache-first read happens *before* the network has had a chance to fail, so
+ * labelling that frame "offline" would show "当前离线，显示上次同步内容" even when the refresh is about to
+ * succeed. The screen must be able to tell "this is a cache, a refresh is in flight" apart from "the
+ * refresh already failed and this is all there is".
+ */
 enum class Freshness {
     /** No gateway is configured at all. Distinct from a failed connection. */
     UNAVAILABLE,
 
+    /** Rendered from the cache; no refresh has concluded yet. Not a claim that anything is wrong. */
+    CACHED,
+
     /** Read from the authority just now. */
     FRESH,
 
-    /** Read from the cache because the authority could not be reached, and it has been synced before. */
+    /** The refresh has concluded and failed, and this device has synced before. Now genuinely offline. */
     STALE,
 
     /**
-     * The authority could not be reached and this device has never completed a full sync.
+     * The refresh failed and this device has never completed a full sync.
      *
      * Deliberately distinct from an empty result: "we have never reached the memory service" and "she
      * knows nothing about you" are different statements, and only one of them is true here.
@@ -56,6 +67,20 @@ data class MemoryTrustSnapshot(
  * cache then failed. That is **not** an operation failure, and the screen must not report it as one:
  * saying "confirm failed" after the authority confirmed would be a lie told on a trust surface. The
  * honest message is that the change took effect and the local copy will catch up at the next sync.
+ *
+ * **A thrown failure is not automatically "the authority refused" either.** The exception's type says
+ * which:
+ *
+ * * a canonical typed rejection (`MemoryIdentityConflictException`, `MemoryTransitionException`,
+ *   `MemoryNotFoundException`, ...) is a definite refusal - the authority answered and did not accept;
+ * * `com.aiwatch.memory.remote.MemoryTransportException` is *indeterminate*. A `POST /confirm` whose
+ *   response is lost after the server committed leaves the operation applied and the client uninformed,
+ *   so the screen may not say "确认失败". The honest message is that it could not be confirmed whether
+ *   the change took effect, followed by a reconciliation through a plain `refresh()` - never a retried
+ *   mutation, for the same reason the transport disables automatic retries.
+ *
+ * The cache is not written in either case, which is correct for both: it holds what the authority is
+ * known to hold, and an indeterminate outcome is not knowledge.
  */
 data class MutationResult<T>(val value: T, val cacheUpdated: Boolean)
 
@@ -91,11 +116,12 @@ class MemoryTrustRepository(
     /**
      * The cache first, then a refresh.
      *
-     * The first emission is what makes the screen useful before the network answers; the second is the
-     * authority's answer, written back so the next cold start has something to show.
+     * The first emission is [Freshness.CACHED] rather than [Freshness.STALE]: no refresh has concluded,
+     * so there is nothing to report as failed yet. It carries `lastFullSyncAt` so the screen can say how
+     * old it is without claiming to be offline.
      */
     fun snapshots(): Flow<MemoryTrustSnapshot> = flow {
-        cachedSnapshot()?.let { emit(it) }
+        cachedSnapshot(Freshness.CACHED)?.let { emit(it) }
         emit(refresh())
     }
 
@@ -115,12 +141,12 @@ class MemoryTrustRepository(
             )
             val syncedAt = clock()
             // A cache write that fails does not make the authority's answer wrong.
-            runCatching { cache?.replaceFullSnapshot(subjectId, records, syncedAt) }
+            writeToCache { cache?.replaceFullSnapshot(subjectId, records, syncedAt) }
             MemoryTrustSnapshot(records, syncedAt, Freshness.FRESH)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            cachedSnapshot() ?: neverSynced()
+            cachedSnapshot(Freshness.STALE) ?: neverSynced()
         }
     }
 
@@ -157,9 +183,7 @@ class MemoryTrustRepository(
     suspend fun forget(id: MemoryId): MutationResult<Boolean> = mutex.withLock {
         val gateway = requireGateway()
         val deleted = gateway.forget(id)
-        val updated = cache?.let { c ->
-            runCatching { c.delete(subjectId, id) }.isSuccess
-        } ?: true
+        val updated = cache?.let { c -> writeToCache { c.delete(subjectId, id) } } ?: true
         MutationResult(deleted, updated)
     }
 
@@ -182,18 +206,17 @@ class MemoryTrustRepository(
 
     private suspend fun upsertReturned(memory: CanonicalMemory): Boolean {
         val cache = cache ?: return true
-        return runCatching { cache.upsert(subjectId, listOf(memory)) }.isSuccess
+        return writeToCache { cache.upsert(subjectId, listOf(memory)) }
     }
 
     // ---------------------------------------------------------------- reading
 
-    private suspend fun cachedSnapshot(): MemoryTrustSnapshot? {
-        val cache = cache ?: return null
-        val snapshot = runCatching { cache.snapshot(subjectId) }.getOrNull() ?: return null
+    private suspend fun cachedSnapshot(freshness: Freshness): MemoryTrustSnapshot? {
+        val snapshot = readCache { cache?.snapshot(subjectId) } ?: return null
         // Nothing has ever been synced and nothing is stored: there is nothing to show and no age to
         // report, so this is not a cached view at all.
         if (snapshot.lastFullSyncAt == null && snapshot.records.isEmpty()) return null
-        return MemoryTrustSnapshot(snapshot.records, snapshot.lastFullSyncAt, Freshness.STALE)
+        return MemoryTrustSnapshot(snapshot.records, snapshot.lastFullSyncAt, freshness)
     }
 
     private fun unavailable() = MemoryTrustSnapshot(emptyList(), null, Freshness.UNAVAILABLE)
@@ -204,4 +227,31 @@ class MemoryTrustRepository(
         gateway ?: throw IllegalStateException(
             "no memory gateway is configured; the screen must not offer mutations in this state",
         )
+
+    // ---------------------------------------------------------------- cache access
+
+    /**
+     * A cache write whose failure is not an authority failure.
+     *
+     * `CancellationException` is rethrown rather than caught. Kotlin's `runCatching` swallows it, which
+     * would mean a cancelled screen keeps running Room work after the coroutine it belonged to is gone -
+     * breaking structured concurrency, and doing it in a class whose whole job is ordering.
+     */
+    private suspend fun writeToCache(block: suspend () -> Unit): Boolean = try {
+        block()
+        true
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        false
+    }
+
+    /** A cache read whose failure is not a reason to fabricate anything; null means "nothing to show". */
+    private suspend fun <T> readCache(block: suspend () -> T?): T? = try {
+        block()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        null
+    }
 }
