@@ -1,5 +1,6 @@
 package com.aiwatch.memory.cache
 
+import androidx.room.withTransaction
 import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.CharacterScope
 import com.aiwatch.memory.Importance
@@ -24,10 +25,25 @@ class RoomMemoryCache(private val database: MemoryCacheDatabase) : MemoryCache {
 
     private val dao = database.memoryCacheDao()
 
-    override suspend fun snapshot(subjectId: String): CachedMemorySnapshot = CachedMemorySnapshot(
-        records = dao.records(subjectId).map { it.toMemory() },
-        lastFullSyncAt = dao.lastFullSyncAt(subjectId)?.let(Instant::parse),
-    )
+    /**
+     * One read, not two.
+     *
+     * Both queries run inside a single `withTransaction`, because reading them separately is not the same
+     * thing even though the writer is atomic: a reader can take the records before a
+     * `replaceFullSnapshot` commits and the timestamp after it, and then hand the caller yesterday's
+     * records labelled with the current sync time. On the trust surface that is the false claim the
+     * freshness field exists to prevent.
+     *
+     * Room-KTX's `withTransaction` rather than a DAO method returning a wrapper type: a public DAO
+     * function cannot expose an internal row type, and making that type public would widen this module's
+     * API for no reason. The transaction is the same either way.
+     */
+    override suspend fun snapshot(subjectId: String): CachedMemorySnapshot = database.withTransaction {
+        CachedMemorySnapshot(
+            records = dao.records(subjectId).map { it.toMemory() },
+            lastFullSyncAt = dao.lastFullSyncAt(subjectId)?.let(Instant::parse),
+        )
+    }
 
     override suspend fun replaceFullSnapshot(
         subjectId: String,
