@@ -70,12 +70,6 @@ data class MemoryCacheMetaEntity(
     val lastFullSyncAt: String,
 )
 
-/** Both halves of one subject's cache, read together. See [MemoryCacheDao.snapshot]. */
-internal data class CachedSubjectRows(
-    val records: List<CachedMemoryEntity>,
-    val lastFullSyncAt: String?,
-)
-
 @Dao
 abstract class MemoryCacheDao {
 
@@ -112,22 +106,6 @@ abstract class MemoryCacheDao {
         upsert(records)
         putMeta(MemoryCacheMetaEntity(subjectId = subjectId, lastFullSyncAt = syncedAt))
     }
-
-    /**
-     * The records and the freshness, read in **one** transaction.
-     *
-     * Reading them as two separate queries is not the same thing, even though the writer is atomic. A
-     * reader can take the records before a [replaceSubject] commits and the timestamp after it, and then
-     * report yesterday's records as having just been synced - which is precisely the false claim the
-     * freshness field exists to prevent, on the screen where trust is the whole point.
-     *
-     * Room runs both queries inside this transaction, so the pair always comes from the same commit.
-     */
-    @Transaction
-    open suspend fun snapshot(subjectId: String): CachedSubjectRows = CachedSubjectRows(
-        records = records(subjectId),
-        lastFullSyncAt = lastFullSyncAt(subjectId),
-    )
 
     @Transaction
     open suspend fun clearSubject(subjectId: String) {
