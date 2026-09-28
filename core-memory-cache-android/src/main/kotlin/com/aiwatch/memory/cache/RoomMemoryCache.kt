@@ -24,10 +24,21 @@ class RoomMemoryCache(private val database: MemoryCacheDatabase) : MemoryCache {
 
     private val dao = database.memoryCacheDao()
 
-    override suspend fun snapshot(subjectId: String): CachedMemorySnapshot = CachedMemorySnapshot(
-        records = dao.records(subjectId).map { it.toMemory() },
-        lastFullSyncAt = dao.lastFullSyncAt(subjectId)?.let(Instant::parse),
-    )
+    /**
+     * One read, not two.
+     *
+     * `dao.snapshot` takes the records and the freshness inside a single Room transaction. Calling
+     * `records()` and `lastFullSyncAt()` separately would let a `replaceFullSnapshot` commit between
+     * them, and the caller would receive the previous records labelled with the new sync time - telling
+     * the user that yesterday's memories had just been synced.
+     */
+    override suspend fun snapshot(subjectId: String): CachedMemorySnapshot {
+        val rows = dao.snapshot(subjectId)
+        return CachedMemorySnapshot(
+            records = rows.records.map { it.toMemory() },
+            lastFullSyncAt = rows.lastFullSyncAt?.let(Instant::parse),
+        )
+    }
 
     override suspend fun replaceFullSnapshot(
         subjectId: String,
