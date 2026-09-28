@@ -1,0 +1,207 @@
+package com.aiwatch.probe.memory
+
+import com.aiwatch.memory.CanonicalMemory
+import com.aiwatch.memory.EditOutcome
+import com.aiwatch.memory.MemoryCache
+import com.aiwatch.memory.MemoryEdit
+import com.aiwatch.memory.MemoryGateway
+import com.aiwatch.memory.MemoryId
+import com.aiwatch.memory.MemoryStatus
+import java.time.Instant
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/** How current the records in a [MemoryTrustSnapshot] are. */
+enum class Freshness {
+    /** No gateway is configured at all. Distinct from a failed connection. */
+    UNAVAILABLE,
+
+    /** Read from the authority just now. */
+    FRESH,
+
+    /** Read from the cache because the authority could not be reached, and it has been synced before. */
+    STALE,
+
+    /**
+     * The authority could not be reached and this device has never completed a full sync.
+     *
+     * Deliberately distinct from an empty result: "we have never reached the memory service" and "she
+     * knows nothing about you" are different statements, and only one of them is true here.
+     */
+    NEVER_SYNCED,
+}
+
+/**
+ * What the trust surface renders: the records, and how old they are.
+ *
+ * [lastFullSyncAt] travels with the records so the screen cannot show one without the other, which is
+ * what a silent offline fallback would do.
+ */
+data class MemoryTrustSnapshot(
+    val records: List<CanonicalMemory>,
+    val lastFullSyncAt: Instant?,
+    val freshness: Freshness,
+) {
+    /** True when the screen must say that it is showing an older state. */
+    val isStale: Boolean get() = freshness == Freshness.STALE
+}
+
+/**
+ * The outcome of a mutation that the authority has already accepted.
+ *
+ * [cacheUpdated] is `false` only when the authority accepted the change and writing it to the local
+ * cache then failed. That is **not** an operation failure, and the screen must not report it as one:
+ * saying "confirm failed" after the authority confirmed would be a lie told on a trust surface. The
+ * honest message is that the change took effect and the local copy will catch up at the next sync.
+ */
+data class MutationResult<T>(val value: T, val cacheUpdated: Boolean)
+
+/**
+ * The data layer for "我的记忆".
+ *
+ * **This is not a memory service.** It does not implement [MemoryGateway] and must not: the authority
+ * decides what a memory means, and a repository that re-derived de-duplication, lifecycle or
+ * identity rules would move those decisions back onto the watch. It composes two things that already
+ * exist - the remote authority and a local last-known copy - and its own logic is limited to ordering
+ * and freshness.
+ *
+ * Two rules it does enforce:
+ *
+ * * **Remote first.** A mutation reaches the authority before anything is written locally, and any
+ *   remote failure leaves the cache untouched. There is no optimistic local confirm, no dirty flag and
+ *   no retry queue, because "she has stopped believing this" must not be a state the product can be in
+ *   before the authority has agreed.
+ * * **Serialised.** Every operation takes one [Mutex]. Without it a refresh that read the old state can
+ *   finish after a mutation and overwrite the newer projection, leaving the cache showing a candidate
+ *   as staged while the authority already holds it as confirmed. That would not change the authority,
+ *   but it would make this screen show a wrong answer about what she believes.
+ */
+class MemoryTrustRepository(
+    private val subjectId: String,
+    private val gateway: MemoryGateway?,
+    private val cache: MemoryCache?,
+    private val clock: () -> Instant = Instant::now,
+) {
+
+    private val mutex = Mutex()
+
+    /**
+     * The cache first, then a refresh.
+     *
+     * The first emission is what makes the screen useful before the network answers; the second is the
+     * authority's answer, written back so the next cold start has something to show.
+     */
+    fun snapshots(): Flow<MemoryTrustSnapshot> = flow {
+        cachedSnapshot()?.let { emit(it) }
+        emit(refresh())
+    }
+
+    /** Re-read the whole set from the authority. */
+    suspend fun refresh(): MemoryTrustSnapshot = mutex.withLock { refreshLocked() }
+
+    private suspend fun refreshLocked(): MemoryTrustSnapshot {
+        val gateway = gateway ?: return unavailable()
+
+        return try {
+            // The COMPLETE set: every status, every character scope. A filtered list here would be
+            // handed to replaceFullSnapshot and would delete everything the filter excluded - every
+            // staged candidate, or every other character's memory.
+            val records = gateway.list(
+                statuses = MemoryStatus.entries.toSet(),
+                characterScope = null,
+            )
+            val syncedAt = clock()
+            // A cache write that fails does not make the authority's answer wrong.
+            runCatching { cache?.replaceFullSnapshot(subjectId, records, syncedAt) }
+            MemoryTrustSnapshot(records, syncedAt, Freshness.FRESH)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            cachedSnapshot() ?: neverSynced()
+        }
+    }
+
+    // ---------------------------------------------------------------- mutations
+
+    suspend fun confirm(id: MemoryId): MutationResult<CanonicalMemory> =
+        mutate(record = { it }, block = { it.confirm(id) })
+
+    suspend fun reject(id: MemoryId): MutationResult<CanonicalMemory> =
+        mutate(record = { it }, block = { it.reject(id) })
+
+    /**
+     * Both outcomes are written back. `Unchanged` still carries the authority's record for that fact, and
+     * storing it costs nothing while keeping the local copy in step with what the authority actually
+     * holds.
+     */
+    suspend fun edit(id: MemoryId, edit: MemoryEdit): MutationResult<EditOutcome> = mutate(
+        record = { outcome ->
+            when (outcome) {
+                is EditOutcome.Updated -> outcome.memory
+                is EditOutcome.Unchanged -> outcome.existing
+            }
+        },
+        block = { it.edit(id, edit) },
+    )
+
+    /**
+     * Delete through the authority, then locally.
+     *
+     * The local row is dropped **even when the authority answers `false`**. `false` means the authority
+     * has confirmed it does not hold that record; a cache that kept it would be claiming to be more
+     * authoritative than the authority.
+     */
+    suspend fun forget(id: MemoryId): MutationResult<Boolean> = mutex.withLock {
+        val gateway = requireGateway()
+        val deleted = gateway.forget(id)
+        val updated = cache?.let { c ->
+            runCatching { c.delete(subjectId, id) }.isSuccess
+        } ?: true
+        MutationResult(deleted, updated)
+    }
+
+    /**
+     * Remote first, cache second.
+     *
+     * [block] runs before anything is written locally, so any remote exception propagates with the cache
+     * untouched. Only once the authority has answered is the record it returned written back - and a
+     * failure of that write is reported through [MutationResult.cacheUpdated] rather than as a failure of
+     * the operation.
+     */
+    private suspend fun <T> mutate(
+        record: (T) -> CanonicalMemory,
+        block: suspend (MemoryGateway) -> T,
+    ): MutationResult<T> = mutex.withLock {
+        val gateway = requireGateway()
+        val value = block(gateway)
+        MutationResult(value, upsertReturned(record(value)))
+    }
+
+    private suspend fun upsertReturned(memory: CanonicalMemory): Boolean {
+        val cache = cache ?: return true
+        return runCatching { cache.upsert(subjectId, listOf(memory)) }.isSuccess
+    }
+
+    // ---------------------------------------------------------------- reading
+
+    private suspend fun cachedSnapshot(): MemoryTrustSnapshot? {
+        val cache = cache ?: return null
+        val snapshot = runCatching { cache.snapshot(subjectId) }.getOrNull() ?: return null
+        // Nothing has ever been synced and nothing is stored: there is nothing to show and no age to
+        // report, so this is not a cached view at all.
+        if (snapshot.lastFullSyncAt == null && snapshot.records.isEmpty()) return null
+        return MemoryTrustSnapshot(snapshot.records, snapshot.lastFullSyncAt, Freshness.STALE)
+    }
+
+    private fun unavailable() = MemoryTrustSnapshot(emptyList(), null, Freshness.UNAVAILABLE)
+
+    private fun neverSynced() = MemoryTrustSnapshot(emptyList(), null, Freshness.NEVER_SYNCED)
+
+    private fun requireGateway(): MemoryGateway =
+        gateway ?: throw IllegalStateException(
+            "no memory gateway is configured; the screen must not offer mutations in this state",
+        )
+}
