@@ -334,6 +334,34 @@ class MemoryTrustRepositoryTest {
         assertEquals(listOf("new"), emitted.last().records.map { it.id.value })
     }
 
+    @Test
+    fun withoutAGatewaySnapshotsAreUnavailableWithoutReadingOrPresentingCache() = runTest {
+        // A cached frame followed by an empty one would show the user memories and then erase them, and
+        // the screen cannot tell that flicker apart from data that was just deleted. "Not connected to a
+        // memory service" is one statement, so it must be one emission - and the cache must not be read
+        // to produce it, or the records would be available to present by accident.
+        cache.seed(SUBJECT, listOf(profile("old")), SYNCED_AT)
+
+        val emitted = mutableListOf<MemoryTrustSnapshot>()
+        repository(gateway = null).snapshots().collect { emitted += it }
+
+        assertEquals(
+            listOf(Freshness.UNAVAILABLE),
+            emitted.map { it.freshness },
+            "an unconfigured service must not flash a cached frame before becoming unavailable",
+        )
+        assertTrue(
+            emitted.single().records.isEmpty(),
+            "cached records were presented without an authority",
+        )
+        assertEquals(null, emitted.single().lastFullSyncAt)
+        assertEquals(
+            0,
+            cache.snapshotReads,
+            "the cache was read even though no gateway is configured",
+        )
+    }
+
     // ---------------------------------------------------------------- cancellation is not swallowed
 
     @Test
@@ -433,6 +461,7 @@ class MemoryTrustRepositoryTest {
         val writes = mutableListOf<String>()
         var replaced = mutableListOf<String>()
         var failWrites = false
+        var snapshotReads = 0
         var cancelOnRead = false
         var cancelOnWrite = false
 
@@ -445,6 +474,7 @@ class MemoryTrustRepositoryTest {
         fun lastFullSyncAt(subjectId: String): Instant? = syncAt[subjectId]
 
         override suspend fun snapshot(subjectId: String): CachedMemorySnapshot {
+            snapshotReads += 1
             if (cancelOnRead) throw CancellationException("screen went away")
             return CachedMemorySnapshot(records = stored(subjectId), lastFullSyncAt = syncAt[subjectId])
         }

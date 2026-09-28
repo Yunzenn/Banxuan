@@ -114,13 +114,28 @@ class MemoryTrustRepository(
     private val mutex = Mutex()
 
     /**
-     * The cache first, then a refresh.
+     * What the screen should show, in order.
      *
-     * The first emission is [Freshness.CACHED] rather than [Freshness.STALE]: no refresh has concluded,
-     * so there is nothing to report as failed yet. It carries `lastFullSyncAt` so the screen can say how
-     * old it is without claiming to be offline.
+     * **A configured authority** emits the cached view first and then the refresh:
+     *
+     * ```text
+     * cached -> CACHED      (no refresh has concluded, so nothing may be reported as failed yet)
+     * refresh -> FRESH      (the authority answered)
+     *         -> STALE      (the refresh failed and this device has synced before)
+     *         -> NEVER_SYNCED (the refresh failed and it never has)
+     * ```
+     *
+     * **No configured authority** emits `UNAVAILABLE` and nothing else - the cache is neither read nor
+     * presented. Emitting a cached frame first would show the user memories and then erase them a moment
+     * later, and the screen cannot tell that flicker apart from data that was just deleted. "This device
+     * is not connected to a memory service" is a single statement, so it is a single emission.
      */
     fun snapshots(): Flow<MemoryTrustSnapshot> = flow {
+        if (gateway == null) {
+            emit(unavailable())
+            return@flow
+        }
+
         cachedSnapshot(Freshness.CACHED)?.let { emit(it) }
         emit(refresh())
     }
