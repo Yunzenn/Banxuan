@@ -9,6 +9,7 @@ import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
 import com.aiwatch.memory.MemoryIdentityConflictException
 import com.aiwatch.memory.MemoryIdentity
+import com.aiwatch.memory.MemoryNotFoundException
 import com.aiwatch.memory.MemoryQuery
 import com.aiwatch.memory.MemorySource
 import com.aiwatch.memory.MemoryStatus
@@ -19,6 +20,7 @@ import com.aiwatch.memory.RememberOutcome
 import com.aiwatch.memory.ScopedMemoryIdentity
 import com.aiwatch.memory.cache.CachedMemorySnapshot
 import com.aiwatch.memory.cache.MemoryCache
+import java.io.File
 import java.io.IOException
 import java.time.Instant
 import kotlin.test.Test
@@ -154,7 +156,9 @@ class MemoryTrustRepositoryTest {
     fun confirmReachesTheAuthorityFirstAndThenTheCache() = runTest {
         gateway.confirmResult = profile("m1", MemoryStatus.CONFIRMED)
 
-        val result = repository().confirm(MemoryId("m1"))
+        val result = assertIs<MutationOutcome.Applied<CanonicalMemory>>(
+            repository().confirm(MemoryId("m1")),
+        )
 
         assertEquals(MemoryStatus.CONFIRMED, result.value.status)
         assertTrue(result.cacheUpdated)
@@ -178,7 +182,9 @@ class MemoryTrustRepositoryTest {
             memory = profile("m1", value = "芹菜", source = MemorySource.USER_EDIT),
         )
 
-        val result = repository().edit(MemoryId("m1"), ProfileEdit(SYNCED_AT, "food.dislike", "芹菜"))
+        val result = assertIs<MutationOutcome.Applied<EditOutcome>>(
+            repository().edit(MemoryId("m1"), ProfileEdit(SYNCED_AT, "food.dislike", "芹菜")),
+        )
 
         assertEquals(listOf("edit", "cache:upsert"), journal)
         assertIs<EditOutcome.Updated>(result.value)
@@ -201,7 +207,7 @@ class MemoryTrustRepositoryTest {
         cache.seed(SUBJECT, listOf(profile("m1")), SYNCED_AT)
         gateway.forgetResult = false
 
-        val result = repository().forget(MemoryId("m1"))
+        val result = assertIs<MutationOutcome.Applied<Boolean>>(repository().forget(MemoryId("m1")))
 
         // `false` means the authority confirmed it does not hold the record. Keeping the local row would
         // make the cache claim to be more authoritative than the authority.
@@ -212,23 +218,28 @@ class MemoryTrustRepositoryTest {
     // ---------------------------------------------------------------- failures never reach the cache
 
     @Test
-    fun aFailedMutationWritesNothingLocally() = runTest {
+    fun aFailedMutationWritesNothingLocallyAndIsNotRetried() = runTest {
         gateway.failConfirm = true
 
-        assertFailsWith<IOException> { repository().confirm(MemoryId("m1")) }
+        val outcome = repository().confirm(MemoryId("m1"))
 
-        assertEquals(listOf("confirm"), journal, "a refused confirm reached the cache")
+        // A failure this layer cannot attribute to the authority answering is indeterminate: the change
+        // may well have been applied before the response was lost.
+        assertIs<MutationOutcome.IndeterminateMutationOutcome>(outcome)
+        assertEquals(listOf("confirm"), journal, "a failed confirm reached the cache")
         assertTrue(cache.writes.isEmpty())
     }
 
     @Test
-    fun anIdentityConflictWritesNothingLocally() = runTest {
+    fun anIdentityConflictWritesNothingLocallyAndIsDefinite() = runTest {
         gateway.conflictOnEdit = true
 
-        assertFailsWith<MemoryIdentityConflictException> {
-            repository().edit(MemoryId("m1"), ProfileEdit(SYNCED_AT, "food.like", "香菜"))
-        }
+        val outcome = repository().edit(MemoryId("m1"), ProfileEdit(SYNCED_AT, "food.like", "香菜"))
 
+        // The authority answered and refused, so the change definitely did not take effect - and the
+        // caller gets the typed rejection back rather than a generic failure.
+        val failure = assertIs<MutationOutcome.DefiniteMutationFailure>(outcome)
+        assertIs<MemoryIdentityConflictException>(failure.rejection)
         assertEquals(listOf("edit"), journal)
         assertTrue(cache.writes.isEmpty())
     }
@@ -239,7 +250,7 @@ class MemoryTrustRepositoryTest {
         journal.clear()
         gateway.failForget = true
 
-        assertFailsWith<IOException> { repository().forget(MemoryId("m1")) }
+        assertIs<MutationOutcome.IndeterminateMutationOutcome>(repository().forget(MemoryId("m1")))
 
         assertEquals(listOf("forget"), journal)
         assertTrue(cache.stored(SUBJECT).isNotEmpty(), "a failed forget deleted the local row")
@@ -250,7 +261,9 @@ class MemoryTrustRepositoryTest {
         gateway.confirmResult = profile("m1", MemoryStatus.CONFIRMED)
         cache.failWrites = true
 
-        val result = repository().confirm(MemoryId("m1"))
+        val result = assertIs<MutationOutcome.Applied<CanonicalMemory>>(
+            repository().confirm(MemoryId("m1")),
+        )
 
         // The authority confirmed. Reporting this as a failure would be a lie told on a trust surface.
         assertEquals(MemoryStatus.CONFIRMED, result.value.status)
@@ -259,9 +272,75 @@ class MemoryTrustRepositoryTest {
 
     @Test
     fun mutationsAreRefusedWhenThereIsNoGatewayRatherThanSilentlyCached() = runTest {
-        assertFailsWith<IllegalStateException> { repository(gateway = null).confirm(MemoryId("m1")) }
+        val outcome = repository(gateway = null).confirm(MemoryId("m1"))
 
+        // Definitely not applied rather than indeterminate: nothing was sent, so there is nothing to be
+        // uncertain about. Reporting this as indeterminate would tell the user her change might have taken
+        // effect when it demonstrably could not have.
+        assertIs<MutationOutcome.DefiniteMutationFailure>(outcome)
         assertTrue(cache.writes.isEmpty(), "a mutation with no authority touched the cache")
+        assertTrue(gateway.calls.isEmpty(), "nothing should have been sent: ${gateway.calls}")
+    }
+
+    // ---------------------------------------------------------------- the transport is not product semantics
+
+    @Test
+    fun anIndeterminateOutcomeIsNotReportedAsFailureAndIsNotRetried() = runTest {
+        gateway.failConfirm = true
+
+        val outcome = repository().confirm(MemoryId("m1"))
+        assertIs<MutationOutcome.IndeterminateMutationOutcome>(outcome)
+
+        // The one action that cannot be justified: if the authority did apply it, a retry applies it
+        // twice. The transport already refuses automatic retries for the same reason.
+        assertEquals(
+            listOf("confirm"),
+            gateway.calls.filter { it == "confirm" },
+            "the mutation was sent more than once",
+        )
+    }
+
+    @Test
+    fun reconcileReadsTheAuthorityWithoutSendingAMutation() = runTest {
+        gateway.failConfirm = true
+        assertIs<MutationOutcome.IndeterminateMutationOutcome>(repository().confirm(MemoryId("m1")))
+        journal.clear()
+        gateway.failConfirm = false
+        gateway.records = listOf(profile("m1", MemoryStatus.CONFIRMED))
+
+        val snapshot = repository().reconcile()
+
+        // Reconciliation is a read. It resolves the uncertainty without risking a second application.
+        assertEquals(listOf("list", "cache:replace"), journal)
+        assertEquals(Freshness.FRESH, snapshot.freshness)
+        assertEquals(MemoryStatus.CONFIRMED, snapshot.records.single().status)
+    }
+
+    @Test
+    fun theTrustLayerAndTheScreenNameNoTransportType() {
+        // Structural, and deliberately negative: the trust layer decides definite versus indeterminate by
+        // asking whether the failure is one of the canonical rejections, so no transport class has any
+        // reason to appear here. This exists so that someone catching a transport exception "for
+        // convenience" in the screen turns the contract red.
+        //
+        // Its limit is worth stating: `:app` has no dependency on the transport module at all today, so
+        // this can only be violated by first adding that dependency. It guards a future mistake, and is
+        // not evidence about present behaviour.
+        val sources = listOf(
+            "src/main/kotlin/com/aiwatch/probe/memory/MemoryTrustActivity.kt",
+            "src/main/kotlin/com/aiwatch/probe/memory/MemoryTrustRepository.kt",
+        )
+        sources.forEach { path ->
+            val file = File(path)
+            assertTrue(file.isFile, "expected to find $path relative to the module directory")
+            val text = file.readText()
+            listOf("MemoryTransportException", "okhttp3", "OkHttpClient").forEach { banned ->
+                assertFalse(
+                    text.contains(banned),
+                    "$path names '$banned'; the trust surface must not know about the transport",
+                )
+            }
+        }
     }
 
     // ---------------------------------------------------------------- ordering
@@ -392,6 +471,16 @@ class MemoryTrustRepositoryTest {
         assertFailsWith<CancellationException> { repository().confirm(MemoryId("m1")) }
     }
 
+    @Test
+    fun aCancelledMutationPropagatesAndIsNeverClassifiedAsAnOutcome() = runTest {
+        // A coroutine that was cancelled learned nothing about the authority. Classifying it would invent
+        // knowledge - and, for the indeterminate case, would make the screen report uncertainty about a
+        // change that was never even sent.
+        gateway.cancelOnConfirm = true
+
+        assertFailsWith<CancellationException> { repository().confirm(MemoryId("m1")) }
+    }
+
     // ---------------------------------------------------------------- fakes
 
     private class FakeGateway(private val journal: MutableList<String>) : MemoryGateway {
@@ -401,6 +490,7 @@ class MemoryTrustRepositoryTest {
         var failList = false
         var failConfirm = false
         var failForget = false
+        var cancelOnConfirm = false
         var conflictOnEdit = false
         var confirmResult: CanonicalMemory? = null
         var rejectResult: CanonicalMemory? = null
@@ -422,7 +512,8 @@ class MemoryTrustRepositoryTest {
 
         override suspend fun confirm(id: MemoryId): CanonicalMemory {
             record("confirm")
-            if (failConfirm) throw java.io.IOException("offline")
+            if (cancelOnConfirm) throw CancellationException("screen went away")
+            if (failConfirm) throw IOException("offline")
             return confirmResult ?: error("no confirmResult")
         }
 
@@ -445,7 +536,7 @@ class MemoryTrustRepositoryTest {
 
         override suspend fun forget(id: MemoryId): Boolean {
             record("forget")
-            if (failForget) throw java.io.IOException("offline")
+            if (failForget) throw IOException("offline")
             return forgetResult
         }
 

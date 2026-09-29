@@ -5,7 +5,14 @@ import com.aiwatch.memory.EditOutcome
 import com.aiwatch.memory.MemoryEdit
 import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
+import com.aiwatch.memory.MemoryIdentityConflictException
+import com.aiwatch.memory.MemoryNotConfirmedException
+import com.aiwatch.memory.MemoryNotEditableException
+import com.aiwatch.memory.MemoryNotFoundException
+import com.aiwatch.memory.MemoryNotStageableException
 import com.aiwatch.memory.MemoryStatus
+import com.aiwatch.memory.MemoryTransitionException
+import com.aiwatch.memory.MemoryTypeMismatchException
 import com.aiwatch.memory.cache.MemoryCache
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -61,28 +68,50 @@ data class MemoryTrustSnapshot(
 }
 
 /**
- * The outcome of a mutation that the authority has already accepted.
+ * What a mutation produced, as a type the caller must discriminate.
  *
- * [cacheUpdated] is `false` only when the authority accepted the change and writing it to the local
- * cache then failed. That is **not** an operation failure, and the screen must not report it as one:
- * saying "confirm failed" after the authority confirmed would be a lie told on a trust surface. The
- * honest message is that the change took effect and the local copy will catch up at the next sync.
+ * The point of the sealed hierarchy is that "it did not work" and "I do not know whether it worked" are
+ * different answers, and a caller cannot treat them as one by accident. An exception would let a screen
+ * catch everything and print a single failure message, which is how a trust surface ends up telling the
+ * user her change was rejected when the authority may well have applied it.
  *
- * **A thrown failure is not automatically "the authority refused" either.** The exception's type says
- * which:
- *
- * * a canonical typed rejection (`MemoryIdentityConflictException`, `MemoryTransitionException`,
- *   `MemoryNotFoundException`, ...) is a definite refusal - the authority answered and did not accept;
- * * `com.aiwatch.memory.remote.MemoryTransportException` is *indeterminate*. A `POST /confirm` whose
- *   response is lost after the server committed leaves the operation applied and the client uninformed,
- *   so the screen may not say "确认失败". The honest message is that it could not be confirmed whether
- *   the change took effect, followed by a reconciliation through a plain `refresh()` - never a retried
- *   mutation, for the same reason the transport disables automatic retries.
- *
- * The cache is not written in either case, which is correct for both: it holds what the authority is
- * known to hold, and an indeterminate outcome is not knowledge.
+ * Nothing here names a transport. This layer decides by asking whether the failure is one of the
+ * canonical rejections it already knows, so the transport can be replaced without touching the screen.
  */
-data class MutationResult<T>(val value: T, val cacheUpdated: Boolean)
+sealed interface MutationOutcome<out T> {
+
+    /**
+     * The authority accepted the change.
+     *
+     * [cacheUpdated] is `false` only when the authority accepted it and writing the local copy then
+     * failed. That is **not** an operation failure and must not be reported as one: saying "confirm
+     * failed" after the authority confirmed would be a lie told on a trust surface. The honest message is
+     * that the change took effect and the local copy will catch up at the next sync.
+     */
+    data class Applied<T>(val value: T, val cacheUpdated: Boolean) : MutationOutcome<T>
+
+    /**
+     * The authority answered and refused. The change definitely did not take effect.
+     *
+     * [rejection] is always one of the canonical typed exceptions, because that is what this classification
+     * is based on.
+     */
+    data class DefiniteMutationFailure(val rejection: Throwable) : MutationOutcome<Nothing>
+
+    /**
+     * The change may or may not have taken effect.
+     *
+     * A `POST /confirm` whose response is lost after the server committed is applied and unreported, so
+     * the screen must not say "确认失败". It must say it could not be confirmed, and it must reconcile by
+     * reading - see [MemoryTrustRepository.reconcile]. It must **not** send the mutation again: if the
+     * authority did apply it, a retry applies it twice. The transport already refuses automatic retries
+     * for the same reason.
+     *
+     * The cache is untouched, which is correct: it holds what the authority is known to hold, and an
+     * indeterminate outcome is not knowledge.
+     */
+    data object IndeterminateMutationOutcome : MutationOutcome<Nothing>
+}
 
 /**
  * The data layer for "我的记忆".
@@ -188,10 +217,10 @@ class MemoryTrustRepository(
 
     // ---------------------------------------------------------------- mutations
 
-    suspend fun confirm(id: MemoryId): MutationResult<CanonicalMemory> =
+    suspend fun confirm(id: MemoryId): MutationOutcome<CanonicalMemory> =
         mutate(record = { it }, block = { it.confirm(id) })
 
-    suspend fun reject(id: MemoryId): MutationResult<CanonicalMemory> =
+    suspend fun reject(id: MemoryId): MutationOutcome<CanonicalMemory> =
         mutate(record = { it }, block = { it.reject(id) })
 
     /**
@@ -199,7 +228,7 @@ class MemoryTrustRepository(
      * storing it costs nothing while keeping the local copy in step with what the authority actually
      * holds.
      */
-    suspend fun edit(id: MemoryId, edit: MemoryEdit): MutationResult<EditOutcome> = mutate(
+    suspend fun edit(id: MemoryId, edit: MemoryEdit): MutationOutcome<EditOutcome> = mutate(
         record = { outcome ->
             when (outcome) {
                 is EditOutcome.Updated -> outcome.memory
@@ -216,28 +245,86 @@ class MemoryTrustRepository(
      * has confirmed it does not hold that record; a cache that kept it would be claiming to be more
      * authoritative than the authority.
      */
-    suspend fun forget(id: MemoryId): MutationResult<Boolean> = mutex.withLock {
-        val gateway = requireGateway()
-        val deleted = gateway.forget(id)
+    suspend fun forget(id: MemoryId): MutationOutcome<Boolean> = mutex.withLock {
+        val gateway = gateway ?: return@withLock neverSent()
+        val deleted = try {
+            gateway.forget(id)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            return@withLock classify(failure)
+        }
         val updated = cache?.let { c -> writeToCache { c.delete(subjectId, id) } } ?: true
-        MutationResult(deleted, updated)
+        MutationOutcome.Applied(deleted, updated)
     }
+
+    /**
+     * Read the authority back after an [MutationOutcome.Indeterminate] outcome.
+     *
+     * Named separately from [refresh] because it exists for one reason: an indeterminate mutation must be
+     * reconciled by **reading**, never by sending the mutation again. A retry is the one action that
+     * cannot be justified here - if the authority did apply it, the retry applies it twice, and the
+     * transport already refuses automatic retries for the same reason.
+     */
+    suspend fun reconcile(): MemoryTrustSnapshot = refresh()
 
     /**
      * Remote first, cache second.
      *
-     * [block] runs before anything is written locally, so any remote exception propagates with the cache
-     * untouched. Only once the authority has answered is the record it returned written back - and a
-     * failure of that write is reported through [MutationResult.cacheUpdated] rather than as a failure of
-     * the operation.
+     * [block] runs before anything is written locally, so nothing is cached unless the authority answered.
+     * Cancellation is rethrown rather than classified: a coroutine that was cancelled did not learn
+     * anything about the authority, and reporting it as an outcome would both invent knowledge and break
+     * structured concurrency.
      */
     private suspend fun <T> mutate(
         record: (T) -> CanonicalMemory,
         block: suspend (MemoryGateway) -> T,
-    ): MutationResult<T> = mutex.withLock {
-        val gateway = requireGateway()
-        val value = block(gateway)
-        MutationResult(value, upsertReturned(record(value)))
+    ): MutationOutcome<T> = mutex.withLock {
+        val gateway = gateway ?: return@withLock neverSent()
+        val value = try {
+            block(gateway)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            return@withLock classify(failure)
+        }
+        MutationOutcome.Applied(value, upsertReturned(record(value)))
+    }
+
+    /**
+     * A mutation with no configured authority.
+     *
+     * Definitely not applied, and deliberately not `Indeterminate`: nothing was sent, so there is nothing
+     * to be uncertain about. Reporting it as indeterminate would tell the user her change might have taken
+     * effect when it demonstrably could not have.
+     */
+    private fun neverSent(): MutationOutcome<Nothing> = MutationOutcome.DefiniteMutationFailure(
+        IllegalStateException("no memory gateway is configured; the change was never sent"),
+    )
+
+    /**
+     * Which kind of failure this is, decided by what this layer actually knows.
+     *
+     * The canonical rejections are the authority answering: it refused, so the change definitely did not
+     * take effect. Everything else - a transport failure, an unreadable response, an unexpected bug - is
+     * genuinely unknown here, and claiming "it failed" would be a guess. A `POST /confirm` whose response
+     * is lost after the server committed is applied and unreported, so the only honest thing to say is
+     * that it could not be confirmed.
+     *
+     * Classifying by "is this a canonical rejection" rather than by transport type is what keeps this
+     * layer, and therefore the screen, free of any transport-specific class.
+     */
+    private fun classify(failure: Exception): MutationOutcome<Nothing> = when (failure) {
+        is MemoryNotFoundException,
+        is MemoryNotConfirmedException,
+        is MemoryNotStageableException,
+        is MemoryTransitionException,
+        is MemoryNotEditableException,
+        is MemoryTypeMismatchException,
+        is MemoryIdentityConflictException,
+        -> MutationOutcome.DefiniteMutationFailure(failure)
+
+        else -> MutationOutcome.IndeterminateMutationOutcome
     }
 
     private suspend fun upsertReturned(memory: CanonicalMemory): Boolean {
@@ -258,11 +345,6 @@ class MemoryTrustRepository(
     private fun unavailable() = MemoryTrustSnapshot(emptyList(), null, Freshness.UNAVAILABLE)
 
     private fun neverSynced() = MemoryTrustSnapshot(emptyList(), null, Freshness.NEVER_SYNCED)
-
-    private fun requireGateway(): MemoryGateway =
-        gateway ?: throw IllegalStateException(
-            "no memory gateway is configured; the screen must not offer mutations in this state",
-        )
 
     // ---------------------------------------------------------------- cache access
 
