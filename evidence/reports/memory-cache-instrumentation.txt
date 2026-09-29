@@ -1,0 +1,255 @@
+# Memory cache instrumentation - "WRITTEN / NOT EXECUTED" became executed
+
+These are the 22 assertions in :core-memory-cache-android that until now existed
+only as source. The module androidTest was written while no Android environment
+was available locally, so it had never run. It has now run.
+
+head           a913968293cbc152ffe5b24eb9d83f0fd0cebd35
+code changes   none - git status clean at the moment of the run
+device         emulator-5554, API 28, x86_64 google_apis
+panel          wm size 410x502, wm density 320
+suites         RoomMemoryCacheTest (19 @Test), RoomMemoryCacheSnapshotTest (3 @Test)
+invocation     one `adb shell am instrument -w -e class <class>#<method>` per method
+result         22 pass / 0 fail
+
+What this settles, specifically:
+
+- recordsAndFreshnessAlwaysComeFromTheSameCommit is the torn-snapshot assertion
+  covering the atomicity fix. That fix was never compiled locally when written -
+  it was corrected from CI feedback alone, twice. It is now compiled and
+  executed, and the property holds.
+- oneSubjectCannotReadAnothersCachedMemory and theSameMemoryIdInTwoSubjectsStaysTwoRows
+  are the subject-isolation pair.
+- replacingAFullSnapshotRemovesRowsThatAreGoneAndRecordsTheSyncTime and
+  replacingOneSubjectLeavesAnotherIntact are the replace regression pair.
+- theLastKnownStateSurvivesClosingAndReopeningTheDatabase is persistence.
+- theCacheIsNotAMemoryStoreAndNotAGateway, theCacheContractOffersNoSemanticOperation
+  and theDatabaseHoldsNoOfflineMutationQueue are the structural assertions that
+  keep the cache from growing into a second authority.
+
+Still emulator evidence, not CD12Max. It says nothing about 糯米OS or the ROM.
+
+--- raw output follows ---
+
+=== everyCanonicalTypeSurvivesTheCacheExactly ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.265
+
+OK (1 test)
+
+
+
+=== theEnvelopeSurvivesExactlyIncludingProvenanceAndImportance ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.187
+
+OK (1 test)
+
+
+
+=== instantPrecisionSurvivesToTheNanosecond ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.139
+
+OK (1 test)
+
+
+
+=== relationNamesMayContainTheSeparatorsProseUses ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.187
+
+OK (1 test)
+
+
+
+=== oneSubjectCannotReadAnothersCachedMemory ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.17
+
+OK (1 test)
+
+
+
+=== theSameMemoryIdInTwoSubjectsStaysTwoRows ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.158
+
+OK (1 test)
+
+
+
+=== clearingASubjectRemovesItsRecordsAndItsFreshness ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.136
+
+OK (1 test)
+
+
+
+=== replacingAFullSnapshotRemovesRowsThatAreGoneAndRecordsTheSyncTime ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.142
+
+OK (1 test)
+
+
+
+=== aFullSnapshotKeepsEveryStatusAndScopeItWasGiven ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.189
+
+OK (1 test)
+
+
+
+=== replacingOneSubjectLeavesAnotherIntact ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.152
+
+OK (1 test)
+
+
+
+=== aSnapshotMustNameItsSubject ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.124
+
+OK (1 test)
+
+
+
+=== anUpsertPatchesOneRecordAndTouchesNothingElse ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.162
+
+OK (1 test)
+
+
+
+=== anUpsertOfNothingIsANoOp ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.159
+
+OK (1 test)
+
+
+
+=== deletingOneRecordLeavesTheRestAndTheFreshness ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.146
+
+OK (1 test)
+
+
+
+=== deletingFromTheWrongSubjectDeletesNothing ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.138
+
+OK (1 test)
+
+
+
+=== theLastKnownStateSurvivesClosingAndReopeningTheDatabase ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.214
+
+OK (1 test)
+
+
+
+=== theCacheIsNotAMemoryStoreAndNotAGateway ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.05
+
+OK (1 test)
+
+
+
+=== theCacheContractOffersNoSemanticOperation ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.094
+
+OK (1 test)
+
+
+
+=== theDatabaseHoldsNoOfflineMutationQueue ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.115
+
+OK (1 test)
+
+
+
+==================== RoomMemoryCacheSnapshotTest ====================
+
+=== recordsAndFreshnessAlwaysComeFromTheSameCommit ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 0.791
+
+OK (1 test)
+
+
+
+=== anEmptySubjectReportsNoFreshnessRatherThanAnInheritedOne ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 0.089
+
+OK (1 test)
+
+
+
+=== replacingASubjectKeepsItsRecordsAndFreshnessTogetherForOtherSubjects ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 0.11
+
+OK (1 test)
+
+
+

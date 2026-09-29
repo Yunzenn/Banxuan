@@ -239,6 +239,11 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 
 W0 是**模拟器**证据而非 CD12Max 真机，且只覆盖接线前的 18 项行为：它不构成 W1/W2 新代码的证据。
 
+组合层（(d) remote + cache）另获一条独立证据：`:core-memory-cache-android` 的 22 项 androidTest 此前长期是
+**written / not executed**，现已在同一模拟器上逐方法执行并通过，含撕裂快照
+（`recordsAndFreshnessAlwaysComeFromTheSameCommit`——即原子化修复此前只能靠 CI 反馈盲改的那一项）、
+主体隔离与整体替换回归。见 `evidence/reports/memory-cache-instrumentation.txt`。
+
 ### 没有手表也能连续推进
 
 ```text
