@@ -1,0 +1,564 @@
+# W2-B - one repository owner, and the five real paths moved onto it
+
+W2-B creates the Activity-lifetime MemoryTrustRepository and moves every real read and
+mutation onto it at once. Single-owner is only meaningful if every remote->cache
+projection actually goes through the same Mutex owner, so a partial migration would
+have been indistinguishable from dead wiring.
+
+    resolve gateway once
+            +
+    resolve subject once
+            +
+    ProbeApplication.memoryCache
+                    |
+        ONE MemoryTrustRepository  (Activity lifetime)
+                    |
+    load / confirm / reject / edit / forget
+
+No ViewModel, no container, no registry, no manager. The object graph the reuse gate
+described is the whole of it.
+
+## load uses refresh(), not snapshots()
+
+Deliberately. snapshots() emits the cached frame *before* the refresh, which would make
+CACHED a state this screen has to render correctly - that is W3's job. Taking
+refresh() means every projection already goes through the one repository while the
+visible behaviour stays what it was, so W2-B's single new variable is the owner.
+
+    FRESH         -> memories = snapshot.records; renderList()
+    UNAVAILABLE   -> the not-connected screen (cache is not read or shown)
+    STALE         -> unconfirmable error; the cache is NOT presented as the answer
+    NEVER_SYNCED  -> unconfirmable error, never rendered as an empty memory
+    CACHED        -> unreachable from refresh(); handled explicitly so that wiring
+                     cached-first later is a visible decision in W3, not an accident
+
+## The post-mutation re-list is gone
+
+confirm / reject / edit / forget all use the authority's returned record. Re-listing to
+obtain a value the authority just handed us is a second projection of the same authority
+through a different call - exactly what this step removes.
+
+    confirm Applied(memory)          -> replace that id
+    reject  Applied(memory)          -> replace that id
+    edit    Applied(Updated)         -> replace that id
+    edit    Applied(Unchanged(existing)) -> replace that id, report unchanged
+    forget  Applied(true or false)   -> remove that id, in BOTH cases
+
+Applied(false) from forget is not a failed delete: the authority answered that it does
+not hold the record, and the repository drops its cached row for that reason. Keeping the
+card would claim the screen knows better than the authority.
+
+## Definite and indeterminate are separated
+
+    DefiniteMutationFailure
+        MemoryIdentityConflictException -> editor stays open, draft kept, conflict text
+        any other canonical rejection    -> definite no-effect: projection untouched,
+                                            and nothing is read back
+
+    IndeterminateMutationOutcome
+        mutation is NEVER resent (a retry applies it twice if it did land)
+        -> say the outcome cannot be confirmed
+        -> reconcile by reading
+        -> if the reconcile itself fails, the cache is NOT promoted into the answer;
+           the current projection and the uncertainty both stay
+
+For an indeterminate EDIT the editor stays open and the draft is kept. The user's typing
+is the only copy of what she meant, and an unknown outcome must not be allowed to discard
+it.
+
+## A real ordering bug, found by the new test
+
+anIndeterminateEditKeepsTheDraftWhileReconciling failed on first run: the uncertainty
+message never appeared. The cause was in the implementation, not the test. The editor's
+error line is a TextView that renderList() *recreates*, and the reconcile calls
+renderList() - so reporting first and reconciling second meant the screen erased its own
+statement that the outcome was unknown, leaving an unchanged-looking editor with no
+explanation.
+
+Fixed by reconciling first and reporting after, with the reason written at the call site.
+The non-edit path never showed this because `feedback` lives outside the re-rendered
+content view.
+
+## A pre-existing flaky test, measured rather than assumed
+
+editingAStagedCandidateDoesNotConfirmIt then failed. It was verified as flaky, not a
+regression: on one unchanged build it reported 2 pass / 2 fail in four consecutive
+single-method runs.
+
+The race is in the test: it waits on the *gateway*, whose state changes before the screen
+re-renders, so the assertion can run while the editor is still open and the card has not
+come back. W2-B shortened the post-mutation path enough to expose it.
+
+Fixed with awaitIdle(), a UI-level sync point that waits for the Activity's own busy flag
+to clear (it drives the filter button's enabled state) instead of guessing a delay.
+Verified 4/4 on the isolated test afterwards.
+
+## Result
+
+    device   emulator-5554, API 28, 410x502 @ 320dpi
+    suite    com.aiwatch.probe.memory.MemoryTrustTest, 22 @Test
+             19 carried over + 3 new
+    run 1    22 pass / 0 norun / 0 fail
+    run 2    22 pass / 0 norun / 0 fail
+
+Run twice on purpose: the change surfaced one flaky test, so a single green run would not
+have been evidence of stability.
+
+The three new assertions are about *observed traffic*, which is the only thing that can
+distinguish "used the authority's return" from "re-read and happened to agree":
+
+    aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting
+        journal must be exactly list, confirm
+    anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead
+        journal must be exactly list, confirm, list - one confirm, never two
+    anIndeterminateEditKeepsTheDraftWhileReconciling
+        the draft text and the open editor must survive an unknown outcome
+
+Repository-level semantics (classification, cancellation, remote-first, cache-second,
+Mutex serialisation, reconcile-is-read-only) are already covered by the repository's own
+JVM unit tests and were deliberately NOT rewritten here.
+
+--- run 1 ---
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 2.999
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.203
+
+OK (1 test)
+
+
+
+=== aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.407
+
+OK (1 test)
+
+
+
+=== anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.444
+
+OK (1 test)
+
+
+
+=== anIndeterminateEditKeepsTheDraftWhileReconciling ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.35
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.584
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.957
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.873
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.031
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.982
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.955
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.953
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.897
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.257
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.998
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.897
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 7.117
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.098
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.757
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.139
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.171
+
+OK (1 test)
+
+
+
+
+--- run 2 (stability) ---
+
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.103
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.288
+
+OK (1 test)
+
+
+
+=== aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.966
+
+OK (1 test)
+
+
+
+=== anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.563
+
+OK (1 test)
+
+
+
+=== anIndeterminateEditKeepsTheDraftWhileReconciling ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.445
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.84
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.803
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.892
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.434
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.936
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.844
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.866
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.469
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.872
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.249
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.76
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.875
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 6.796
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.15
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.706
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.287
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.997
+
+OK (1 test)
+
+
+

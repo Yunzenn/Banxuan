@@ -13,7 +13,6 @@ import android.widget.LinearLayout
 import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.EditOutcome
 import com.aiwatch.memory.Importance
-import com.aiwatch.memory.MemoryGateway
 import com.aiwatch.memory.MemoryId
 import com.aiwatch.memory.MemoryIdentityConflictException
 import com.aiwatch.memory.MemorySource
@@ -38,13 +37,14 @@ import kotlinx.coroutines.withContext
  * page and not a memory browser: every card is something she would act on, with the user's own words
  * underneath it so the claim can be judged rather than trusted.
  *
- * What it does, and only this: lists memories, confirms or ignores a staged candidate, and deletes a
- * confirmed one after a second confirmation. Rejected memories stay visible under their own filter.
+ * What it does, and only this: lists memories, confirms or ignores a staged candidate, edits a record
+ * through the typed edit contract, and deletes a confirmed one after a second confirmation. Rejected
+ * memories stay visible under their own filter.
  *
- * **No editing.** `MemoryGateway` has no edit/replace contract, and composing one out of
- * `remember()` or a repeated `stage()` would rest on behaviour the interface never promised: an edit
- * that changes an identity (an event's date, a relation's name) could collide with another confirmed
- * fact. Edit is a separate increment that starts by defining the contract.
+ * **Editing uses the typed contract, not one generic content box.** `MemoryGateway.edit` is per-type and
+ * the editor mirrors it, because an edit that changes an identity (an event's date, a relation's name)
+ * can collide with another confirmed fact - which the contract reports as a conflict rather than
+ * quietly allowing.
  *
  * **No modal dialogs, deliberately.** The screen is about 205x251dp. A dialog is a second window the
  * user has to dismiss, and instrumentation cannot reach its buttons through the activity's view tree,
@@ -99,6 +99,20 @@ class MemoryTrustActivity : Activity() {
      */
     private var subjectId: String? = null
     private var subjectAttempted = false
+
+    /**
+     * The one repository this Activity's lifetime uses, for reads and for every mutation.
+     *
+     * One instance, not one per action. [MemoryTrustRepository] holds the `Mutex` that serialises a
+     * refresh against a mutation; that `Mutex` cannot serialise *two* instances, so a per-action
+     * repository would silently reintroduce the ordering race the class exists to close - and it would
+     * do it while every test still passed, because a test holds one instance.
+     *
+     * The owner is the Activity lifetime, which the class's frozen invariant explicitly permits. No
+     * ViewModel, no container and no registry are introduced to hold it.
+     */
+    private var repository: MemoryTrustRepository? = null
+    private var repositoryAttempted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -192,6 +206,24 @@ class MemoryTrustActivity : Activity() {
         return resolved
     }
 
+    /**
+     * The one repository for this lifetime, or null when it cannot be composed.
+     *
+     * Composed once and cached, including the failure, for the same reason the subject is: everything
+     * downstream must share one owner, and re-composing on each action is the mistake the invariant
+     * names.
+     */
+    private suspend fun repository(): MemoryTrustRepository? {
+        if (repositoryAttempted) return repository
+        repositoryAttempted = true
+
+        val subject = resolveSubject() ?: return null
+        val gateway = MemoryGatewayRegistry.resolve() ?: return null
+        val cache = (application as ProbeApplication).memoryCache
+
+        return MemoryTrustRepository(subject, gateway, cache).also { repository = it }
+    }
+
     // ---------------------------------------------------------------- loading
 
     private fun load() {
@@ -210,19 +242,63 @@ class MemoryTrustActivity : Activity() {
                     renderSubjectUnavailable()
                     return@launch
                 }
-                memories = withContext(Dispatchers.IO) { gateway.list() }
-                feedback.setText("")
-                feedback.visibility = View.GONE
-                renderList()
+                val repository = repository() ?: run { renderUnavailable(); return@launch }
+
+                // refresh(), deliberately, not snapshots().
+                //
+                // snapshots() emits the cached frame *before* the refresh, which would make CACHED a
+                // first-class state this screen has to render correctly - and that is W3's job. W2-B's
+                // single new variable is that every remote->cache projection now goes through one
+                // repository, so it takes the same read the old code took and changes nothing else.
+                //
+                // Run on Dispatchers.IO because the transport underneath is blocking; the repository
+                // does not get to choose the caller's dispatcher.
+                val snapshot = withContext(Dispatchers.IO) { repository.refresh() }
+                when (snapshot.freshness) {
+                    Freshness.FRESH -> {
+                        memories = snapshot.records
+                        feedback.setText("")
+                        feedback.visibility = View.GONE
+                        renderList()
+                    }
+
+                    // Not connected. The cache exists but is not read or presented, because emitting a
+                    // cached frame here would show memories and then erase them a moment later.
+                    Freshness.UNAVAILABLE -> renderUnavailable()
+
+                    // The authority did not answer. The cache holds a last-known copy, but presenting it
+                    // as the current answer is exactly the false claim the freshness field exists to
+                    // prevent, so this stays the unconfirmable error state rather than a silent list.
+                    Freshness.STALE -> renderUnconfirmable()
+
+                    // Never synced. Deliberately not rendered as an empty memory: "she knows nothing
+                    // about you" is a different and untrue statement from "this could not be read".
+                    Freshness.NEVER_SYNCED -> renderUnconfirmable()
+
+                    // Unreachable from refresh(), which only ever answers FRESH or a failure state.
+                    // Handled rather than defaulted so that wiring cached-first in here is a visible
+                    // decision in W3 instead of an accident.
+                    Freshness.CACHED -> renderUnconfirmable()
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                content.removeAllViews()
-                feedback.setText(R.string.memory_error); feedback.visibility = View.VISIBLE
+                renderUnconfirmable()
             } finally {
                 setBusy(false)
             }
         }
+    }
+
+    /**
+     * The authority could not be read. Distinct from [renderUnavailable], which means there is no
+     * authority configured at all - one is a local misconfiguration, the other a failed read, and the
+     * user should not be told to fix the wrong one.
+     */
+    private fun renderUnconfirmable() {
+        content.removeAllViews()
+        feedback.setText(R.string.memory_error)
+        feedback.visibility = View.VISIBLE
     }
 
     // ---------------------------------------------------------------- rendering
@@ -481,10 +557,10 @@ class MemoryTrustActivity : Activity() {
     /**
      * Report a problem without tearing the editor down.
      *
-     * This is the whole reason editing does not reuse `mutate()`. That path re-reads the gateway and
-     * re-renders on every failure, which would recreate the fields from the draft's last known state -
-     * fine for a conflict, but it also clears the caret, and for any failure it signals "your input is
-     * gone" when the user's typing is the only copy of what she meant.
+     * The editor is never rebuilt from a failure. Rebuilding would recreate the fields from the draft's
+     * last known state, which clears the caret, and it signals "your input is gone" when the user's
+     * typing is the only copy of what she meant. That matters most for the one outcome where we do not
+     * know whether the authority accepted the edit - see the indeterminate branch of [saveEdit].
      */
     private fun showEditorError(res: Int) {
         editorError?.setText(res)
@@ -493,7 +569,6 @@ class MemoryTrustActivity : Activity() {
 
     private fun saveEdit(memory: CanonicalMemory) {
         val openDraft = draft ?: return
-        val gateway = MemoryGatewayRegistry.resolve() ?: return
         if (busy) return
 
         // Input validation is the screen's job and stays out of the gateway contract: an empty required
@@ -520,26 +595,59 @@ class MemoryTrustActivity : Activity() {
                     showEditorError(R.string.memory_subject_unavailable_short)
                     return@launch
                 }
-                val outcome = withContext(Dispatchers.IO) { gateway.edit(memory.id, edit) }
-                // The gateway is the source of truth, and an identity-moving edit can reorder the list,
-                // so the screen re-reads rather than pushing the draft back into `memories`.
-                memories = withContext(Dispatchers.IO) { gateway.list() }
-                finishEditing()
-                feedback.setText(
-                    if (outcome is EditOutcome.Unchanged) {
-                        R.string.memory_edit_unchanged
-                    } else {
-                        R.string.memory_edit_saved
-                    },
-                )
-                feedback.visibility = View.VISIBLE
-                renderList()
+                val repository = repository() ?: run {
+                    showEditorError(R.string.memory_edit_failed)
+                    return@launch
+                }
+
+                when (val outcome = withContext(Dispatchers.IO) { repository.edit(memory.id, edit) }) {
+                    is MutationOutcome.Applied -> {
+                        // The authority's own record, used directly. No re-list: an identity-moving edit
+                        // can reorder the list, but ordering is applied at render time by
+                        // MemoryDisplay.defaultOrder, so replacing the record is enough.
+                        replaceMemory(
+                            when (val value = outcome.value) {
+                                is EditOutcome.Updated -> value.memory
+                                is EditOutcome.Unchanged -> value.existing
+                            },
+                        )
+                        finishEditing()
+                        feedback.setText(
+                            if (outcome.value is EditOutcome.Unchanged) {
+                                R.string.memory_edit_unchanged
+                            } else {
+                                R.string.memory_edit_saved
+                            },
+                        )
+                        feedback.visibility = View.VISIBLE
+                        renderList()
+                    }
+
+                    is MutationOutcome.DefiniteMutationFailure -> showEditorError(
+                        when (outcome.rejection) {
+                            // The authority wrote nothing, so the editor stays open with the user's text
+                            // intact and says why.
+                            is MemoryIdentityConflictException -> R.string.memory_edit_conflict
+                            else -> R.string.memory_edit_failed
+                        },
+                    )
+
+                    MutationOutcome.IndeterminateMutationOutcome -> {
+                        // Reconcile FIRST, then report. Order matters here and is not stylistic:
+                        // renderList() rebuilds the editor and replaces the error TextView, so setting
+                        // the message before the reconcile means our own refresh erases it - leaving the
+                        // user with an unchanged-looking editor and no statement that the outcome is
+                        // unknown. Caught by anIndeterminateEditKeepsTheDraftWhileReconciling.
+                        //
+                        // The editor stays open and the draft is kept. We do not know whether the
+                        // authority accepted this edit, and the user's typing is the only copy of what
+                        // she meant, so an unknown outcome must never be allowed to discard it.
+                        reconcileAfterIndeterminate()
+                        showEditorError(R.string.memory_edit_indeterminate)
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: MemoryIdentityConflictException) {
-                // The gateway wrote nothing, so the editor stays open with the user's text intact and
-                // says why. Refreshing here would delete the only copy of what she meant.
-                showEditorError(R.string.memory_edit_conflict)
             } catch (_: Exception) {
                 showEditorError(R.string.memory_edit_failed)
             } finally {
@@ -579,10 +687,10 @@ class MemoryTrustActivity : Activity() {
     }
 
     private fun confirm(memory: CanonicalMemory) =
-        mutate(R.string.memory_confirm_done) { it.confirm(memory.id) }
+        mutate(R.string.memory_confirm_done, { it.confirm(memory.id) }) { replaceMemory(it) }
 
     private fun reject(memory: CanonicalMemory) =
-        mutate(R.string.memory_ignore_done) { it.reject(memory.id) }
+        mutate(R.string.memory_ignore_done, { it.reject(memory.id) }) { replaceMemory(it) }
 
     /** First tap: show the confirmation. The record is not touched yet. */
     private fun askDelete(memory: CanonicalMemory) {
@@ -602,11 +710,35 @@ class MemoryTrustActivity : Activity() {
      */
     private fun forget(memory: CanonicalMemory) {
         pendingDelete = null
-        mutate(R.string.memory_delete_done) { it.forget(memory.id); Unit }
+        // Removed in **both** cases. Applied(false) is not a failed delete: it means the authority
+        // answered that it does not hold this record, and the repository drops its cached row for exactly
+        // that reason. Keeping the card would claim this screen knows better than the authority it
+        // exists to defer to. The deleted flag is therefore informational here, not a branch.
+        mutate(R.string.memory_delete_done, { it.forget(memory.id) }) { _ -> removeMemory(memory.id) }
     }
 
-    private fun mutate(success: Int, action: suspend (MemoryGateway) -> Unit) {
-        val gateway = MemoryGatewayRegistry.resolve() ?: return
+    /** Replace one record in the projection. Ordering stays [MemoryDisplay.defaultOrder]'s job. */
+    private fun replaceMemory(memory: CanonicalMemory) {
+        memories = memories.filterNot { it.id == memory.id } + memory
+    }
+
+    private fun removeMemory(id: MemoryId) {
+        memories = memories.filterNot { it.id == id }
+    }
+
+    /**
+     * The one path for confirm / reject / forget.
+     *
+     * **There is no re-read on success.** The repository already returns the authority's own record for
+     * the fact it changed, and re-listing to obtain what we were just handed would be a second
+     * projection of the same authority through a different call - which is the thing W2-B exists to
+     * remove. The screen updates from the return value and nothing else.
+     */
+    private fun <T> mutate(
+        success: Int,
+        block: suspend (MemoryTrustRepository) -> MutationOutcome<T>,
+        apply: (T) -> Unit,
+    ) {
         if (busy) return
         setBusy(true)
         scope.launch {
@@ -618,22 +750,63 @@ class MemoryTrustActivity : Activity() {
                     renderSubjectUnavailable()
                     return@launch
                 }
-                withContext(Dispatchers.IO) { action(gateway) }
-                feedback.setText(success); feedback.visibility = View.VISIBLE
-                memories = withContext(Dispatchers.IO) { gateway.list() }
-                renderList()
+                val repository = repository() ?: run { renderUnavailable(); return@launch }
+
+                when (val outcome = withContext(Dispatchers.IO) { block(repository) }) {
+                    is MutationOutcome.Applied -> {
+                        apply(outcome.value)
+                        feedback.setText(success)
+                        feedback.visibility = View.VISIBLE
+                        renderList()
+                    }
+
+                    // The authority answered and refused, so the change definitely did not take effect.
+                    // The projection is left alone, and nothing is read back: there is nothing to learn.
+                    is MutationOutcome.DefiniteMutationFailure -> {
+                        feedback.setText(R.string.memory_action_error)
+                        feedback.visibility = View.VISIBLE
+                    }
+
+                    MutationOutcome.IndeterminateMutationOutcome -> {
+                        feedback.setText(R.string.memory_indeterminate)
+                        feedback.visibility = View.VISIBLE
+                        reconcileAfterIndeterminate()
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // The record is left exactly as it was, and the screen re-reads rather than assumes.
                 feedback.setText(R.string.memory_action_error); feedback.visibility = View.VISIBLE
-                runCatching {
-                    memories = withContext(Dispatchers.IO) { gateway.list() }
-                    renderList()
-                }
             } finally {
                 setBusy(false)
             }
+        }
+    }
+
+    /**
+     * After an outcome we could not classify, read the authority back.
+     *
+     * Reading is the only action that cannot be wrong here. **The mutation is never sent again**: if the
+     * authority did apply it, a retry applies it twice, which is the same reason the transport refuses
+     * automatic retries.
+     *
+     * If the reconcile itself fails, the cache is not promoted into the answer - the current projection
+     * and the uncertainty message both stay, because a last-known copy is not knowledge of what just
+     * happened.
+     */
+    private suspend fun reconcileAfterIndeterminate() {
+        val repository = repository ?: return
+        val snapshot = try {
+            withContext(Dispatchers.IO) { repository.reconcile() }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+
+        if (snapshot != null && snapshot.freshness == Freshness.FRESH) {
+            memories = snapshot.records
+            renderList()
         }
     }
 

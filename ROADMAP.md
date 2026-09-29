@@ -234,7 +234,7 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 | W0 | `MemoryTrustTest` 18 项基线，接线前、零代码改动 | ✅ **18/18 PASS**（`a913968`，emulator-5554 / API 28 / 410×502@320dpi，一方法一次 `am instrument`）；原始输出见 `evidence/reports/w0-memory-trust-instrumentation.txt` |
 | W1 | identity：`deviceId` 作唯一 `subjectId`，解析失败即显式不可用（不留临时主体、不回落） | ✅ **19/19 PASS**（`0515a39`）；原始输出见 `evidence/reports/w1-identity-composition.txt` |
 | W2-A | cache construction boundary：Room 构造收回 cache module、`ProbeApplication.memoryCache` 进程级单例、instrumentation 按 subject 清理 | ✅ **19/19 + 22/22 PASS**；见下方状态 |
-| W2-B | Activity 持有单个 `MemoryTrustRepository`，load/confirm/reject/edit/forget **同时**迁移，真实关闭 Gate B | 待做 |
+| W2-B | Activity 持有单个 `MemoryTrustRepository`；load/confirm/reject/edit/forget **同时**迁移，成功后 re-list 彻底删除 | ✅ **22/22 PASS ×2**；原始输出见 `evidence/reports/w2b-repository-owner.txt` |
 | W3 | `UNAVAILABLE` / `CACHED` / `STALE` / `NEVER_SYNCED` 呈现 + 陈旧横幅 | 待做 |
 | W4 | 运行期与结构约束：信任 UI 生命周期内单实例 | 待做 |
 
@@ -247,15 +247,36 @@ W0 是**模拟器**证据而非 CD12Max 真机，且只覆盖接线前的 18 项
 （W2-A），再在 W2-B 一次性建立 owner 并同时迁移全部真实路径。
 
 ```text
-W2-A 之后：
+W2-A + W2-B 之后：
   process cache owner              ESTABLISHED
   Room hidden behind cache module  ESTABLISHED
   test cache isolation             VERIFIED
+  Activity repository owner        ESTABLISHED
+  五条真实路径经过同一实例          ESTABLISHED
+  成功后 re-list                    REMOVED
+  indeterminate 只读回、绝不重试    VERIFIED
 
   仍未建立：
-  Activity repository owner        NOT YET
-  Gate B runtime enforcement       NOT YET
+  Gate B runtime / structural enforcement   W4
+  CACHED 首帧与陈旧横幅呈现                  W3
 ```
+
+#### W2-B 的两个关键取舍
+
+**load 用 `refresh()`，不用 `snapshots()`。** `snapshots()` 会先发 `CACHED` 首帧，那就必须同时把
+freshness UI 做对 —— W3 会被偷偷并进 W2-B。用 `refresh()` 时，所有 remote→cache projection 已经全部
+经过同一个 repository，而可见行为与原来一致，W2-B 的新变量就只剩「owner」这一个。`CACHED` 在 load
+中属不可达，仍显式处理，以便将来接 cached-first 是一个**看得见的决定**而不是意外。
+
+**Definite 与 Indeterminate 分开。** `DefiniteMutationFailure` 时 authority 明确拒绝了，投影不动、
+也不回读（没有可学的东西）。`IndeterminateMutationOutcome` 时**绝不重发** mutation（若它其实已生效，
+重试就会生效两次），改为读回；读回本身失败时也不把 cache 冒充成最终答案。对 **edit** 而言编辑器保持
+打开、draft 保留 —— 用户那行字是"她想说什么"的唯一副本，一个未知结果不能把它丢掉。
+
+W2-B 还修掉两个真问题，都是新测试逼出来的：一是 indeterminate edit 先报告再 reconcile，而 reconcile 会
+重建编辑器那行 error TextView，于是**界面擦掉了自己刚说的"不确定"**；二是
+`editingAStagedCandidateDoesNotConfirmIt` 是个既有 flaky 测试（同一构建上 4 次跑出 2 pass / 2 fail，
+已实测），它等的是 gateway 而不是界面，现由 `awaitIdle()` 以 Activity 自身的 busy 标志作为同步点修掉。
 
 W2-A 的边界不是声称而是**从依赖图证出来的**：`:app:dependencies --configuration debugCompileClasspath`
 中不含 `androidx.room`，只含 `project :core-memory-cache-android`。Room 仍是 cache module 的

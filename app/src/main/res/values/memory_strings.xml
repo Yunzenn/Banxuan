@@ -24,6 +24,14 @@
     <string name="memory_error">读取记忆失败，请稍后再试。没有做任何修改。</string>
     <string name="memory_action_error">操作失败，记忆没有改变。</string>
 
+    <!-- An outcome we could not classify. The authority may or may not have applied it, so the screen
+         must not say the operation failed: it says it cannot be confirmed, and it reconciles by reading.
+         It never resends the mutation, because a retry applies it twice if it did land. -->
+    <string name="memory_indeterminate">无法确认操作是否已生效。正在重新读取，不会重复提交。</string>
+    <!-- The editor keeps the user's text for the same reason: an unknown outcome must not be allowed to
+         discard the only copy of what she meant. -->
+    <string name="memory_edit_indeterminate">无法确认是否已保存。内容已保留，请刷新后确认。</string>
+
     <string name="memory_filter_all">全部</string>
     <string name="memory_filter_staged">待确认</string>
     <string name="memory_filter_confirmed">已记住</string>

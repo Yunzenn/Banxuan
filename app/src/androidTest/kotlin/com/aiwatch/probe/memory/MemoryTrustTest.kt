@@ -152,6 +152,125 @@ class MemoryTrustTest {
     private fun identityFile(): java.io.File =
         java.io.File(instrumentation.targetContext.noBackupFilesDir, "device-identity.bin")
 
+    // ------------------------------------------------------------------ the composition owner (W2-B)
+
+    /**
+     * A successful mutation updates the projection from the authority's **return value**, and does not
+     * re-list.
+     *
+     * This is the whole point of W2-B. Re-listing after a confirm would be a second projection of the
+     * same authority through a different call, which is what the single-owner composition exists to
+     * remove - and it is invisible to every behavioural assertion, because the screen ends up showing
+     * the same records either way. Only the observed traffic can tell the two apart.
+     */
+    @Test
+    fun aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting() {
+        val recording = RecordingGateway(
+            gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜")),
+        )
+        val activity = launchWithGateway(recording)
+        try {
+            awaitCard(activity, "food.dislike")
+            assertEquals("the initial load should be exactly one read", listOf("list"), recording.journal)
+
+            clickTagged(activity, MemoryTrustActivity.TAG_CONFIRM + "m1")
+            awaitState("the confirmation to be reported") {
+                onMain { texts(activity).any { it == activity.getString(R.string.memory_confirm_done) } }
+            }
+
+            assertEquals(
+                "a mutation must not be followed by a re-list; the authority already returned the record",
+                listOf("list", "confirm"),
+                recording.journal,
+            )
+            assertEquals(
+                "the confirmed status must come from the authority's return, not from a re-read",
+                MemoryStatus.CONFIRMED,
+                runBlocking { recording.list() }.single().status,
+            )
+        } finally {
+            close(activity)
+        }
+    }
+
+    /**
+     * An outcome the repository cannot classify is **sent exactly once** and then reconciled by reading.
+     *
+     * The failure injected here is a bare `IOException`, which is how a lost transport response actually
+     * presents. Retrying would be the one unjustifiable response: if the authority did apply the
+     * mutation, a retry applies it twice. So the journal must show one `confirm` and a read afterwards -
+     * never a second `confirm`.
+     */
+    @Test
+    fun anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead() {
+        val recording = RecordingGateway(
+            gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜")),
+        )
+        recording.failConfirmWith = java.io.IOException("response lost after the server committed")
+        val activity = launchWithGateway(recording)
+        try {
+            awaitCard(activity, "food.dislike")
+            clickTagged(activity, MemoryTrustActivity.TAG_CONFIRM + "m1")
+
+            awaitState("the uncertainty to be reported") {
+                onMain { texts(activity).any { it == activity.getString(R.string.memory_indeterminate) } }
+            }
+            awaitState("the read-back to land") { recording.journal.count { it == "list" } >= 2 }
+
+            assertEquals(
+                "the mutation must be sent exactly once",
+                1,
+                recording.journal.count { it == "confirm" },
+            )
+            assertEquals(
+                "an indeterminate outcome is reconciled by reading, not by resending",
+                listOf("list", "confirm", "list"),
+                recording.journal,
+            )
+        } finally {
+            close(activity)
+        }
+    }
+
+    /**
+     * An indeterminate **edit** keeps the draft.
+     *
+     * The user's typing is the only copy of what she meant, and we do not know whether the authority
+     * accepted it. Closing the editor on an unknown outcome would destroy that input on the strength of a
+     * response we never received - so the editor must survive the reconcile that follows.
+     */
+    @Test
+    fun anIndeterminateEditKeepsTheDraftWhileReconciling() {
+        val recording = RecordingGateway(gatewayWith(event("m1")))
+        recording.failEditWith = java.io.IOException("response lost after the server committed")
+        val activity = launchWithGateway(recording)
+        try {
+            awaitCard(activity, "去医院")
+            openEditor(activity, "m1")
+            setField(activity, "title", "改过的标题")
+            clickTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + "m1")
+
+            awaitState("the uncertainty to be reported in the editor") {
+                onMain {
+                    texts(activity).any { it == activity.getString(R.string.memory_edit_indeterminate) }
+                }
+            }
+            awaitState("the read-back to land") { recording.journal.count { it == "list" } >= 2 }
+
+            onMain {
+                assertNotNull(
+                    "the editor closed on an outcome we could not confirm",
+                    findTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + "m1"),
+                )
+                val field = findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + "title") as EditText
+                assertEquals("the draft was discarded", "改过的标题", field.text.toString())
+            }
+            assertEquals("the edit must be sent exactly once", 1, recording.journal.count { it == "edit" })
+        } finally {
+            close(activity)
+        }
+    }
+
     // ------------------------------------------------------------------ staged memories
 
     @Test
@@ -314,6 +433,9 @@ class MemoryTrustTest {
             awaitState("the candidate to be edited but not confirmed") {
                 (runBlocking { gateway.list() }.singleOrNull() as? ProfileMemory)?.value == "芹菜"
             }
+            // Sync on the screen, not the gateway: the gateway is already updated above, so asserting
+            // the UI without this can run while the editor is still open. See awaitIdle.
+            awaitIdle(activity)
             assertEquals(
                 "editing must not turn a candidate into something the companion treats as true",
                 MemoryStatus.STAGED,
@@ -670,26 +792,57 @@ class MemoryTrustTest {
         clickTagged(activity, MemoryTrustActivity.TAG_EDIT_CANCEL + id)
     }
 
-    /** Counts edit calls, so a cancel can be shown to have reached the gateway zero times. */
+    /**
+     * Records every call, so that "the authority's return was used instead of re-listing" and "an
+     * indeterminate mutation was sent exactly once" are assertions about **observed traffic** rather
+     * than about intent.
+     *
+     * Failures are injected as plain exceptions. The repository classifies anything that is not one of
+     * the canonical typed rejections as indeterminate, so a bare `IOException` is exactly how a lost
+     * transport response presents - it is not a contrived case.
+     */
     private class RecordingGateway(private val delegate: MemoryGateway) : MemoryGateway {
+        val journal = mutableListOf<String>()
         var editCalls = 0
+        var failConfirmWith: Exception? = null
+        var failEditWith: Exception? = null
 
         override suspend fun stage(candidates: List<CanonicalMemory>) = delegate.stage(candidates)
 
-        override suspend fun confirm(id: MemoryId) = delegate.confirm(id)
-        override suspend fun reject(id: MemoryId) = delegate.reject(id)
+        override suspend fun confirm(id: MemoryId): CanonicalMemory {
+            journal += "confirm"
+            failConfirmWith?.let { throw it }
+            return delegate.confirm(id)
+        }
+
+        override suspend fun reject(id: MemoryId): CanonicalMemory {
+            journal += "reject"
+            return delegate.reject(id)
+        }
+
         override suspend fun remember(memory: CanonicalMemory) = delegate.remember(memory)
 
         override suspend fun edit(id: MemoryId, edit: MemoryEdit): EditOutcome {
+            journal += "edit"
             editCalls++
+            failEditWith?.let { throw it }
             return delegate.edit(id, edit)
         }
 
         override suspend fun recall(query: MemoryQuery) = delegate.recall(query)
-        override suspend fun list(statuses: Set<MemoryStatus>, characterScope: CharacterScope?) =
-            delegate.list(statuses, characterScope)
 
-        override suspend fun forget(id: MemoryId) = delegate.forget(id)
+        override suspend fun list(
+            statuses: Set<MemoryStatus>,
+            characterScope: CharacterScope?,
+        ): List<CanonicalMemory> {
+            journal += "list"
+            return delegate.list(statuses, characterScope)
+        }
+
+        override suspend fun forget(id: MemoryId): Boolean {
+            journal += "forget"
+            return delegate.forget(id)
+        }
     }
 
     private fun event(id: String, scheduledFor: Instant = Instant.parse("2026-10-05T07:00:00Z")) = EventMemory(
@@ -867,6 +1020,24 @@ class MemoryTrustTest {
         awaitState("a card containing \"$needle\"") {
             onMain { texts(activity).any { it.contains(needle) } }
         }
+
+    /**
+     * Wait until the screen has finished with whatever it was doing.
+     *
+     * Asserting on the UI after a mutation needs a **UI-level** sync point. Waiting on the gateway
+     * instead is a race: the authority's state changes before this screen has re-rendered, so an
+     * assertion can run while the editor is still on screen and the card has not come back. That race
+     * is real and was measured - `editingAStagedCandidateDoesNotConfirmIt` reported 2 pass / 2 fail on
+     * one unchanged build before this helper existed.
+     *
+     * The filter button is disabled exactly while [MemoryTrustActivity] is busy and re-enabled after the
+     * mutation has rendered, which makes it the honest signal rather than a guessed delay.
+     */
+    private fun awaitIdle(activity: Activity) {
+        awaitState("the screen to become idle") {
+            onMain { (findTagged(activity, MemoryTrustActivity.TAG_FILTER) as? Button)?.isEnabled == true }
+        }
+    }
 
     private fun awaitState(what: String, timeoutMs: Long = 8000, condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + timeoutMs
