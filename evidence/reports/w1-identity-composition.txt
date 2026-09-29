@@ -1,0 +1,229 @@
+# W1 - identity composition, instrumentation
+
+W1 of the composition queue: the trust surface establishes the subject it acts
+for, from the device's own identity, before it reads anything - and refuses to
+invent one when the identity cannot be read.
+
+commit         0515a39725874c19a95af4d635399ebdbd361eee
+device         emulator-5554, API 28, x86_64 google_apis
+panel          wm size 410x502, wm density 320   (the CD12Max geometry)
+suite          com.aiwatch.probe.memory.MemoryTrustTest, 19 @Test
+               18 carried over from the W0 baseline + 1 new
+invocation     one `adb shell am instrument -w -e class <class>#<method>` per method
+result         19 pass / 0 fail
+
+Two things this run establishes beyond the pass/fail count:
+
+- a damaged identity propagates CorruptionException instead of silently rotating
+  the identity, which DeviceIdentityStore's own contract requires ("corruption
+  never silently rotates identity");
+- the 18 baseline assertions still pass, so the identity gate is not a regression
+  on existing behaviour.
+
+The new assertion,
+aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject, corrupts
+device-identity.bin and asserts against the *store* rather than the rendering:
+it requires that nothing was read at all, not merely that the screen hid what it
+had read.
+
+Per-method invocation is load-bearing here, not stylistic. The identity store
+caches what it read, so a whole-class run could warm the cache and turn the new
+test into a tautology. That caveat is stated in the test itself.
+
+Screenshot: evidence/screenshots/memory_subject_unavailable.png, captured from
+the activity's own view tree at the real geometry and read back rather than only
+asserted. The state (无法确定本机身份) and its reason are above the fold; the
+no-fallback rationale line sits below the fold inside the page ScrollView, which
+is the same shape as the pre-existing unavailable screen.
+
+--- raw output follows ---
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.438
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.491
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.582
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.634
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.659
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.565
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.572
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.6
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.605
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.613
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.655
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.67
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.558
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.643
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.848
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.74
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.644
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.571
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.555
+
+OK (1 test)
+
+
+
