@@ -225,6 +225,20 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 | v0.9 | UI Operator Beta | 尝试 Codex 式操作第三方 App UI | **真机 Accessibility** | `launch_app→inspect_ui→click/set_text→observe`；糯米OS 不可靠则明确降级 |
 | v1.0 | First Product Release | 可交付的腕上陪伴智能体 | 以上 | G1+G2+G3 核心达标；**Live2D 不阻塞** |
 
+### v0.4 执行状态（组合层队列）
+
+先把记忆可信 UI 接到真实 gateway 上，再动任何新能力。队列顺序固定，W0 是其余各项的前置。
+
+| | 内容 | 状态 |
+|---|---|---|
+| W0 | `MemoryTrustTest` 18 项基线，接线前、零代码改动 | ✅ **18/18 PASS**（`a913968`，emulator-5554 / API 28 / 410×502@320dpi，一方法一次 `am instrument`）；原始输出见 `evidence/reports/w0-memory-trust-instrumentation.txt` |
+| W1 | identity：`deviceId` 作唯一 `subjectId`，解析失败即显式不可用（不留临时主体、不回落） | 待做 |
+| W2 | Activity 持有单个 `MemoryTrustRepository`，经 w1 注入缝隙解析一次后共用 | 待做 |
+| W3 | `UNAVAILABLE` / `CACHED` / `STALE` / `NEVER_SYNCED` 呈现 + 陈旧横幅 | 待做 |
+| W4 | 运行期与结构约束：信任 UI 生命周期内单实例 | 待做 |
+
+W0 是**模拟器**证据而非 CD12Max 真机，且只覆盖接线前的 18 项行为：它不构成 W1/W2 新代码的证据。
+
 ### 没有手表也能连续推进
 
 ```text
