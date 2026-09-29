@@ -449,6 +449,83 @@ redistribute someone else's application build and character assets, which the fr
 `CONTRIBUTING.md` forbid. They are held locally as review inputs only, and this section carries the
 conclusions rather than the files.
 
+#### Distribution rule (frozen 2026-09-28)
+
+Not redistributing is the default because **the burden of proof for redistribution is ours, and it is
+currently unmet**. This is not a technical or safety judgement: the APK has not been found unsafe, and
+that is irrelevant. What is missing is any evidence of a *right* to redistribute it.
+
+```text
+now:
+  third-party XiaoZhi APK  ->  LOCAL REFERENCE ONLY
+                           ->  never enters git
+                           ->  never uploaded to a GitHub Release
+                           ->  never described as a Banxuan base or preview build
+
+later, and only after ANY ONE of:
+  1. the upstream source matching this build is found, together with its binary
+     redistribution licence;
+  2. the author explicitly grants us redistribution of this APK;
+  3. we rebuild a publishable artifact ourselves, from source and assets whose
+     licences permit it
+  ->  public hosting may then be considered - and still not in git. It belongs in a
+      separate `third-party reference` Release asset carrying provenance, SHA-256,
+      the original licence text and a prominent "not a Banxuan product" marker.
+```
+
+The rule holds even if a partial licence is later found. The APK embeds several independently licensed
+parts - Live2D runtime and native libraries, default character assets, a KWS model - so an MIT or Apache
+licence on some upstream *source* would not by itself establish a right to host the *binary*. Embedded
+assets and SDKs carry their own terms, and a permissive source licence does not propagate to them.
+
+#### Naming
+
+```text
+XiaoZhi APK   = reference prototype
+Banxuan APK   = our product
+```
+
+Calling the third-party build a "base version" is a product error as well as a licensing one: someone who
+installs it would reasonably conclude that its Rhino script execution, Shizuku usage, server tool
+permissions and hardware-identity policy are Banxuan architecture choices. Several of those are designs
+this project has explicitly rejected - see the security-boundary section above.
+
+#### Reference build identification (verified by us, from the artifact)
+
+The values below were read out of the APK during this audit with `aapt2 dump badging`, not copied from
+the security report that accompanied it.
+
+```text
+package      com.huihongcloud.xiaozhi
+label        XiaoZhi
+versionName  1.8
+versionCode  1
+size         31,476,468 bytes
+SHA-256      42D20DF3DD5C663899BA0FD68F69185F2A21E1C6159F2449B8B173431774625E
+minSdk 21 / targetSdk 33 / compileSdk 34
+ABI          arm64-v8a ONLY   (lib/ contains no other ABI)
+```
+
+**No conflict with the dual-ABI note above.** This is worth stating explicitly, because it is easy to
+read the two records as contradicting each other and they do not. The report says the `arm64-v8a` and
+`armeabi-v7a` builds are **two separate APKs**, not one fat APK. We hold only the `arm64-v8a` one, so
+`lib/` containing `arm64-v8a` and nothing else is exactly what the report predicts, not a
+counter-example to it.
+
+What direct inspection therefore adds is one measured fact and one still-open one:
+
+```text
+measured here   this artifact is arm64-v8a only - consistent with the report, and
+                now known from the binary rather than only from the report
+still not known whether an armeabi-v7a sibling APK exists at all; we do not hold
+                it, so that half of the report's claim remains at the report's
+                evidence level
+```
+
+An earlier draft of this section claimed the report's dual-ABI statement was refuted by inspection.
+That was wrong - it misread "two separate APKs" as "one fat APK" - and the correction is withdrawn
+rather than left standing.
+
 ## Donor audit for the two gaps the XiaoZhi audit left open (2026-09-28)
 
 The XiaoZhi audit narrowed the search to exactly two things: an Agent-state-to-Cubism behaviour mapping,
