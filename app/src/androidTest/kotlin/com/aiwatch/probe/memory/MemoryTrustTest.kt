@@ -90,6 +90,60 @@ class MemoryTrustTest {
         }
     }
 
+    // ------------------------------------------------------------------ identity
+
+    /**
+     * The identity is the partition every read addresses, so a screen that cannot establish it must read
+     * **nothing** and must not invent a substitute subject.
+     *
+     * Asserted against the store rather than against the rendering, deliberately: "the screen says
+     * unavailable" is also true of an implementation that reads the authority and then chooses to hide
+     * the result, and that implementation has already asked for a partition it could not name.
+     *
+     * **This test needs a fresh process to mean anything.** The identity store caches what it read, so a
+     * corrupted file is only observed by a process that has not yet read it. The runner in
+     * `.tools/run_instrumentation.ps1` invokes one `am instrument` per method, which gives exactly that;
+     * running this class in a single process would let an earlier test warm the cache and quietly turn
+     * this into a tautology.
+     */
+    @Test
+    fun aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject() {
+        val store = MapStore()
+        store.seed(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
+        MemoryGatewayRegistry.override = DefaultMemoryGateway(store)
+
+        val file = identityFile()
+        val original = if (file.exists()) file.readBytes() else null
+        try {
+            file.parentFile?.mkdirs()
+            // A bad version word. The serializer raises CorruptionException for this and for truncation,
+            // and per its own contract corruption must never silently rotate the identity.
+            file.writeBytes(byteArrayOf(0, 0, 0, 9, 1, 2, 3))
+
+            val activity = launch()
+            try {
+                val expected = activity.getString(R.string.memory_subject_unavailable_title)
+                awaitState("the identity-unavailable screen") {
+                    onMain { texts(activity).any { it == expected } }
+                }
+                assertEquals("nothing may be read under an unresolved subject", 0, store.reads)
+                capture(activity, "memory_subject_unavailable")
+            } finally {
+                close(activity)
+            }
+        } finally {
+            if (original == null) file.delete() else file.writeBytes(original)
+        }
+    }
+
+    /**
+     * The same path `ProbeApplication` hands to `DeviceIdentityStore`. Corrupting it is the only way to
+     * reach this state from a test, and it is reachable in reality: the file lives in no-backup storage
+     * and an interrupted write can truncate it.
+     */
+    private fun identityFile(): java.io.File =
+        java.io.File(instrumentation.targetContext.noBackupFilesDir, "device-identity.bin")
+
     // ------------------------------------------------------------------ staged memories
 
     @Test
@@ -837,14 +891,30 @@ class MemoryTrustTest {
      */
     private class MapStore : MemoryStore {
         private val records = LinkedHashMap<String, CanonicalMemory>()
+
+        /**
+         * How many times storage was actually touched.
+         *
+         * The identity test turns on a path *never reaching the authority*, and "the screen renders
+         * unavailable" does not establish that: an implementation that reads first and then decides to
+         * hide the result renders identically, having already asked for a partition it could not name.
+         */
+        var reads = 0
+            private set
+
         fun seed(memory: CanonicalMemory) {
             records[memory.id.value] = memory
         }
 
-        override suspend fun getById(id: MemoryId): CanonicalMemory? = records[id.value]
+        override suspend fun getById(id: MemoryId): CanonicalMemory? {
+            reads++
+            return records[id.value]
+        }
 
-        override suspend fun findAllByScopedIdentity(identity: ScopedMemoryIdentity): List<CanonicalMemory> =
-            records.values.filter { it.scopedIdentity == identity }
+        override suspend fun findAllByScopedIdentity(identity: ScopedMemoryIdentity): List<CanonicalMemory> {
+            reads++
+            return records.values.filter { it.scopedIdentity == identity }
+        }
 
         override suspend fun put(memory: CanonicalMemory) {
             records[memory.id.value] = memory
@@ -852,7 +922,10 @@ class MemoryTrustTest {
 
         override suspend fun delete(id: MemoryId): Boolean = records.remove(id.value) != null
 
-        override suspend fun list(): List<CanonicalMemory> = records.values.toList()
+        override suspend fun list(): List<CanonicalMemory> {
+            reads++
+            return records.values.toList()
+        }
     }
 
     private fun flatten(view: View): List<View> = listOf(view) +

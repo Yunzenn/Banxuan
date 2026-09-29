@@ -10,6 +10,15 @@
     <string name="memory_unavailable_body">本机还没有连接到记忆服务，因此这里不会显示任何记忆。连接服务器后，这里会列出小智记得的事，你可以查看、确认、忽略或删除。</string>
     <string name="memory_unavailable_note">本机不保存记忆，也不会用示例数据代替真实记忆。</string>
 
+    <!-- Identity. The subject is the partition every read and every mutation addresses, so an identity
+         that cannot be read is a distinct condition from a gateway that is not connected yet, and it
+         must not fall back to a temporary subject or a default key. Either would silently address a
+         different partition, which turns a missing answer into a wrong one. -->
+    <string name="memory_subject_unavailable_title">无法确定本机身份</string>
+    <string name="memory_subject_unavailable_body">本机身份读取失败，无法确定这些记忆属于谁。</string>
+    <string name="memory_subject_unavailable_note">不会用临时身份代替：那会读到另一个身份的记忆。</string>
+    <string name="memory_subject_unavailable_short">无法确定本机身份，修改没有生效。</string>
+
     <string name="memory_empty">这个分类下还没有记忆。</string>
     <string name="memory_busy">正在读取…</string>
     <string name="memory_error">读取记忆失败，请稍后再试。没有做任何修改。</string>
