@@ -449,6 +449,130 @@ redistribute someone else's application build and character assets, which the fr
 `CONTRIBUTING.md` forbid. They are held locally as review inputs only, and this section carries the
 conclusions rather than the files.
 
+## Donor audit for the two gaps the XiaoZhi audit left open (2026-09-28)
+
+The XiaoZhi audit narrowed the search to exactly two things: an Agent-state-to-Cubism behaviour mapping,
+and a zip/model3 importer that does not assume a well-formed archive. Both were searched directly rather
+than generally, and **the reuse gate now has an answer for both**. Further repo-hunting would not change
+either decision.
+
+### Evidence levels, again kept separate
+
+```text
+LICENCE VERIFIED BY US      queried the GitHub licence endpoint, which reports the SPDX identifier
+                            from the repository's own LICENSE file
+LICENCE REPORTED ONLY       a reading performed outside this session that we could not re-check
+CODE-LEVEL FINDING REPORTED a defect identified by reading the donor's code outside this session;
+                            we have not reproduced it and it is not load-bearing for a REFERENCE verdict
+```
+
+### Licence verification
+
+| Repository | SPDX (verified by us) | Earlier reported as | Consequence |
+|---|---|---|---|
+| `ShirokamiRyzen/Mirai-AI` | **MIT** | MIT | the only ADAPT candidate that survives |
+| `FatPanda8885/NekoWeather` | **GPL-3.0** | GPL-3.0 | REFERENCE ONLY |
+| `miaoxworld/NativeTavern` | **GPL-3.0** | GPL-3.0 | REFERENCE ONLY |
+| `J88-cx/AI--smartdock` | **could not verify** — licence endpoint unavailable | GPL-3.0 | REFERENCE ONLY either way |
+
+The one that mattered is the first: an ADAPT decision rests on a permissive licence, so it was verified
+rather than recorded from a report. The GPL verdicts only ever supported REFERENCE, and the unverifiable
+one stays REFERENCE regardless, so no decision in this section depends on an unverified reading.
+
+### Gap 1 — Agent state to Cubism behaviour
+
+```text
+official Cubism motion / expression / lip-sync runtime     DIRECT
+third-party animation framework                            REJECT
+NativeTavern orchestration semantics                       REFERENCE ONLY / GPL-3.0
+AI--smartdock Android state mapper                         REFERENCE ONLY / licence unverified
+permissive Android donor for this problem                  NOT FOUND
+```
+
+No permissive donor exists for this problem, and that is the expected outcome rather than a search
+failure: the execution machinery is already in the official Cubism Framework this repository holds, so
+what is missing is not a framework but two things we must supply ourselves - the model asset data, and a
+mapping from our semantic state to that model's motions and expressions.
+
+The donors are still valuable as **semantics** references. NativeTavern's orchestrator is worth reading
+for its handling of priority, transient actions, cooldown, pending actions, generation cancellation and
+restoring a base state after a transient finishes - the parts that are easy to get wrong and that our own
+version must handle. To be explicit: that is a description of behaviour to re-derive, not code to adapt,
+because the licence forbids copying it.
+
+The layer we write stays deliberately small:
+
+```kotlin
+enum class CharacterState { IDLE, LISTENING, THINKING, SPEAKING }
+
+data class CharacterBehavior(val motion: MotionRef?, val expression: ExpressionRef?)
+
+interface CharacterBehaviorMapper {
+    fun resolve(state: CharacterState, emotion: Emotion? = null): CharacterBehavior
+}
+```
+
+Everything below that - playing a motion, setting an expression, driving the mouth parameter from audio -
+stays with the official Framework, which already reads the lip-sync parameter mapping from
+`.model3.json`. We do not build a second animation stack, and we do not adopt a GPL one.
+
+### Gap 2 — Zip and `model3.json` import
+
+```text
+Android SAF + ZipInputStream                  DIRECT (platform)
+ShirokamiRyzen/Mirai-AI                       ADAPT candidate / MIT
+FatPanda8885/NekoWeather                      REFERENCE (safety semantics) / GPL-3.0
+xiaojingyu-likes-you                          REFERENCE ONLY / MIT + no-commercial-use restriction
+Whale-Live2D-DeskPet-Android                  REFERENCE ONLY / no LICENSE found
+```
+
+`Mirai-AI` is the first donor that matches on all three axes that matter - permissive licence, Android
+and Kotlin, and the same problem - and it already implements the shape worth adapting: a SAF Uri into a
+temporary zip, recursive discovery of `.model3.json` at any depth, `FileReferences` parsing, moc and
+texture validation, extraction into app-private storage, and a canonical relative model path out.
+
+It is **not** to be copied wholesale. Reported defects to fix in our own implementation:
+
+```text
+zip-slip check uses startsWith(rootCanonical) with no trailing separator
+  -> /data/foo would accept /data/foobar/...
+no entry-count, expanded-byte, per-file or depth limits
+validates only the first texture rather than every reference
+deletes the existing model before installing the new one
+```
+
+`NekoWeather` is the reference for the opposite reason: its bounds are the stricter ones
+(`MAX_LIVE2D_ENTRIES`, `MAX_LIVE2D_BYTES`, a canonical check with the separator, all textures validated,
+staging followed by install). Its licence is GPL-3.0, so it is a **safety oracle** - read the limits and
+the pipeline shape, write our own.
+
+### The importer Banxuan freezes
+
+```text
+SAF Uri
+  -> bounded staging copy
+  -> bounded zip extraction: canonical path, entry count, expanded bytes, depth, duplicate path
+  -> recursive *.model3.json discovery
+       0 found  -> reject
+       >1 found -> deterministic selection, or ask the user
+  -> parse FileReferences
+  -> validate ALL referenced assets (Moc, Textures, Physics?, Pose?, DisplayInfo?, Motions?, Expressions?)
+  -> normalise to a single model root
+  -> atomic install into private storage
+  -> only after success, switch the previous selection
+```
+
+The last two steps are deliberate and differ from both donors: a failed or interrupted import must leave
+the previously working model untouched, so the user is never left with no character. That also removes
+any dependency on the current XiaoZhi convention of "directory name equals `model3.json` file name",
+which the doubly nested directories in the provided packages already break.
+
+### What this section does not claim
+
+No donor code has been adapted yet, so no `ADAPT` decision here has produced code. The two
+`REFERENCE ONLY` verdicts on GPL and non-commercial licences are decisions **not to read further for
+adaptation**, not an assessment that the code is unusable in principle.
+
 ## `stixez/droid-mcp` — device capability layer (2026-09-26)
 
 Candidate for the future **G3 Watch Operator**. Verified by the user directly against the repository
