@@ -285,6 +285,170 @@ Two things this audit settles, both recorded in `PRODUCT_REQUIREMENTS.md` §19:
 The licence discrepancy on `always-here` is the second time a README and a LICENSE file have disagreed in
 this audit; the LICENSE file governs, and an unverified licence is written as unverified.
 
+## XiaoZhi Differential Audit (2026-09-28)
+
+XiaoZhi (`com.huihongcloud.xiaozhi` v1.8, a watch-focused modification of the open XiaoZhi AI protocol
+ecosystem) is treated here as a **working prototype of the wrist form factor**, not as a base to fork. It
+demonstrates that "animated character + voice agent + device tools on a watch" is a viable product shape,
+which removes that question from our risk list. It does **not** solve long-term memory, situational
+awareness or a trust surface, which remain this project's own work.
+
+### Evidence levels, kept separate from the decisions
+
+Three levels appear below and must not be conflated:
+
+```text
+DIRECT ARTIFACT INSPECTION
+  We opened the file ourselves: zip layout, model3.json contents, APK entry listing, hashes.
+
+SOURCE-VERIFIED STATIC AUDIT
+  We read the security review report in full, including its method and its own stated limits.
+  It is a static reverse-engineering audit (androguard manifest/signature, DEX disassembly with
+  call-chain tracing, manual smali review of named classes, native string extraction).
+  Static analysis is not dynamic behaviour, and the report says so itself.
+
+INDEPENDENT APK REVERSE-ENGINEERING VERIFIED
+  NOT REACHED. We have not re-decompiled the APK, traced the DEX call chains or reproduced the
+  findings ourselves. Scope decisions therefore rest on the report's static evidence.
+```
+
+Cross-check that the artifacts are the ones the report audited:
+
+```text
+report lists  app-arm64-v8a-release.apk  SHA256 42D20DF3DD5C663899BA0FD68F69185F2A21E1C6159F2449B8B173431774625E
+we measured  app-arm64-v8a-release.apk  SHA256 42D20DF3DD5C663899BA0FD68F69185F2A21E1C6159F2449B8B173431774625E
+-> the file we inspected is the file the report audited
+```
+
+The report also establishes a fact our own inspection could not: the arm64-v8a and armeabi-v7a builds are
+two separate APKs whose `classes.dex` is byte-identical, differing only in native libraries. Our
+inspection saw a single APK, so the dual-ABI claim is carried at the report's evidence level, not ours.
+
+### Facts established by direct artifact inspection
+
+```text
+Mahiro_V1_Lite/ and Mahiro_V1/ zips both contain a doubly nested directory of the same name
+  Mahiro_V1_Lite/Mahiro_V1_Lite/Mahiro_V1_Lite.model3.json
+Neither zip contains any Motion or Expression file.
+model3.json: Version 3; FileReferences = DisplayInfo, Moc, Physics, Textures
+  -> no Motions, no Expressions, no LipSync reference
+Groups: EyeBlink = ParamEyeLOpen,ParamEyeROpen ; LipSync = (present but empty)
+HitAreas: none
+  -> the model can blink and swing via physics, but cannot lip-sync and has no motions at all, so
+     "wiring up voice will not move the mouth" is confirmed from the asset rather than inferred
+
+APK arm64-v8a native libraries: libonnxruntime.so 15.29 MB, libsherpa-onnx-jni.so 3.23 MB,
+  libsaba.so 1.34 MB, libc++_shared.so 1.27 MB, libwebrtc_apm.so 1.16 MB, libopus.so 0.40 MB,
+  libeasyopus.so 0.24 MB, libLive2DCubismCoreJNI.so 0.09 MB
+KWS asset: assets/kws/encoder-epoch-12-avg-2-chunk-16-left-64.onnx 11.59 MB
+The bundled default Hiyori model uses the 2048 texture set, not 8192.
+MMD assets carry motion files (welcome.vmd 1.38 MB, idle.vmd 1.06 MB); the Live2D model does not.
+```
+
+Not established: the presence or absence of VRM assets (only entries above 1 MB were listed) and the
+completeness of the ABI set (a single APK was inspected).
+
+### The matrix
+
+Every row carries a decision **and** the evidence level behind it.
+
+| Capability | Decision | Evidence level | Independent reproduction |
+|---|---|---|---|
+| Voice / audio path (Opus, full-duplex, AEC) | **ADAPT / BENCHMARK** | source-verified static audit | NO |
+| Live2D Cubism loading | **ADAPT** | direct artifact inspection | NO |
+| Character behaviour (state-driven motion / expression / lip-sync) | **ADAPT — the SDK already has the mechanism** | direct artifact inspection | NO |
+| sherpa-onnx local KWS | **PENDING HARDWARE EVIDENCE** | direct artifact inspection (footprint only) | NO |
+| Foreground voice service | **REFERENCE** | source-verified static audit | NO |
+| MCP tool schema / taxonomy | **REFERENCE** | source-verified static audit | NO |
+| Native app / media tools | **ADAPT** | source-verified static audit | NO |
+| Rhino JS plugin execution | **REJECT** | source-verified static audit | NO |
+| Shizuku shell execution | **REJECT** | source-verified static audit | NO |
+| Server-authorised device capability | **REJECT (authority model)** / REFERENCE (taxonomy) | source-verified static audit | NO |
+| General-purpose remote HTTP tool | **REJECT** | source-verified static audit | NO |
+| Generic broadcast tool | **REJECT** | source-verified static audit | NO |
+| Cleartext `ws://` in production | **REJECT** | source-verified static audit | NO |
+| Unsigned plugin installation | **REJECT** | source-verified static audit | NO |
+| Server-supplied camera upload target | **REFERENCE capability / REJECT uncontrolled egress** | source-verified static audit | NO |
+| Model import rules | **REFERENCE — importer rewritten** | direct artifact inspection | NO |
+| Hardware MAC / Android ID as identity | **REJECT** | source-verified static audit | NO |
+| Power and background survival | **PENDING HARDWARE EVIDENCE** | — | NO |
+| APK / native footprint | **BENCHMARK** | direct artifact inspection | NO |
+| Long-term memory, context awareness, trust UI | **not addressed by XiaoZhi — our own main line** | direct artifact inspection | NO |
+
+### Why the security rows are REJECT rather than "use carefully"
+
+The report's own summary is that it found no trojan, no SMS or contact theft, no silent install and no
+independent data exfiltration. The risk is different in kind: the design hands a **remote-reachable
+channel the ability to execute arbitrary code**.
+
+```text
+XiaoZhi:   remote server -> tools/call -> unsandboxed Rhino JS -> injected Java objects -> device capability
+           (report: Rhino Context.enter() + initStandardObjects(), with Java objects for
+            http/app/media/adb/core/mcp/intent exposed to the script, and no ClassShutter set)
+           (report: an optional Shizuku path that executes shell commands when enabled)
+           (report: usesCleartextTraffic=true; visionUrl and visionToken supplied by the server at
+            initialise time; the plugin store is TLS but performs no signature verification)
+
+Banxuan:   remote intent -> typed tool request -> local policy -> confirmation if required
+           -> bounded Android capability -> observed structured result
+```
+
+The distinction this audit freezes is therefore one sentence:
+
+> **The remote model or server proposes intent. The watch decides whether anything is allowed to happen.**
+
+That is stronger than "trust our server", and it is what makes the Operator gate (G3) safe to build at
+all: a compromised or maliciously deployed server must not by itself become device compromise. It also
+means Banxuan's tools are finite, enumerable and auditable - `LaunchApp(packageName = ...)`, never
+`app.startByName(arbitraryName)` and never `execShell(anything)`.
+
+### Live2D: the mechanism already exists, the asset is what is missing
+
+The report and the asset point at the same conclusion, and it argues **against** adopting any third-party
+animation framework. The official Cubism Framework this repository already holds implements motion
+playback, expression selection and lip-sync parameter driving. The Mahiro package contains none of the
+data those mechanisms consume.
+
+```text
+already present    Cubism LAppModel: motions, expressions, lip-sync parameter driving
+missing in asset   any Motion file, any Expression, and LipSync parameter ids
+missing in ours    a thin Agent state -> Character behaviour mapping
+```
+
+So the work is asset-side plus a thin mapping layer - `LISTENING` to an attentive expression, `THINKING`
+to a thinking idle, `SPEAKING` to the lip-sync parameter, `INTERRUPT` to immediate cancellation - not a
+second animation stack. The official SDK's own lip-sync tutorial is the specification.
+
+The 2048 texture choice in the Lite package is the right direction: the bundled default already ships at
+2048, and a 2048 RGBA texture is on the order of 16 MB against roughly 256 MB for 8192.
+
+### Model import must not assume a well-formed zip
+
+Direct inspection found a doubly nested directory inside both provided zips, which a naive importer
+copies to the wrong depth. The importer is therefore specified as:
+
+```text
+zip -> scan recursively for *.model3.json -> validate every referenced asset
+    -> normalise to a single model root -> copy into private app storage
+```
+
+rather than asking the user to know what `model3.json` is or to arrange directories by hand.
+
+### Identity must not regress
+
+The report describes a client that sends device-identifying material (Android ID / MAC class) with its
+session. Banxuan already does better: a random, locally administered `DeviceIdentity` persisted locally,
+with `deviceId` as the subject partition and no hardware identifier. This audit does not change that; it
+records that XiaoZhi is the counter-example that makes the current design worth defending.
+
+### Artifact retention
+
+The APK, the two model zips, the install manual and the security report are **third-party or unlicensed
+material, with no LICENSE anywhere among them**. They stay out of this repository: publishing them would
+redistribute someone else's application build and character assets, which the frozen boundaries in
+`CONTRIBUTING.md` forbid. They are held locally as review inputs only, and this section carries the
+conclusions rather than the files.
+
 ## `stixez/droid-mcp` — device capability layer (2026-09-26)
 
 Candidate for the future **G3 Watch Operator**. Verified by the user directly against the repository
