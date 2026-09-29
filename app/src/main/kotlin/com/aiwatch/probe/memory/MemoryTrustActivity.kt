@@ -19,6 +19,7 @@ import com.aiwatch.memory.MemoryIdentityConflictException
 import com.aiwatch.memory.MemorySource
 import com.aiwatch.memory.MemoryStatus
 import com.aiwatch.memory.MemoryType
+import com.aiwatch.probe.ProbeApplication
 import com.aiwatch.probe.R
 import com.aiwatch.probe.product.ProductUi
 import java.time.Instant
@@ -85,6 +86,20 @@ class MemoryTrustActivity : Activity() {
     private var memories: List<CanonicalMemory> = emptyList()
     private var busy = false
 
+    /**
+     * The subject every read and every mutation addresses, resolved once per Activity lifetime.
+     *
+     * Resolved once rather than per action, for the same reason the composition owner invariant exists:
+     * two resolutions inside one visit could address two different subjects, and on a trust surface that
+     * is a wrong answer rather than a slow one.
+     *
+     * [subjectAttempted] distinguishes "not resolved yet" from "resolution failed". Without it a failure
+     * would be retried by the next action - and a damaged identity file does not become readable by
+     * asking a second time.
+     */
+    private var subjectId: String? = null
+    private var subjectAttempted = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ui = ProductUi(this)
@@ -149,6 +164,34 @@ class MemoryTrustActivity : Activity() {
         minWidth = 0
     }
 
+    // ---------------------------------------------------------------- identity
+
+    /**
+     * The device's own subject, or null when it cannot be established.
+     *
+     * There is deliberately **no fallback**: not a temporary subject, not a default key. Either would
+     * silently address a different partition, and a memory screen showing another partition's contents
+     * is worse than one showing nothing. That is why the failure is cached too - it is terminal for this
+     * screen rather than something to retry.
+     *
+     * A damaged file is the ordinary case rather than an exotic one: the store's serializer raises
+     * `CorruptionException`, which is an `IOException`, for both truncation and a bad version word, and
+     * corruption must never silently rotate the identity.
+     */
+    private suspend fun resolveSubject(): String? {
+        if (subjectAttempted) return subjectId
+        val resolved = try {
+            (application as ProbeApplication).identityStore.getOrCreate().deviceId
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+        subjectId = resolved
+        subjectAttempted = true
+        return resolved
+    }
+
     // ---------------------------------------------------------------- loading
 
     private fun load() {
@@ -161,6 +204,12 @@ class MemoryTrustActivity : Activity() {
         feedback.setText(R.string.memory_busy); feedback.visibility = View.VISIBLE
         scope.launch {
             try {
+                // Nothing is read under an unresolved subject. Reading first and checking afterwards
+                // would already have asked the authority for a partition we cannot name.
+                if (resolveSubject() == null) {
+                    renderSubjectUnavailable()
+                    return@launch
+                }
                 memories = withContext(Dispatchers.IO) { gateway.list() }
                 feedback.setText("")
                 feedback.visibility = View.GONE
@@ -188,6 +237,20 @@ class MemoryTrustActivity : Activity() {
         ui.add(content, ui.text(getString(R.string.memory_unavailable_title), 19f))
         ui.add(content, ui.text(getString(R.string.memory_unavailable_body), 14f, ui.muted), 4)
         ui.add(content, ui.text(getString(R.string.memory_unavailable_note), 12f, ui.muted), 8)
+    }
+
+    /**
+     * The identity could not be read. Deliberately a different screen from [renderUnavailable]: "not
+     * connected to a memory service yet" and "this device's identity cannot be read" are different
+     * facts, and collapsing them would send the user to check their server when the problem is local.
+     */
+    private fun renderSubjectUnavailable() {
+        content.removeAllViews()
+        feedback.setText("")
+        feedback.visibility = View.GONE
+        ui.add(content, ui.text(getString(R.string.memory_subject_unavailable_title), 19f))
+        ui.add(content, ui.text(getString(R.string.memory_subject_unavailable_body), 14f, ui.muted), 4)
+        ui.add(content, ui.text(getString(R.string.memory_subject_unavailable_note), 12f, ui.muted), 8)
     }
 
     private fun renderList() {
@@ -451,6 +514,12 @@ class MemoryTrustActivity : Activity() {
         setBusy(true)
         scope.launch {
             try {
+                // Same guard as mutate(), and for the same reason: an edit is a mutation, and it must not
+                // reach the authority under a subject this screen could not establish.
+                if (resolveSubject() == null) {
+                    showEditorError(R.string.memory_subject_unavailable_short)
+                    return@launch
+                }
                 val outcome = withContext(Dispatchers.IO) { gateway.edit(memory.id, edit) }
                 // The gateway is the source of truth, and an identity-moving edit can reorder the list,
                 // so the screen re-reads rather than pushing the draft back into `memories`.
@@ -542,6 +611,13 @@ class MemoryTrustActivity : Activity() {
         setBusy(true)
         scope.launch {
             try {
+                // Unreachable in the normal flow, because an unresolved subject never renders a card to
+                // act on. Guarded anyway: this is what keeps an unresolved subject from reaching the
+                // authority, and it must not depend on the rendering path staying as it is today.
+                if (resolveSubject() == null) {
+                    renderSubjectUnavailable()
+                    return@launch
+                }
                 withContext(Dispatchers.IO) { action(gateway) }
                 feedback.setText(success); feedback.visibility = View.VISIBLE
                 memories = withContext(Dispatchers.IO) { gateway.list() }
