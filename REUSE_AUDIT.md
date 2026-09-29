@@ -235,7 +235,7 @@ where a hand-rolled persistence layer gets written by accident.
 | Project | Licence | Status | Intended use |
 |---|---|---|---|
 | AndroidX Room (`androidx.room:room-runtime/room-ktx/room-compiler`) | Apache-2.0 | **DIRECT** | The persistence layer itself, via KSP. No custom SQLite wrapper |
-| `android/nowinandroid` — `OfflineFirstNewsRepository`, `NewsResourceDao`, `NiaDatabase` | Apache-2.0 | **ADAPT** | Cache topology: reads come from local storage, the network result is written back, DAO uses `@Upsert`, schema is exported |
+| `android/nowinandroid` — `OfflineFirstNewsRepository`, `NewsResourceDao`, `NiaDatabase` | Apache-2.0 | **REFERENCE SEMANTICS ONLY** (narrowed 2026-09-29; was recorded as ADAPT) | Read for repository/local-coordination shape. Its offline-first source-of-truth model is **not** adopted - see *W2 composition reuse gate* below |
 | `android/architecture-components-samples` `NetworkBoundResource` | Apache-2.0 | **REFERENCE** | The classic cache-then-network shape. Repository is archived, so it is read and not imported |
 | `android/architecture-samples` Todo repository | Apache-2.0 | **REJECT (mutation pattern)** | It writes locally and pushes to the network asynchronously, and its own comments say a real app needs more robust sync. That is precisely the offline-mutation model rejected here |
 | `JieRobot/wanyu-ai-android` Room/staging | MIT | **REFERENCE** | Its staging experience is readable, but it lets the client own memory authority, which is the opposite of this architecture |
@@ -649,6 +649,80 @@ which the doubly nested directories in the provided packages already break.
 No donor code has been adapted yet, so no `ADAPT` decision here has produced code. The two
 `REFERENCE ONLY` verdicts on GPL and non-commercial licences are decisions **not to read further for
 adaptation**, not an assessment that the code is unusable in principle.
+
+## W2 composition reuse gate — cache construction boundary (2026-09-29)
+
+Searched directly for the one thing W2 needs: how a production composition root should own a Room
+database, and whether Banxuan needs a container or a DI framework to do it. **No new framework, no new
+dependency.** We already hold every core wheel - Room, `MemoryCache`, `MemoryTrustRepository`,
+`Application` as composition root. What was missing is a construction boundary of about fifteen lines,
+plus connecting existing components correctly.
+
+| Source | Licence | Worth taking | Verdict |
+|---|---|---|---|
+| `android/architecture-samples` | Apache-2.0 | Room database as an application singleton | REFERENCE |
+| `cbarrios/android-basics-compose-unit-6-inventory-app` (files carry AOSP copyright) | Apache-2.0 | `Application -> AppDataContainer -> lazy repository/database` manual composition | **ADAPT SHAPE** |
+| `android/nowinandroid` | Apache-2.0 | repository owns remote/local coordination; the UI never talks to the DB | **REFERENCE SEMANTICS ONLY** |
+
+The inventory sample is the closest match, and it is the evidence that a DI framework is not required
+for this object graph:
+
+```text
+InventoryApplication -> AppDataContainer -> repository -> InventoryDatabase.getDatabase(context)
+```
+
+### Correction to the 2026-09-27 section above
+
+That section records `android/nowinandroid` as **ADAPT** for cache topology. This review **narrows that
+to REFERENCE SEMANTICS ONLY**, and the narrowing is not a wording preference.
+
+NIA is genuinely offline-first: Room is the source of truth and the network syncs *into* it. Banxuan's
+frozen shape runs the other way, so "adopt NIA's cache topology" would import exactly the property this
+architecture exists to refuse:
+
+```text
+canonical remote authority
+        |
+MemoryTrustRepository
+        |
+mechanical local projection
+```
+
+Room holds *last known authority state*, never a second authority. What is worth learning is the shape
+only - the repository owns remote/local coordination, the UI never talks to the DB, and the persistent
+store stays hidden behind the repository. What stays refused is "the local DB becomes a semantic source
+of truth", "offline mutation queue", "optimistic write", and "background sync deciding memory
+semantics". The cache module already asserts that refusal structurally
+(`theCacheIsNotAMemoryStoreAndNotAGateway`, `theCacheContractOffersNoSemanticOperation`,
+`theDatabaseHoldsNoOfflineMutationQueue`, all 22 executed - see
+`evidence/reports/memory-cache-instrumentation.txt`).
+
+### What we do not adopt
+
+```text
+Hilt / Dagger                     REJECT for W2 - scope far larger than this object graph
+new AppContainer/MemoryContainer  REJECT - ProbeApplication already IS the composition root
+ViewModel as repository owner     NOT NEEDED - no lifecycle dependency exists here, and Activity
+                                  lifetime already satisfies the frozen owner invariant
+Now in Android offline-first      REJECT for CanonicalMemory - see the correction above
+test DB reset framework           NOT NEEDED - clearSubject(subjectId) already exists
+new cache manager/provider layer  REJECT
+```
+
+### A boundary defect found in review, and fixed
+
+The earlier W2 plan had `ProbeApplication` call `Room.databaseBuilder` directly. Room is an
+`implementation` dependency of `:core-memory-cache-android`, so that would have forced a second,
+product-layer Room dependency and leaked the persistence choice up out of the module that owns it.
+
+Fixed by moving construction into the module behind a thin `RoomMemoryCache.open(context)` factory that
+returns the `MemoryCache` interface, with the constructor left `internal` so the module's own tests can
+still build one over an in-memory database while `:app` cannot. `:app` therefore never sees
+`MemoryCacheDatabase`, the DAO, or Room.
+
+The boundary is not asserted; it is read off the dependency graph:
+`:app:dependencies --configuration debugCompileClasspath` contains no `androidx.room`, and reaches the
+cache only as `project :core-memory-cache-android`.
 
 ## `stixez/droid-mcp` — device capability layer (2026-09-26)
 

@@ -232,12 +232,35 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 | | 内容 | 状态 |
 |---|---|---|
 | W0 | `MemoryTrustTest` 18 项基线，接线前、零代码改动 | ✅ **18/18 PASS**（`a913968`，emulator-5554 / API 28 / 410×502@320dpi，一方法一次 `am instrument`）；原始输出见 `evidence/reports/w0-memory-trust-instrumentation.txt` |
-| W1 | identity：`deviceId` 作唯一 `subjectId`，解析失败即显式不可用（不留临时主体、不回落） | 待做 |
-| W2 | Activity 持有单个 `MemoryTrustRepository`，经 w1 注入缝隙解析一次后共用 | 待做 |
+| W1 | identity：`deviceId` 作唯一 `subjectId`，解析失败即显式不可用（不留临时主体、不回落） | ✅ **19/19 PASS**（`0515a39`）；原始输出见 `evidence/reports/w1-identity-composition.txt` |
+| W2-A | cache construction boundary：Room 构造收回 cache module、`ProbeApplication.memoryCache` 进程级单例、instrumentation 按 subject 清理 | ✅ **19/19 + 22/22 PASS**；见下方状态 |
+| W2-B | Activity 持有单个 `MemoryTrustRepository`，load/confirm/reject/edit/forget **同时**迁移，真实关闭 Gate B | 待做 |
 | W3 | `UNAVAILABLE` / `CACHED` / `STALE` / `NEVER_SYNCED` 呈现 + 陈旧横幅 | 待做 |
 | W4 | 运行期与结构约束：信任 UI 生命周期内单实例 | 待做 |
 
 W0 是**模拟器**证据而非 CD12Max 真机，且只覆盖接线前的 18 项行为：它不构成 W1/W2 新代码的证据。
+
+#### W2 为什么要切成 A/B
+
+原先的 W2 会构造一个 `MemoryTrustRepository`，却仍让 Activity 的真实读写全部走 `gateway.list()`。
+那种实例只是**死 wiring**：它证明不了 Gate B，只会让源码看起来像已经 composition 了。所以先做边界
+（W2-A），再在 W2-B 一次性建立 owner 并同时迁移全部真实路径。
+
+```text
+W2-A 之后：
+  process cache owner              ESTABLISHED
+  Room hidden behind cache module  ESTABLISHED
+  test cache isolation             VERIFIED
+
+  仍未建立：
+  Activity repository owner        NOT YET
+  Gate B runtime enforcement       NOT YET
+```
+
+W2-A 的边界不是声称而是**从依赖图证出来的**：`:app:dependencies --configuration debugCompileClasspath`
+中不含 `androidx.room`，只含 `project :core-memory-cache-android`。Room 仍是 cache module 的
+`implementation` 依赖，构造函数为 `internal`（模块自己的 androidTest 经 friend-path 仍可构造，
+`:app` 不可），`RoomMemoryCache.open()` 返回 `MemoryCache` 接口。
 
 组合层（(d) remote + cache）另获一条独立证据：`:core-memory-cache-android` 的 22 项 androidTest 此前长期是
 **written / not executed**，现已在同一模拟器上逐方法执行并通过，含撕裂快照

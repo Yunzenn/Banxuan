@@ -27,6 +27,7 @@ import com.aiwatch.memory.Provenance
 import com.aiwatch.memory.RelationMemory
 import com.aiwatch.memory.ScopedMemoryIdentity
 import com.aiwatch.memory.scopedIdentity
+import com.aiwatch.probe.ProbeApplication
 import com.aiwatch.probe.R
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
@@ -156,8 +157,7 @@ class MemoryTrustTest {
     @Test
     fun aStagedCandidateIsConfirmedThroughTheRealGateway() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             assertEquals(MemoryStatus.STAGED, statusOf(gateway, "m1"))
@@ -174,8 +174,7 @@ class MemoryTrustTest {
     @Test
     fun anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
 
@@ -200,8 +199,7 @@ class MemoryTrustTest {
     @Test
     fun aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             assertNotNull(onMain { findTagged(activity, MemoryTrustActivity.TAG_DELETE + "m1") })
@@ -238,8 +236,7 @@ class MemoryTrustTest {
     @Test
     fun theUsersOwnWordsAreShownSoTheClaimCanBeJudged() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             val shown = onMain { texts(activity) }
@@ -262,8 +259,7 @@ class MemoryTrustTest {
             profile("settled", MemoryStatus.CONFIRMED, "food.like", "芹菜", "我爱吃芹菜"),
             profile("pending", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"),
         )
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             val lines = onMain { texts(activity) }
@@ -281,8 +277,7 @@ class MemoryTrustTest {
     @Test
     fun aConfirmedProfileCanBeEditedAndKeepsItsIdentity() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -309,8 +304,7 @@ class MemoryTrustTest {
     @Test
     fun editingAStagedCandidateDoesNotConfirmIt() {
         val gateway = gatewayWith(profile("s1", MemoryStatus.STAGED, "food.dislike", "香菜", "我不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "s1")
@@ -337,8 +331,7 @@ class MemoryTrustTest {
     @Test
     fun savingWithoutChangingAnythingPreservesTheOriginalProvenance() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -359,8 +352,7 @@ class MemoryTrustTest {
     @Test
     fun anIdentityMovingEditKeepsTheIdAndShowsTheNewFact() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -385,8 +377,7 @@ class MemoryTrustTest {
             profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"),
             profile("m2", MemoryStatus.CONFIRMED, "food.like", "芹菜", "我爱吃芹菜"),
         )
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -433,8 +424,7 @@ class MemoryTrustTest {
                 value = "香菜",
             ),
         )
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             onMain {
@@ -453,8 +443,7 @@ class MemoryTrustTest {
         val recording = RecordingGateway(
             gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜")),
         )
-        MemoryGatewayRegistry.override = recording
-        val activity = launch()
+        val activity = launchWithGateway(recording)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -482,8 +471,7 @@ class MemoryTrustTest {
             episode("x1"),
             relation("n1"),
         )
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             assertEditorFields(activity, "p1", listOf("attribute", "value"))
@@ -506,8 +494,7 @@ class MemoryTrustTest {
     fun editingAnEventTitleLeavesTheOriginalInstantExactlyAlone() {
         val exact = Instant.parse("2026-10-05T07:00:37.123Z")
         val gateway = gatewayWith(event("e1", exact))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "去医院")
             openEditor(activity, "e1")
@@ -539,8 +526,7 @@ class MemoryTrustTest {
     @Test
     fun theEditFormFitsThePanelAndItsButtonsAreNotClipped() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.CONFIRMED, "food.dislike", "香菜", "我不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             openEditor(activity, "m1")
@@ -605,8 +591,7 @@ class MemoryTrustTest {
     @Test
     fun theHeaderFitsThePanelAndActuallyShowsItsTitle() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             onMain {
@@ -755,6 +740,34 @@ class MemoryTrustTest {
         return activity
     }
 
+    /**
+     * Launch the screen against [gateway], with this subject's cached state cleared first.
+     *
+     * **Why the cache has to be cleared.** Each method runs in its own process but they all share one
+     * `deviceId` and one on-disk database, and the fixtures reuse ids (`m1`, `s1`, `r1`). Once the
+     * screen reads through a cache, a previous method's rows would still be there - and because the
+     * repository emits the cached frame *before* the refresh, a test could observe another test's
+     * memory under the same id. The cache surviving a restart is correct behaviour; the *fixture* is
+     * what has to be explicit about starting clean.
+     *
+     * Clearing goes through the production `clearSubject(subjectId)` partition API rather than a
+     * test-only seam, `deleteDatabase()` or `clearAllTables()`. That also keeps the subject-partition
+     * semantics under constant use in instrumentation instead of only in the cache module's own tests.
+     *
+     * **Do not route every test through here.** Reading the identity to find the subject warms the
+     * identity store, so `aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject` must use
+     * plain [launch]: its whole point is a process that has not yet read a corrupted file.
+     * `withoutAGatewayTheScreenSaysSoAndInventsNothing` also stays on [launch], since it deliberately
+     * has no gateway and must reach the screen without one.
+     */
+    private fun launchWithGateway(gateway: MemoryGateway): Activity {
+        val app = instrumentation.targetContext.applicationContext as ProbeApplication
+        val subject = runBlocking { app.identityStore.getOrCreate().deviceId }
+        runBlocking { app.memoryCache.clearSubject(subject) }
+        MemoryGatewayRegistry.override = gateway
+        return launch()
+    }
+
     private fun close(activity: Activity) {
         instrumentation.runOnMainSync { activity.finish() }
         instrumentation.waitForIdleSync()
@@ -801,8 +814,7 @@ class MemoryTrustTest {
     @Test
     fun bothActionButtonsAreWideEnoughForTheirLabels() {
         val gateway = gatewayWith(profile("m1", MemoryStatus.STAGED, "food.dislike", "香菜", "我真的不喜欢香菜"))
-        MemoryGatewayRegistry.override = gateway
-        val activity = launch()
+        val activity = launchWithGateway(gateway)
         try {
             awaitCard(activity, "food.dislike")
             onMain {
