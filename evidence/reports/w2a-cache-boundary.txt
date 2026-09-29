@@ -1,0 +1,480 @@
+# W2-A - cache construction boundary, and the module boundary it protects
+
+W2-A is the cache construction boundary only. It deliberately does **not** create a
+MemoryTrustRepository, because an instance that no real path goes through is dead
+wiring: it would make the source look composed without closing Gate B.
+
+What W2-A establishes, and what it explicitly does not:
+
+    process cache owner              ESTABLISHED   ProbeApplication.memoryCache (by lazy)
+    Room hidden behind cache module  ESTABLISHED   RoomMemoryCache.open() returns MemoryCache
+    test cache isolation             VERIFIED      per-subject clearSubject before launch
+
+    Activity repository owner        NOT YET       this is W2-B
+    Gate B runtime enforcement       NOT YET       this is W2-B
+
+## The boundary, read off the dependency graph rather than asserted
+
+`:app:dependencies --configuration debugCompileClasspath`, filtered:
+
+    androidx.room matches on :app debugCompileClasspath = 0
+    +--- project :core-memory-cache-android
+
+`:app` reaches the cache module and never sees Room, the DAO or MemoryCacheDatabase.
+Room stays an `implementation` dependency of `:core-memory-cache-android`, and the
+constructor is `internal` so this module's own androidTest can still build one over an
+in-memory database while `:app` cannot.
+
+This is the property the previous W2 plan would have broken: calling
+Room.databaseBuilder from ProbeApplication would have forced a second, product-layer
+Room dependency and leaked the persistence choice up out of the module that owns it.
+
+## Test isolation
+
+Each method runs in its own process but all share one deviceId and one on-disk
+database, and the fixtures reuse ids (m1, s1, r1). Once the screen reads through a
+cache, a previous method's rows are still there - and because the repository emits the
+cached frame *before* the refresh, a test could observe another test's memory under the
+same id. The cache surviving a restart is correct; the fixture has to be explicit about
+starting clean.
+
+launchWithGateway() therefore resolves the subject, calls the production
+clearSubject(subjectId) partition API, installs the gateway, and launches. Two tests
+deliberately do not use it:
+
+    withoutAGatewayTheScreenSaysSoAndInventsNothing
+        has no gateway at all, so it must reach the screen without one
+    aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject
+        reading the identity to find the subject would warm the store, and that test's
+        whole point is a process that has not yet read a corrupted file
+
+No test-only cache seam was added, and deleteDatabase()/clearAllTables() were not used:
+clearSubject already exists and is already the production partition API.
+
+## Result
+
+    device   emulator-5554, API 28, 410x502 @ 320dpi
+    memory   com.aiwatch.probe.memory.MemoryTrustTest   19 pass / 0 norun / 0 fail
+    cache    RoomMemoryCacheTest                       19 pass / 0 norun / 0 fail
+    cache    RoomMemoryCacheSnapshotTest                3 pass / 0 norun / 0 fail
+
+The cache module was re-run as well, because changing the constructor to `internal`
+touches how its own tests build the cache. Both suites were executed, not assumed.
+
+--- memory trust (19) ---
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.531
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.283
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.819
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.926
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.244
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.466
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.279
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.052
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.082
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.168
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.722
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.569
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.328
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.545
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.954
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.454
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.655
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.444
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.276
+
+OK (1 test)
+
+
+
+
+--- RoomMemoryCacheTest (19) ---
+
+=== everyCanonicalTypeSurvivesTheCacheExactly ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 1.14
+
+OK (1 test)
+
+
+
+=== theEnvelopeSurvivesExactlyIncludingProvenanceAndImportance ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.8
+
+OK (1 test)
+
+
+
+=== instantPrecisionSurvivesToTheNanosecond ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.925
+
+OK (1 test)
+
+
+
+=== relationNamesMayContainTheSeparatorsProseUses ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 1.083
+
+OK (1 test)
+
+
+
+=== oneSubjectCannotReadAnothersCachedMemory ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.881
+
+OK (1 test)
+
+
+
+=== theSameMemoryIdInTwoSubjectsStaysTwoRows ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.857
+
+OK (1 test)
+
+
+
+=== clearingASubjectRemovesItsRecordsAndItsFreshness ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.862
+
+OK (1 test)
+
+
+
+=== replacingAFullSnapshotRemovesRowsThatAreGoneAndRecordsTheSyncTime ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.898
+
+OK (1 test)
+
+
+
+=== aFullSnapshotKeepsEveryStatusAndScopeItWasGiven ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 1.056
+
+OK (1 test)
+
+
+
+=== replacingOneSubjectLeavesAnotherIntact ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.9
+
+OK (1 test)
+
+
+
+=== aSnapshotMustNameItsSubject ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.766
+
+OK (1 test)
+
+
+
+=== anUpsertPatchesOneRecordAndTouchesNothingElse ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.874
+
+OK (1 test)
+
+
+
+=== anUpsertOfNothingIsANoOp ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.8
+
+OK (1 test)
+
+
+
+=== deletingOneRecordLeavesTheRestAndTheFreshness ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.927
+
+OK (1 test)
+
+
+
+=== deletingFromTheWrongSubjectDeletesNothing ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.825
+
+OK (1 test)
+
+
+
+=== theLastKnownStateSurvivesClosingAndReopeningTheDatabase ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 1.249
+
+OK (1 test)
+
+
+
+=== theCacheIsNotAMemoryStoreAndNotAGateway ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.26
+
+OK (1 test)
+
+
+
+=== theCacheContractOffersNoSemanticOperation ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.599
+
+OK (1 test)
+
+
+
+=== theDatabaseHoldsNoOfflineMutationQueue ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheTest:.
+
+Time: 0.654
+
+OK (1 test)
+
+
+
+
+--- RoomMemoryCacheSnapshotTest (3) ---
+
+=== recordsAndFreshnessAlwaysComeFromTheSameCommit ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 4.31
+
+OK (1 test)
+
+
+
+=== anEmptySubjectReportsNoFreshnessRatherThanAnInheritedOne ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 0.529
+
+OK (1 test)
+
+
+
+=== replacingASubjectKeepsItsRecordsAndFreshnessTogetherForOtherSubjects ===
+
+com.aiwatch.memory.cache.RoomMemoryCacheSnapshotTest:.
+
+Time: 0.692
+
+OK (1 test)
+
+
+

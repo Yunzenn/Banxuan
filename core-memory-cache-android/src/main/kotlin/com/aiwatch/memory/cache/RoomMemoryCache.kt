@@ -1,5 +1,7 @@
 package com.aiwatch.memory.cache
 
+import android.content.Context
+import androidx.room.Room
 import androidx.room.withTransaction
 import com.aiwatch.memory.CanonicalMemory
 import com.aiwatch.memory.CharacterScope
@@ -20,8 +22,22 @@ import java.time.Instant
  * Its whole job is the two mappings in this file plus passing calls through to the DAO. No rule about
  * what a memory means appears here, and none should ever be added: the moment this class decides
  * something, the watch is deciding it, and the canonical authority is no longer the authority.
+ *
+ * ### Why construction lives here and not in `:app`
+ *
+ * Room is an `implementation` dependency of this module, so `:app` has no Room on its compile
+ * classpath - and it must stay that way. A composition root that called `Room.databaseBuilder`
+ * directly would force a second, product-layer Room dependency, which is precisely how a persistence
+ * choice leaks upward out of the module that owns it.
+ *
+ * [open] is therefore the only way production constructs this cache, and it returns the
+ * [MemoryCache] interface rather than this class: `:app` learns that a cache exists and nothing about
+ * how it is stored. The constructor stays `internal` so this module's own tests can still build one
+ * over an in-memory database, which `:app` must never be able to do.
  */
-class RoomMemoryCache(private val database: MemoryCacheDatabase) : MemoryCache {
+class RoomMemoryCache internal constructor(
+    private val database: MemoryCacheDatabase,
+) : MemoryCache {
 
     private val dao = database.memoryCacheDao()
 
@@ -70,6 +86,31 @@ class RoomMemoryCache(private val database: MemoryCacheDatabase) : MemoryCache {
 
     override suspend fun clearSubject(subjectId: String) {
         dao.clearSubject(subjectId)
+    }
+
+    companion object {
+
+        /**
+         * Open the one cache this process uses.
+         *
+         * Returns [MemoryCache] rather than [RoomMemoryCache] on purpose: the caller needs to store
+         * last-known state, not to know that Room is how it is stored.
+         *
+         * `build()` does not touch the database file - Room opens it on first use - so holding this
+         * instance for the process lifetime costs nothing until the cache is actually read.
+         */
+        fun open(
+            context: Context,
+            databaseName: String = "memory-cache.db",
+        ): MemoryCache {
+            val database = Room.databaseBuilder(
+                context.applicationContext,
+                MemoryCacheDatabase::class.java,
+                databaseName,
+            ).build()
+
+            return RoomMemoryCache(database)
+        }
     }
 }
 
