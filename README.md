@@ -15,6 +15,7 @@
 | Wear OS 应用 | 不是。目标机是 **Full Android**，我们**不使用** Wear Compose / Wear OS runtime。 |
 | 又一个 Live2D 看板 | 不是。Live2D 是可选视觉增强，**不占 Gate 编号、不阻塞任何版本**。 |
 | 能跑 shell 的语音助手 | 不是。**永远不给模型 shell。** 工具是 typed 的，`exec_shell("anything")` 不是设计选项。 |
+| Banxuan 的"基础版"安装包 | 不是。**本仓库不分发任何第三方 APK。** 被当作参考的那个第三方构建与 Banxuan 无关，见 [Reference XiaoZhi build](#reference-xiaozhi-build)。 |
 
 项目需求正本见 **[`PRODUCT_REQUIREMENTS.md`](PRODUCT_REQUIREMENTS.md)**（接手必读），排期与 Gate 见 **[`ROADMAP.md`](ROADMAP.md)**。
 
@@ -329,6 +330,55 @@ Python 契约     canonical 语义契约、HTTP 边界、HTTP handler（仅 stdl
 | [`DEPENDENCY_DECISIONS.md`](DEPENDENCY_DECISIONS.md) / [`LICENSE_MATRIX.md`](LICENSE_MATRIX.md) | 依赖决策与许可证矩阵 |
 | `evidence/` | 契约文件、服务端参考实现、证据脚本与截图 |
 | `PHASE_*.md` | 各阶段报告（历史记录） |
+
+---
+
+## Reference XiaoZhi build
+
+**第三方参考实现，不是 Banxuan 的版本，也不由本仓库分发。**
+
+有人想要一个能跑的腕上语音 / 角色参考实现来对比，这是合理需求。但本仓库**不镜像、不转存、不托管**
+那个 APK：再分发权目前没有证据，而**举证责任在我们这边**。方便的代价不能由"别人作品的二进制"来付。
+完整规则见 [`REUSE_AUDIT.md`](REUSE_AUDIT.md) 的 *Artifact retention → Distribution rule*。
+
+下面只记录识别事实，不提供下载链接：
+
+```text
+This is a third-party reference application, not Banxuan.
+
+Package:
+com.huihongcloud.xiaozhi
+
+Version:
+1.8   (versionCode 1, label "XiaoZhi")
+
+SHA-256:
+42D20DF3DD5C663899BA0FD68F69185F2A21E1C6159F2449B8B173431774625E
+
+Size / ABI:
+31,476,468 bytes / arm64-v8a only
+
+Purpose:
+Reference implementation for wrist voice/avatar interaction.
+
+Distribution:
+Not redistributed by Banxuan.
+Obtain it from its original publisher/source.
+```
+
+以上字段是从 APK 本身读出来的（`aapt2 dump badging`），不是从随附的安全报告抄来的。该 APK **只含 `arm64-v8a`**
+native 库；这与报告的说法一致而非矛盾 —— 报告说的是 `arm64-v8a` 与 `armeabi-v7a` 是**两个独立 APK**，我们手上只有
+`arm64-v8a` 那一个。是否存在 `armeabi-v7a` 的兄弟包，我们没有该文件，因此仍未验证。
+
+即使将来找到了它某部分源码的 MIT/Apache 许可证，也**不能自动推出整个 APK 可以由我们托管**：二进制内嵌的
+Live2D runtime/native 库、默认角色资产、KWS 模型各自可能有独立的许可条件。
+
+> **不要叫它"基础版"。** `XiaoZhi APK = reference prototype`，`Banxuan APK = our product`。
+> 否则装上的人会合理地认为它的 Rhino 脚本执行、Shizuku 权限、服务器工具权限、硬件身份策略也是 Banxuan 的
+> 架构选择 —— 而这些恰恰是我们已经明确拒绝的设计。
+
+**我们自己的可分发版本叫 Banxuan Preview**，且必须由我们自己的源码与许可证允许的资产构建。镜像别人的 APK
+不能替代这件事：那会让用户停在一条我们无法更新、无法修复、也无法为之负责的升级路径上。
 
 ---
 
