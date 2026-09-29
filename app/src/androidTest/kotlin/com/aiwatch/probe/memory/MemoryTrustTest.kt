@@ -102,9 +102,16 @@ class MemoryTrustTest {
      *
      * **This test needs a fresh process to mean anything.** The identity store caches what it read, so a
      * corrupted file is only observed by a process that has not yet read it. The runner in
-     * `.tools/run_instrumentation.ps1` invokes one `am instrument` per method, which gives exactly that;
-     * running this class in a single process would let an earlier test warm the cache and quietly turn
-     * this into a tautology.
+     * `evidence/tests/run_instrumentation.ps1` invokes one `am instrument` per method, which gives exactly
+     * that; running this class in a single process would let an earlier test warm the cache and quietly
+     * turn this into a tautology.
+     *
+     * Two ways that runner protects this test specifically, both learned the hard way:
+     *
+     * * it counts only `OK (1 test)` as a pass. A stale test APK makes `-e class X#method` match nothing
+     *   and still exit zero with `OK (0 tests)`, which a looser parser scores as a pass;
+     * * the emulator restores installed APKs from its boot snapshot, so "stale APK after a restart" is
+     *   the expected failure mode, not a surprising one. Reinstall before believing a zero.
      */
     @Test
     fun aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject() {
