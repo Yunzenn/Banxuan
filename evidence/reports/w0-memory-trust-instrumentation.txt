@@ -1,0 +1,206 @@
+# W0 - memory trust instrumentation baseline
+
+The baseline the Activity wiring (W1/W2) is measured against, taken before any
+wiring change exists.
+
+head           a913968293cbc152ffe5b24eb9d83f0fd0cebd35
+               (fix(memory): make a mutation outcome a type the caller must discriminate)
+code changes   none - git status clean at the moment of the run
+device         emulator-5554, API 28, x86_64 google_apis
+panel          wm size 410x502, wm density 320   (the CD12Max geometry)
+suite          com.aiwatch.probe.memory.MemoryTrustTest, 18 @Test
+invocation     one `adb shell am instrument -w -e class <class>#<method>` per
+               method, because a whole-class run shares one process and static
+               state leaks between methods
+result         18 pass / 0 fail
+
+Build: `:app:assembleDebug` and `:app:assembleDebugAndroidTest` BUILD SUCCESSFUL
+in 2m44s on the same host, both APKs installed with `adb install -r -t`.
+
+Note on what this does and does not establish: it establishes that the 18
+behavioural and two geometry assertions pass on this emulator at this panel
+size, on this commit, with zero source changes. It is an emulator result, not a
+CD12Max result, and it says nothing about the wiring W1/W2 adds on top of it.
+
+--- raw output follows ---
+
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 6.174
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.146
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.138
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.275
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 0.918
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.055
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.17
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.24
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.064
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.256
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.234
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.043
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.212
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.535
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.229
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.151
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.076
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 1.079
+
+OK (1 test)
+
+
+
