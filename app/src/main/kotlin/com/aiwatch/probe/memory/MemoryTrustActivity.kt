@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -62,6 +63,7 @@ class MemoryTrustActivity : Activity() {
     private lateinit var root: LinearLayout
     private lateinit var content: LinearLayout
     private lateinit var feedback: android.widget.TextView
+    private lateinit var freshness: android.widget.TextView
     private lateinit var filterButton: Button
 
     /** null means "all". The default view is ordered rather than filtered: pending first. */
@@ -85,6 +87,7 @@ class MemoryTrustActivity : Activity() {
 
     private var memories: List<CanonicalMemory> = emptyList()
     private var busy = false
+    private var hasSnapshot = false
 
     /**
      * The subject every read and every mutation addresses, resolved once per Activity lifetime.
@@ -159,6 +162,13 @@ class MemoryTrustActivity : Activity() {
             visibility = View.GONE
         }
         ui.add(root, feedback, 2)
+
+        freshness = ui.text("", 12f, ui.muted).apply {
+            tag = TAG_FRESHNESS
+            visibility = View.GONE
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        ui.add(root, freshness, 2)
 
         content = ui.column()
         ui.add(root, content, 2)
@@ -244,41 +254,23 @@ class MemoryTrustActivity : Activity() {
                 }
                 val repository = repository() ?: run { renderUnavailable(); return@launch }
 
-                // refresh(), deliberately, not snapshots().
-                //
-                // snapshots() emits the cached frame *before* the refresh, which would make CACHED a
-                // first-class state this screen has to render correctly - and that is W3's job. W2-B's
-                // single new variable is that every remote->cache projection now goes through one
-                // repository, so it takes the same read the old code took and changes nothing else.
-                //
-                // Run on Dispatchers.IO because the transport underneath is blocking; the repository
-                // does not get to choose the caller's dispatcher.
-                val snapshot = withContext(Dispatchers.IO) { repository.refresh() }
-                when (snapshot.freshness) {
-                    Freshness.FRESH -> {
-                        memories = snapshot.records
-                        feedback.setText("")
-                        feedback.visibility = View.GONE
-                        renderList()
+                // Blocking transport/cache work stays on IO; each frame is rendered on Main.
+                // Keep busy until refresh concludes so the cached frame cannot race a mutation.
+                repository.snapshots().flowOn(Dispatchers.IO).collect { snapshot ->
+                    showFreshness(snapshot)
+                    feedback.visibility = View.GONE
+                    when (snapshot.freshness) {
+                        Freshness.CACHED, Freshness.FRESH, Freshness.STALE -> {
+                            hasSnapshot = true
+                            memories = snapshot.records
+                            renderList()
+                        }
+                        Freshness.UNAVAILABLE -> renderUnavailable()
+                        Freshness.NEVER_SYNCED -> {
+                            memories = emptyList()
+                            content.removeAllViews()
+                        }
                     }
-
-                    // Not connected. The cache exists but is not read or presented, because emitting a
-                    // cached frame here would show memories and then erase them a moment later.
-                    Freshness.UNAVAILABLE -> renderUnavailable()
-
-                    // The authority did not answer. The cache holds a last-known copy, but presenting it
-                    // as the current answer is exactly the false claim the freshness field exists to
-                    // prevent, so this stays the unconfirmable error state rather than a silent list.
-                    Freshness.STALE -> renderUnconfirmable()
-
-                    // Never synced. Deliberately not rendered as an empty memory: "she knows nothing
-                    // about you" is a different and untrue statement from "this could not be read".
-                    Freshness.NEVER_SYNCED -> renderUnconfirmable()
-
-                    // Unreachable from refresh(), which only ever answers FRESH or a failure state.
-                    // Handled rather than defaulted so that wiring cached-first in here is a visible
-                    // decision in W3 instead of an accident.
-                    Freshness.CACHED -> renderUnconfirmable()
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -302,6 +294,40 @@ class MemoryTrustActivity : Activity() {
     }
 
     // ---------------------------------------------------------------- rendering
+
+    private fun showFreshness(snapshot: MemoryTrustSnapshot) {
+        // Fresh sync metadata is a footer: a multi-line timestamp above the list pushes
+        // the first card/editor below the fold on a 205x251dp watch. Warnings stay above
+        // the content so cached data cannot look like a current server answer.
+        val layout = freshness.layoutParams
+        root.removeView(freshness)
+        val contentIndex = root.indexOfChild(content)
+        root.addView(
+            freshness,
+            if (snapshot.freshness == Freshness.FRESH) contentIndex + 1 else contentIndex,
+            layout,
+        )
+        val label = when (snapshot.freshness) {
+            Freshness.CACHED -> R.string.memory_cached
+            Freshness.FRESH -> R.string.memory_fresh
+            Freshness.STALE -> R.string.memory_stale
+            Freshness.NEVER_SYNCED -> R.string.memory_never_synced
+            Freshness.UNAVAILABLE -> {
+                freshness.visibility = View.GONE
+                return
+            }
+        }
+        freshness.text = buildString {
+            append(getString(label))
+            snapshot.lastFullSyncAt?.let {
+                val formatted = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(java.time.ZoneId.systemDefault()).format(it)
+                append('\n')
+                append(getString(R.string.memory_last_sync, formatted))
+            }
+        }
+        freshness.visibility = View.VISIBLE
+    }
 
     /**
      * The product path today. There is no local memory database, and refusing to invent one is the
@@ -535,6 +561,7 @@ class MemoryTrustActivity : Activity() {
     }
 
     private fun beginEdit(memory: CanonicalMemory) {
+        if (busy) return
         editing = memory.id
         draft = MemoryEditDraft(memory)
         pendingDelete = null
@@ -694,6 +721,7 @@ class MemoryTrustActivity : Activity() {
 
     /** First tap: show the confirmation. The record is not touched yet. */
     private fun askDelete(memory: CanonicalMemory) {
+        if (busy) return
         pendingDelete = memory.id
         renderList()
     }
@@ -805,8 +833,13 @@ class MemoryTrustActivity : Activity() {
         }
 
         if (snapshot != null && snapshot.freshness == Freshness.FRESH) {
+            showFreshness(snapshot)
             memories = snapshot.records
             renderList()
+        } else if (snapshot != null) {
+            // Report failed reconciliation without replacing the current projection with cache
+            // or erasing the separate indeterminate-mutation message/draft.
+            showFreshness(snapshot)
         }
     }
 
@@ -814,7 +847,7 @@ class MemoryTrustActivity : Activity() {
 
     private fun setBusy(value: Boolean) {
         busy = value
-        filterButton.isEnabled = !value
+        filterButton.isEnabled = !value && hasSnapshot
     }
 
     private fun filterLabel(): String = getString(
@@ -863,6 +896,7 @@ class MemoryTrustActivity : Activity() {
         const val TAG_DELETE_CONFIRM = "memory:delete-confirm:"
         const val TAG_DELETE_CANCEL = "memory:delete-cancel:"
         const val TAG_FILTER = "memory:filter"
+        const val TAG_FRESHNESS = "memory:freshness"
         const val TAG_EDIT = "memory:edit:"
         const val TAG_EDIT_SAVE = "memory:edit-save:"
         const val TAG_EDIT_CANCEL = "memory:edit-cancel:"

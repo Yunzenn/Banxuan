@@ -93,6 +93,110 @@ class MemoryTrustTest {
 
     // ------------------------------------------------------------------ identity
 
+    @Test
+    fun cachedFirstFrameStaysLabelledWhenRefreshFails() {
+        val record = profile("cached", MemoryStatus.STAGED, "cached.preference", "茶", "喜欢茶")
+        val app = instrumentation.targetContext.applicationContext as ProbeApplication
+        val syncedAt = Instant.parse("2026-09-27T10:00:00Z")
+        runBlocking {
+            val subject = app.identityStore.getOrCreate().deviceId
+            app.memoryCache.clearSubject(subject)
+            app.memoryCache.replaceFullSnapshot(subject, listOf(record), syncedAt)
+        }
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        MemoryGatewayRegistry.override = object : MemoryGateway by gatewayWith(record) {
+            override suspend fun list(
+                statuses: Set<MemoryStatus>, characterScope: CharacterScope?,
+            ): List<CanonicalMemory> {
+                release.await()
+                throw java.io.IOException("offline fixture")
+            }
+        }
+        val activity = launch()
+        try {
+            awaitCard(activity, "cached.preference")
+            onMain {
+                val banner = findTagged(activity, MemoryTrustActivity.TAG_FRESHNESS) as TextView
+                assertTrue(banner.text.contains(activity.getString(R.string.memory_cached)))
+                assertTrue(banner.text.contains("2026-09-27"))
+                assertTrue(!(findTagged(activity, MemoryTrustActivity.TAG_FILTER) as Button).isEnabled)
+            }
+            release.complete(Unit)
+            awaitIdle(activity)
+            onMain {
+                val banner = findTagged(activity, MemoryTrustActivity.TAG_FRESHNESS) as TextView
+                assertTrue(banner.text.contains(activity.getString(R.string.memory_stale)))
+                assertTrue(texts(activity).any { it.contains("cached.preference") })
+            }
+            clickTagged(activity, MemoryTrustActivity.TAG_FILTER)
+            onMain {
+                assertTrue((findTagged(activity, MemoryTrustActivity.TAG_FRESHNESS) as TextView)
+                    .text.contains(activity.getString(R.string.memory_stale)))
+            }
+        } finally {
+            release.complete(Unit)
+            close(activity)
+        }
+    }
+
+    @Test
+    fun neverSyncedIsNotAnEmptyMemoryList() {
+        val gateway = object : MemoryGateway by gatewayWith() {
+            override suspend fun list(
+                statuses: Set<MemoryStatus>, characterScope: CharacterScope?,
+            ): List<CanonicalMemory> = throw java.io.IOException("offline fixture")
+        }
+        val activity = launchWithGateway(gateway)
+        try {
+            awaitState("never synced banner") {
+                onMain { texts(activity).any { it == activity.getString(R.string.memory_never_synced) } }
+            }
+            onMain {
+                assertTrue(texts(activity).none { it == activity.getString(R.string.memory_empty) })
+                assertTrue(!(findTagged(activity, MemoryTrustActivity.TAG_FILTER) as Button).isEnabled)
+            }
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun successfulRefreshReplacesCachedFrameAndItsBanner() {
+        val old = profile("old", MemoryStatus.CONFIRMED, "old.preference", "茶", "旧记录")
+        val fresh = profile("new", MemoryStatus.CONFIRMED, "new.preference", "水", "新记录")
+        val app = instrumentation.targetContext.applicationContext as ProbeApplication
+        runBlocking {
+            val subject = app.identityStore.getOrCreate().deviceId
+            app.memoryCache.clearSubject(subject)
+            app.memoryCache.replaceFullSnapshot(subject, listOf(old), Instant.parse("2026-01-01T00:00:00Z"))
+        }
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        MemoryGatewayRegistry.override = object : MemoryGateway by gatewayWith(fresh) {
+            override suspend fun list(
+                statuses: Set<MemoryStatus>, characterScope: CharacterScope?,
+            ): List<CanonicalMemory> {
+                release.await()
+                return listOf(fresh)
+            }
+        }
+        val activity = launch()
+        try {
+            awaitCard(activity, "old.preference")
+            release.complete(Unit)
+            awaitIdle(activity)
+            onMain {
+                assertTrue(texts(activity).any { it.contains("new.preference") })
+                assertTrue(texts(activity).none { it.contains("old.preference") })
+                val banner = findTagged(activity, MemoryTrustActivity.TAG_FRESHNESS) as TextView
+                assertTrue(banner.text.contains(activity.getString(R.string.memory_fresh)))
+                assertTrue(!banner.text.contains("2026-01-01"))
+            }
+        } finally {
+            release.complete(Unit)
+            close(activity)
+        }
+    }
+
     /**
      * The identity is the partition every read addresses, so a screen that cannot establish it must read
      * **nothing** and must not invent a substitute subject.

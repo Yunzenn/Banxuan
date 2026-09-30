@@ -1,0 +1,258 @@
+class=com.aiwatch.probe.memory.MemoryTrustTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/memory/MemoryTrustTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=25
+
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.656
+
+OK (1 test)
+
+
+
+=== cachedFirstFrameStaysLabelledWhenRefreshFails ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.624
+
+OK (1 test)
+
+
+
+=== neverSyncedIsNotAnEmptyMemoryList ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.459
+
+OK (1 test)
+
+
+
+=== successfulRefreshReplacesCachedFrameAndItsBanner ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.532
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.416
+
+OK (1 test)
+
+
+
+=== aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.272
+
+OK (1 test)
+
+
+
+=== anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.244
+
+OK (1 test)
+
+
+
+=== anIndeterminateEditKeepsTheDraftWhileReconciling ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 6.008
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.275
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.094
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.215
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.62
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.62
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.548
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.987
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.231
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.209
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.425
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.329
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.185
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 7.434
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.609
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.171
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.779
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.332
+
+OK (1 test)
+
+
+

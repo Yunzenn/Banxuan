@@ -8,7 +8,7 @@
          everything on restart. -->
     <string name="memory_unavailable_title">记忆服务尚未连接</string>
     <string name="memory_unavailable_body">本机还没有连接到记忆服务，因此这里不会显示任何记忆。连接服务器后，这里会列出小智记得的事，你可以查看、确认、忽略或删除。</string>
-    <string name="memory_unavailable_note">本机不保存记忆，也不会用示例数据代替真实记忆。</string>
+    <string name="memory_unavailable_note">未连接时不展示本机缓存，也不会用示例数据代替真实记忆。</string>
 
     <!-- Identity. The subject is the partition every read and every mutation addresses, so an identity
          that cannot be read is a distinct condition from a gateway that is not connected yet, and it
@@ -21,6 +21,11 @@
 
     <string name="memory_empty">这个分类下还没有记忆。</string>
     <string name="memory_busy">正在读取…</string>
+    <string name="memory_cached">正在同步，暂显示上次保存的内容。</string>
+    <string name="memory_fresh">已从记忆服务同步。</string>
+    <string name="memory_stale">同步失败，以下是上次保存的内容，可能已过期。</string>
+    <string name="memory_never_synced">尚未成功同步，无法确认服务器中的记忆。</string>
+    <string name="memory_last_sync">最后完整同步：%1$s</string>
     <string name="memory_error">读取记忆失败，请稍后再试。没有做任何修改。</string>
     <string name="memory_action_error">操作失败，记忆没有改变。</string>
 
