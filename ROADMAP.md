@@ -3,6 +3,19 @@
 Plan of record. Kept short on purpose: it exists so the Gate is not forgotten and regressions are caught,
 not as a development phase of its own.
 
+## 当前执行顺序（2026-09-30）
+
+Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`），[下载与安装](INSTALL.md)。Memory W0–W4 已闭环：**SOFTWARE AUTOMATED PASS**，不是完整 v0.4 端到端验收。
+
+下一步只优先推进 Connected Voice：
+
+1. S2：核查并复用小智服务端，明确配置、依赖和现有服务边界。
+2. localhost HTTP / WS 联调（只用于本地开发验证）。
+3. 建立经过认证的公网 HTTPS / WSS 入口，不降低客户端 TLS 要求。
+4. Banxuan 真实 PTT → ASR → LLM → TTS → AudioTrack，验证打断、重连和实际音频契约。
+
+真实记忆 authority 尚未部署，接通语音不会自动完成记忆集成。参考手机和 CD12Max 验收仍待完成；Live2D 为非阻塞增强。本轮不再扩展 W5 一类内部架构任务。
+
 ## Target hardware (supplied by the customer, 2026-09-26)
 
 | | |
@@ -13,9 +26,9 @@ not as a development phase of its own.
 | Panel | 2.06" AMOLED, **410 x 502 px**, 60 Hz |
 | Battery | 1400 mAh, magnetic fast charge |
 
-**Density derivation (this corrected an earlier wrong assumption).** 410x502 is 648 px on the diagonal;
-648 / 2.06" = ~315 dpi, which Android buckets to **320 dpi / density 2.0**. Usable canvas is therefore
-**205 x 251 dp**, not 410 x 502 dp. The P0-1 layout was built against the wrong basis and overflowed the
+**模拟器布局基线，不是真机密度测量。** 当前测试采用 410×502 px、320 dpi / density 2.0，
+对应 **205×251 dp**。屏幕物理密度约 315 dpi 不能证明 Android 的逻辑密度为 320；真机值待采集。
+The P0-1 layout was built against the wrong basis and overflowed the
 panel (transcript and push-to-talk pushed off-screen) until `CompanionDimensions` was re-derived.
 `evidence/screenshots/p0-1-at-real-density-320.png` is the overflow; the re-scaled capture supersedes it.
 
@@ -256,12 +269,14 @@ W2-A + W2-B 之后：
   成功后 re-list                    REMOVED
   indeterminate 只读回、绝不重试    VERIFIED
 
-  仍未建立：
-  Gate B runtime / structural enforcement   W4
-  CACHED 首帧与陈旧横幅呈现                  W3
+  W2 当时未建立（现均已完成软件自动验证）：
+  Gate B runtime / structural enforcement   W4 PASS
+  CACHED 首帧与陈旧横幅呈现                  W3 PASS
 ```
 
-#### W2-B 的两个关键取舍
+#### W2-B 的两个关键取舍（历史记录）
+
+以下描述 W2-B 当时的隔离策略；当前 W3 已接入 `snapshots()` 与 cache-first 呈现，不应退回 `refresh()` 首屏。
 
 **load 用 `refresh()`，不用 `snapshots()`。** `snapshots()` 会先发 `CACHED` 首帧，那就必须同时把
 freshness UI 做对 —— W3 会被偷偷并进 W2-B。用 `refresh()` 时，所有 remote→cache projection 已经全部

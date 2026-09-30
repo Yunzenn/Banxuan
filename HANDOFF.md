@@ -1,6 +1,22 @@
-# Handoff — Live2D Runtime Gate
+# Handoff — Banxuan 当前交接
 
-## 冻结裁决（用户 2026-09-25 裁定，以此为当前状态权威；第二轮已调整 Gate）
+## 当前状态（2026-09-30）
+
+- Preview `v0.4.0-preview` 已发布，发布源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`。下载见 [INSTALL.md](INSTALL.md)。
+- Memory W0–W4 CLOSED / SOFTWARE AUTOMATED PASS。W4：28/28 instrumentation、32/32 app JVM；见 [验证报告](evidence/tests/W4_VALIDATION.md)。
+- 真实记忆服务未部署；Connected Voice 等待真实后端；参考手机、CD12Max 和完整视觉验收没有通过声明。
+- 当前优先级：小智服务端 S2 → 本机 HTTP/WS 验证 → 公网 HTTPS/WSS → Banxuan 真实 PTT → ASR → LLM → TTS → AudioTrack。
+- 复用冻结的小智服务端，不另写语音服务。先核查现有部署、版本和端口归属，保护已有业务；未经授权不修改云端配置。生产客户端不放宽 TLS。
+- 验证真实 Server Hello 与 TTS 音频契约；C4 仍为 STATIC PASS / runtime pending，不能只凭可解码就升级 PASS。
+- 不新增 W5 内部工程，不把 Live2D 当下一步阻塞项。真实记忆服务另需部署、认证与对话集成。
+- GitHub 提交身份使用 `yunzenn`；不上传个人路径、凭据、专有 Core 或第三方 APK。
+- 发布 APK 使用 CI 调试证书，不保证覆盖升级。不要重新打包或替换现有标签下的制品来配合文档更新。
+
+## 历史交接：Live2D Runtime Gate（2026-09-25，非当前待办）
+
+以下保留当时的裁决和证据。下文的“下一步”只描述当时计划，当前执行顺序以上节和 [ROADMAP.md](ROADMAP.md) 为准。
+
+### 历史冻结裁决（用户 2026-09-25 裁定；第二轮已调整 Gate）
 
 用户第二轮裁定：**不再把「必须有 ARM64 真机」作为进入开发阶段的硬前置**，否则项目会被一个当前拿不到的外部资源无限卡住。
 

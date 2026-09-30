@@ -1,5 +1,17 @@
 # Risk Register
 
+## 当前 Preview 与联调风险（2026-09-30）
+
+| 风险 | 当前状态与处理 |
+|---|---|
+| 真实语音后端未接通 | Connected Voice 当前首要阻塞；先 S2、本地验证，再认证 HTTPS/WSS 与真实语音联调 |
+| 真实记忆服务未部署 | W0–W4 是软件自动验证，不把测试数据或缓存冒充已上线服务 |
+| CI 调试签名不稳定 | Preview 仅供测试，不保证覆盖升级；卸载会清空身份、设置与缓存，须提前告知 |
+| 硬件与视觉证据不足 | 模拟器通过不代表参考手机、CD12Max 或完整视觉验收通过 |
+| Live2D 后续发布审查 | 当前 Preview 不包含 Core/模型；未来启用时仍需单独解决许可证及 ARM64 16 KB 兼容风险，不阻塞当前无 Live2D 的开发 |
+
+以下保留各阶段风险记录；历史条目中的待办应结合当前路线图与对应验证报告阅读。
+
 | 风险 | 等级 | 处置 |
 |---|---|---|
 | LIVE2D-ARM64-16K | BLOCKED BY UPSTREAM / RELEASE BLOCKER | ARM64 RELRO静态FAIL；与P2B-RUNTIME分离，不无限阻止4KB开发。llvm-readelf复核待做；不改闭源SO、不从其他runtime偷换Core |

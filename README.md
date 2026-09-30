@@ -1,8 +1,28 @@
 # Banxuan / 伴星
 
-> 一个以二次元角色呈现、拥有长期个人记忆，并能像 Codex 操作电脑一样通过自然语言**观察、理解和操作整块 Android 手表**的个人 AI Agent。
+> 正在开发的 Android 手表陪伴应用。目标是自然语音交流、长期个人记忆，以及通过自然语言操作手表；这些目标尚未全部实现。
 >
 > 内部代号：**Companion Agent Runtime**（腕上陪伴智能体）。
+
+## 下载测试版：不需要编程
+
+**[⬇ 下载 Banxuan Preview 0.4 安装包（APK，约 6.9 MB）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.0-preview/banxuan-preview-v0.4.apk)**
+
+[下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview) · [本版能力与限制](PREVIEW.md)
+
+1. 用 Android 9 或以上设备的浏览器点击下载。
+2. 在「下载」中打开 `banxuan-preview-v0.4.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
+3. 安装后打开 **「小星陪伴 · 预览」**（当前桌面显示名称），体验首页和设置。
+
+**安装前请注意：这是调试测试版，不是正式版。** 不保证与其他构建覆盖升级；遇到签名冲突不要直接卸载旧版，卸载会清空身份、设置和缓存。不要存放敏感数据。CD12Max 真机兼容性仍待验证。
+
+| 现在可以体验 | 现在还不能承诺 |
+|---|---|
+| 首页、角色占位区域、设置、PTT 控件与状态展示 | 开箱即可和线上 AI 语音聊天 |
+| 「我的记忆」入口；未连接时明确提示 | 真实聊天记忆：记忆服务器尚未部署 |
+| 自有源码构建的可安装 Preview | Live2D、CD12Max 真机通过、稳定覆盖升级 |
+
+当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环。** 下一步优先接通小智服务端和真实语音，不再扩展记忆内部工程。发布版本号不代表完整 Memory Companion 已验收。
 
 ---
 
@@ -29,13 +49,13 @@ CD12Max 4+32G
   系统       Full Android 9 / API 28
   内存/存储  4 GB + 32 GB
   面板       2.06" AMOLED, 410 x 502 px, ~315 dpi
-             -> Android 落在 320 桶 (density 2.0)
-             -> 可用画布 205 x 251 dp   ← 不是 410 x 502 dp
+             -> 模拟器测试采用 320 dpi (density 2.0)
+             -> 测试画布 205 x 251 dp；真机逻辑密度待采集
   电池       ~1400 mAh
 ```
 
-> **`205 x 251 dp` 这个换算错误已经造成过一次返工。** 任何视觉判断都必须先把模拟器覆盖成同样的几何，
-> 否则结论无效。命令见 [CONTRIBUTING.md](CONTRIBUTING.md#target-hardware)。
+> 上述硬件信息为目标规格，并非真机采集。屏幕物理密度不能直接确定 Android 逻辑密度。
+> 当前小屏回归基线是 410×502@320dpi；命令见 [CONTRIBUTING.md](CONTRIBUTING.md#target-hardware)。
 
 电池归面板、麦克风和射频。所以 W527 **不跑**本地 LLM、大 embedding、VITS 或 reranker —— 那是把电和发热花在让产品变差上。
 
@@ -55,20 +75,19 @@ CD12Max 4+32G
 
 ### v0.4 具体进度
 
-v0.4 是当前工作区，且**没有完成**。已落地并各自有证据的部分：
+记忆可信基础设施 **W0–W4 已关闭 / 软件自动验证 PASS**。完整 v0.4 仍需真实记忆服务和对话集成，不能把基础设施通过等同产品端到端通过。
 
 ```text
-记忆信任面（"我的记忆"）      列出 / 确认 / 忽略 / 二次确认删除 / 行内编辑      18 条 instrumentation PASS
-canonical 语义契约            两侧共读同一份契约，双向进 required CI             Kotlin 28 / Python 33 PASS
-edit 契约                     内容修改、审计信封、identity 冲突拒绝            14 条原生 + v2 契约 12 例 PASS
-远端桥                        canonical memory HTTP v1 + RemoteMemoryGateway   Kotlin 14 / Python 17 PASS
-持久缓存                      Room、按 subject 分区、原子整替、无离线队列       19 条 instrumentation PASS
-组合层（remote + cache）      remote-first、新鲜度语义、Mutex 串行化           22/23 单测；1 条未解决
+W0–W2   基线、identity 分区、Room owner、统一 repository 接线   PASS
+W3      cache-first、CACHED / STALE / FRESH / NEVER_SYNCED     25/25 instrumentation，28/28 app JVM
+W4      单 owner、无绕过、成功不 re-list、不确定结果不盲重试    28/28 instrumentation，32/32 app JVM
 ```
 
-**组合层是 PR #15，仍是 draft，且有 1 条测试失败，因此没有合并。** 把 `v0.4` 记为"完成"是不诚实的。
+证据：[W3](evidence/tests/W3_VALIDATION.md)、[W4](evidence/tests/W4_VALIDATION.md)。测试环境为 API28 SDK 模拟器，不能扩大为完整视觉审查、参考手机、CD12Max 或云端验收。普通安装没有注入测试数据，默认显示「记忆服务尚未连接」。
 
-### 两个从未读过的设备闸门
+发布基线：`v0.4.0-preview` → `057030884f2c754a316ac52f7e1a84f75ece39fc`；W4 PR #30、分发 PR #31 均已合并。
+
+### 尚未完成的目标设备验收
 
 `C1 Device Probe` 至今未跑 —— **CD12Max 真机从未连接过**。因此下列全部未验证：
 
@@ -84,9 +103,9 @@ GL_MAX_TEXTURE_SIZE           # 若 < 8192，Mahiro 的 atlas 在这台设备上
 ### Live2D 的现状
 
 `P2B-1A = NOT COMPLETE (2/5)`，且 Live2D 现在**完全不在产品构建里**：`:app` 对 Live2D 零编译依赖，
-`app/src/main` 无任何 `com.aiwatch.live2d` 引用。debug APK 因此从 ~28 MB 降到 **6.3 MB**。
+`app/src/main` 无任何 `com.aiwatch.live2d` 引用。本次发布 APK 为 **6,887,807 bytes（约 6.9 MB）**。
 
-官方 Cubism SDK 不可再分发，所以 `settings.gradle.kts` 只在 SDK 根目录真实存在时才 include `:core-live2d`。
+专有 Cubism SDK 不随本仓库或本次 Preview 分发。`settings.gradle.kts` 只在 SDK 根目录真实存在时才 include `:core-live2d`；未来启用前仍需独立许可证和兼容性审查。
 
 ---
 
@@ -317,6 +336,9 @@ Python 契约     canonical 语义契约、HTTP 边界、HTTP handler（仅 stdl
 
 | 文件 | 作用 |
 |---|---|
+| [INSTALL.md](INSTALL.md) | 普通用户下载、安装、首次打开与常见问题 |
+| [PREVIEW.md](PREVIEW.md) | 已发布测试版的能力、证据和限制 |
+| [HANDOFF.md](HANDOFF.md) | 当前交接与下一步；旧阶段内容明确标为历史 |
 | **[`PRODUCT_REQUIREMENTS.md`](PRODUCT_REQUIREMENTS.md)** | **项目记忆 / 需求正本** — 接手先读 |
 | **[`CONTRIBUTING.md`](CONTRIBUTING.md)** | 边界、构建、测试、证据规则、分支与提交、许可证 |
 | **[`ROADMAP.md`](ROADMAP.md)** | 冻结的版本线、Gate、架构决定、复用表、范围围栏、治理规则 |

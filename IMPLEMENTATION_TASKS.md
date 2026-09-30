@@ -1,5 +1,17 @@
 # Implementation Tasks
 
+## 当前执行入口（2026-09-30）
+
+- [x] W0–W4 Memory Trust 基础设施软件自动验证闭环（不代表真实服务上线）。
+- [x] Preview `v0.4.0-preview` 发布；[普通用户安装指南](INSTALL.md)。
+- [ ] S2：核查并复用小智后端，保护已有服务，明确部署配置。
+- [ ] localhost HTTP / WS 验证。
+- [ ] 公网 HTTPS / WSS 与认证。
+- [ ] Banxuan Connected Voice：真实 PTT → ASR → LLM → TTS → AudioTrack。
+- [ ] 真实 TTS 音频契约 runtime 验证；参考手机与 CD12Max 验收。
+
+真实记忆服务尚未部署。优先级见 [ROADMAP.md](ROADMAP.md)，交接见 [HANDOFF.md](HANDOFF.md)。以下 Phase 清单保留为历史阶段记录，不覆盖当前执行顺序；旧“下一步”不得作为重开已完成工作的依据。
+
 ## Phase 0A（完成）
 
 - [x] 建立任务书、复用矩阵和协议初始契约
