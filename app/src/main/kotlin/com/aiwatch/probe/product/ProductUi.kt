@@ -11,11 +11,11 @@ import android.widget.*
 
 /** Small native-view palette; no extra UI runtime or animation loop. */
 internal class ProductUi(val activity: Activity) {
-    val ink = Color.rgb(240, 234, 222)
-    val muted = Color.rgb(177, 191, 182)
-    val accent = Color.rgb(208, 226, 176)
-    val background = Color.rgb(18, 32, 29)
-    val surface = Color.rgb(29, 47, 42)
+    val ink = com.aiwatch.probe.theme.CompanionColors.primaryText
+    val muted = com.aiwatch.probe.theme.CompanionColors.secondaryText
+    val accent = com.aiwatch.probe.theme.CompanionColors.companion
+    val background = com.aiwatch.probe.theme.CompanionColors.background
+    val surface = com.aiwatch.probe.theme.CompanionColors.surface
     fun dp(value: Int) = (value * activity.resources.displayMetrics.density).toInt()
     fun shape(color: Int, radius: Int = 16) = GradientDrawable().apply {
         setColor(color); cornerRadius = dp(radius).toFloat()

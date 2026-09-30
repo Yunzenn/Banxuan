@@ -21,7 +21,7 @@ interface AvatarProvider {
 
 /**
  * Loads a still from `assets/`. The directory is gitignored, so a fresh clone has no asset and the view
- * keeps its designed placeholder instead of failing.
+ * uses the bundled original Daylight illustration instead of failing.
  */
 class AssetAvatarProvider(private val assetPath: String) : AvatarProvider {
 
@@ -30,7 +30,7 @@ class AssetAvatarProvider(private val assetPath: String) : AvatarProvider {
             BitmapFactory.decodeStream(stream)?.let { BitmapDrawable(context.resources, it) }
         }
     }.onFailure { Log.i(TAG, "character asset '$assetPath' unavailable: ${it.message}") }
-        .getOrNull()
+        .getOrNull() ?: context.getDrawable(com.aiwatch.probe.R.drawable.companion_daylight)
 
     override fun describe(): String = "asset:$assetPath"
 

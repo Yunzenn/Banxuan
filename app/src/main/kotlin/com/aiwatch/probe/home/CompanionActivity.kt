@@ -49,6 +49,12 @@ class CompanionActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
 
+        // Native immersive mode only for watch-sized windows; edge swipe restores system controls.
+        if (resources.configuration.screenHeightDp <= 300) {
+            window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        }
+
         home = CompanionHomeView(this)
         setContentView(home)
         home.bind(profile, AvatarProviders.forSource(profile.avatar))

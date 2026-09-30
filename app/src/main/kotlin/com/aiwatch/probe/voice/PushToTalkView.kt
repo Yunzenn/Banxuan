@@ -41,7 +41,7 @@ class PushToTalkView @JvmOverloads constructor(
     }
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
-        textSize = CompanionDrawables.dp(context, CompanionDimensions.pttTextSp)
+        textSize = CompanionDimensions.pttTextSp * resources.displayMetrics.scaledDensity
     }
 
     private val radius = CompanionDrawables.dp(context, CompanionDimensions.pttRadiusDp)
@@ -80,28 +80,14 @@ class PushToTalkView @JvmOverloads constructor(
         val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
 
         fill.color = when {
-            pressed -> blend(accent, CompanionColors.background, 0.74f)
-            state.isBusy() -> blend(accent, CompanionColors.background, 0.84f)
-            else -> CompanionColors.surfaceElevated
+            pressed -> accent
+            state.isBusy() -> accent
+            else -> CompanionColors.companion
         }
         canvas.drawRoundRect(rect, radius, radius, fill)
 
-        if (!state.isBusy() && !pressed) {
-            // Hairline keeps the capsule legible against the near-black background without a drop shadow.
-            fill.style = Paint.Style.STROKE
-            fill.strokeWidth = CompanionDrawables.dp(context, 1f)
-            fill.color = CompanionColors.hairline
-            val insetRect = RectF(rect)
-            insetRect.inset(0.5f, 0.5f)
-            canvas.drawRoundRect(insetRect, radius, radius, fill)
-            fill.style = Paint.Style.FILL
-        }
-
-        val textColor = when {
-            pressed || state.isBusy() -> CompanionColors.background
-            else -> CompanionColors.primaryText
-        }
-        val glyphColor = if (pressed || state.isBusy()) CompanionColors.background else accent
+        val textColor = CompanionColors.background
+        val glyphColor = textColor
 
         label.color = textColor
         glyph.color = glyphColor

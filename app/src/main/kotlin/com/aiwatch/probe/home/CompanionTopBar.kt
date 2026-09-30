@@ -9,6 +9,10 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ImageButton
+import android.content.res.ColorStateList
+import android.graphics.drawable.RippleDrawable
+import com.aiwatch.probe.R
 import com.aiwatch.probe.conversation.ConversationState
 import com.aiwatch.probe.conversation.accentColor
 import com.aiwatch.probe.conversation.statusLabel
@@ -33,6 +37,8 @@ class CompanionTopBar @JvmOverloads constructor(
         setTextColor(CompanionColors.primaryText)
         textSize = 13f
         letterSpacing = 0.04f
+        setSingleLine(true)
+        ellipsize = android.text.TextUtils.TruncateAt.END
     }
 
     private val statusDot = View(context)
@@ -40,9 +46,17 @@ class CompanionTopBar @JvmOverloads constructor(
     private val status = TextView(context).apply {
         setTextColor(CompanionColors.secondaryText)
         textSize = 10f
+        setSingleLine(true)
+        ellipsize = android.text.TextUtils.TruncateAt.END
     }
 
-    private val settings = DotsButton(context).apply {
+    private val settings = ImageButton(context).apply {
+        setImageResource(R.drawable.ic_material_settings)
+        imageTintList = ColorStateList.valueOf(CompanionColors.secondaryText)
+        background = RippleDrawable(ColorStateList.valueOf(CompanionColors.hairline), null,
+            CompanionDrawables.rounded(context, android.graphics.Color.WHITE, 24f))
+        val inset = CompanionDrawables.dp(context, 14f).toInt()
+        setPadding(inset, inset, inset, inset)
         contentDescription = "设置"
         setOnClickListener { onSettingsClick?.invoke() }
     }
@@ -76,12 +90,13 @@ class CompanionTopBar @JvmOverloads constructor(
             ).apply { topMargin = CompanionDrawables.dp(context, 3f).toInt() })
         }
 
-        addView(column, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
             leftMargin = margin
+            rightMargin = CompanionDrawables.dp(context, 50f).toInt()
         })
 
-        val buttonSize = CompanionDrawables.dp(context, 32f).toInt()
+        val buttonSize = CompanionDrawables.dp(context, 48f).toInt()
         addView(settings, LayoutParams(buttonSize, buttonSize).apply {
             gravity = Gravity.END or Gravity.CENTER_VERTICAL
             rightMargin = margin - CompanionDrawables.dp(context, 8f).toInt()
@@ -98,19 +113,4 @@ class CompanionTopBar @JvmOverloads constructor(
         }
     }
 
-    /** Overflow affordance for Settings: three dots, no icon asset and no third-party icon font. */
-    private class DotsButton(context: Context) : View(context) {
-
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CompanionColors.secondaryText }
-
-        override fun onDraw(canvas: Canvas) {
-            val radius = CompanionDrawables.dp(context, 1.9f)
-            val gap = CompanionDrawables.dp(context, 4.6f)
-            val cx = width / 2f
-            val cy = height / 2f
-            canvas.drawCircle(cx - gap, cy, radius, paint)
-            canvas.drawCircle(cx, cy, radius, paint)
-            canvas.drawCircle(cx + gap, cy, radius, paint)
-        }
-    }
 }
