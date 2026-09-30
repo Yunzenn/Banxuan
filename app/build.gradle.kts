@@ -21,6 +21,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions.unitTests.all {
+        it.systemProperty("w4.classesDir", layout.buildDirectory.dir("tmp/kotlin-classes/debug").get().asFile.absolutePath)
+    }
 }
 
 kotlin {
@@ -42,6 +45,9 @@ dependencies {
     // itself stays off this module's compile classpath.
     testImplementation(project(":core-memory-cache-android"))
     testImplementation(kotlin("test"))
+    // W4 structural guards inspect compiled production bytecode, including coroutine classes.
+    // Test-only; BSD-3-Clause. Never packaged in the APK.
+    testImplementation("org.ow2.asm:asm:9.6")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation(project(":core-protocol"))

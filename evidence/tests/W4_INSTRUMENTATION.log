@@ -1,0 +1,288 @@
+class=com.aiwatch.probe.memory.MemoryTrustTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/memory/MemoryTrustTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=28
+
+=== withoutAGatewayTheScreenSaysSoAndInventsNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.545
+
+OK (1 test)
+
+
+
+=== cachedFirstFrameStaysLabelledWhenRefreshFails ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.169
+
+OK (1 test)
+
+
+
+=== neverSyncedIsNotAnEmptyMemoryList ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.485
+
+OK (1 test)
+
+
+
+=== successfulRefreshReplacesCachedFrameAndItsBanner ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.662
+
+OK (1 test)
+
+
+
+=== aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.826
+
+OK (1 test)
+
+
+
+=== oneOwnerServesAllFivePathsWithoutSuccessRelisting ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 7.104
+
+OK (1 test)
+
+
+
+=== everyLostMutationResponseIsReconciledWithoutRetry ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 11.741
+
+OK (1 test)
+
+
+
+=== failedReconciliationNeverRetriesAnyMutation ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 12.115
+
+OK (1 test)
+
+
+
+=== aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.229
+
+OK (1 test)
+
+
+
+=== anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.222
+
+OK (1 test)
+
+
+
+=== anIndeterminateEditKeepsTheDraftWhileReconciling ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.769
+
+OK (1 test)
+
+
+
+=== aStagedCandidateIsConfirmedThroughTheRealGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.915
+
+OK (1 test)
+
+
+
+=== anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.801
+
+OK (1 test)
+
+
+
+=== aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.35
+
+OK (1 test)
+
+
+
+=== theUsersOwnWordsAreShownSoTheClaimCanBeJudged ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.474
+
+OK (1 test)
+
+
+
+=== pendingMemoriesAreListedBeforeSettledOnes ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.891
+
+OK (1 test)
+
+
+
+=== aConfirmedProfileCanBeEditedAndKeepsItsIdentity ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.348
+
+OK (1 test)
+
+
+
+=== editingAStagedCandidateDoesNotConfirmIt ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.373
+
+OK (1 test)
+
+
+
+=== savingWithoutChangingAnythingPreservesTheOriginalProvenance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.689
+
+OK (1 test)
+
+
+
+=== anIdentityMovingEditKeepsTheIdAndShowsTheNewFact ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.6
+
+OK (1 test)
+
+
+
+=== anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.275
+
+OK (1 test)
+
+
+
+=== aRejectedMemoryOffersNoEditAffordance ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 2.852
+
+OK (1 test)
+
+
+
+=== cancellingAnEditNeverReachesTheGateway ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.181
+
+OK (1 test)
+
+
+
+=== everyCanonicalTypeOpensAnEditorWithItsOwnFields ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 4.88
+
+OK (1 test)
+
+
+
+=== editingAnEventTitleLeavesTheOriginalInstantExactlyAlone ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.206
+
+OK (1 test)
+
+
+
+=== theEditFormFitsThePanelAndItsButtonsAreNotClipped ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 5.342
+
+OK (1 test)
+
+
+
+=== theHeaderFitsThePanelAndActuallyShowsItsTitle ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 3.424
+
+OK (1 test)
+
+
+
+=== bothActionButtonsAreWideEnoughForTheirLabels ===
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 2.773
+
+OK (1 test)
+
+
+

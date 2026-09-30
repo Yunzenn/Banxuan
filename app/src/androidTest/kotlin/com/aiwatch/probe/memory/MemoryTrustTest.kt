@@ -258,6 +258,87 @@ class MemoryTrustTest {
 
     // ------------------------------------------------------------------ the composition owner (W2-B)
 
+    /** One real Activity visits all five paths; inspect ownership without adding production hooks. */
+    @Test
+    fun oneOwnerServesAllFivePathsWithoutSuccessRelisting() {
+        val recording = RecordingGateway(gatewayWith(
+            profile("a", MemoryStatus.STAGED, "first", "茶", "一"),
+            profile("b", MemoryStatus.STAGED, "second", "茶", "二"),
+            profile("c", MemoryStatus.CONFIRMED, "third", "茶", "三"),
+            profile("d", MemoryStatus.CONFIRMED, "fourth", "茶", "四"),
+        ))
+        val activity = launchWithGateway(recording)
+        try {
+            awaitCard(activity, "first")
+            awaitIdle(activity)
+            val field = MemoryTrustActivity::class.java.getDeclaredField("repository").apply { isAccessible = true }
+            val owner = onMain { field.get(activity) }
+            assertNotNull(owner)
+            listOf("confirm" to "a", "reject" to "b", "edit" to "c", "forget" to "d").forEach { (op, id) ->
+                performMutation(activity, op, id)
+                awaitIdle(activity)
+                onMain { org.junit.Assert.assertSame("$op replaced the repository owner", owner, field.get(activity)) }
+            }
+            assertEquals(listOf("list", "confirm", "reject", "edit", "forget"), recording.journal)
+        } finally {
+            close(activity)
+        }
+    }
+
+    @Test
+    fun everyLostMutationResponseIsReconciledWithoutRetry() = verifyLostResponses(false)
+
+    @Test
+    fun failedReconciliationNeverRetriesAnyMutation() = verifyLostResponses(true)
+
+    private fun verifyLostResponses(failReadBack: Boolean) {
+        listOf("confirm", "reject", "edit", "forget").forEach { op ->
+            val status = if (op == "confirm" || op == "reject") MemoryStatus.STAGED else MemoryStatus.CONFIRMED
+            val recording = RecordingGateway(gatewayWith(profile("m1", status, "preference", "茶", "原话")))
+            recording.loseResponseFor = op
+            recording.failReconciliation = failReadBack
+            val activity = launchWithGateway(recording)
+            try {
+                awaitCard(activity, "preference")
+                awaitIdle(activity)
+                performMutation(activity, op, "m1")
+                awaitIdle(activity)
+                assertEquals("$op must send once, then only read", listOf("list", op, "list"), recording.journal)
+                onMain {
+                    if (op == "edit") {
+                        assertEquals("改过的内容", (findTagged(activity, MemoryTrustActivity.TAG_EDIT_FIELD + "value") as EditText).text.toString())
+                        assertTrue(texts(activity).contains(activity.getString(R.string.memory_edit_indeterminate)))
+                    } else {
+                        assertTrue(texts(activity).contains(activity.getString(R.string.memory_indeterminate)))
+                    }
+                    if (failReadBack) {
+                        val banner = findTagged(activity, MemoryTrustActivity.TAG_FRESHNESS) as TextView
+                        assertTrue(banner.text.contains(activity.getString(R.string.memory_stale)))
+                    }
+                }
+            } finally {
+                close(activity)
+            }
+        }
+    }
+
+    private fun performMutation(activity: Activity, op: String, id: String) {
+        when (op) {
+            "confirm" -> clickTagged(activity, MemoryTrustActivity.TAG_CONFIRM + id)
+            "reject" -> clickTagged(activity, MemoryTrustActivity.TAG_IGNORE + id)
+            "edit" -> {
+                openEditor(activity, id)
+                setField(activity, "value", "改过的内容")
+                clickTagged(activity, MemoryTrustActivity.TAG_EDIT_SAVE + id)
+            }
+            "forget" -> {
+                clickTagged(activity, MemoryTrustActivity.TAG_DELETE + id)
+                clickTagged(activity, MemoryTrustActivity.TAG_DELETE_CONFIRM + id)
+            }
+            else -> error("unexpected operation $op")
+        }
+    }
+
     /**
      * A successful mutation updates the projection from the authority's **return value**, and does not
      * re-list.
@@ -910,18 +991,29 @@ class MemoryTrustTest {
         var editCalls = 0
         var failConfirmWith: Exception? = null
         var failEditWith: Exception? = null
+        var loseResponseFor: String? = null
+        var failReconciliation = false
+        private var responseLost = false
+
+        private fun <T> returned(op: String, value: T): T {
+            if (loseResponseFor == op) {
+                responseLost = true
+                throw java.io.IOException("authority committed but its response was lost")
+            }
+            return value
+        }
 
         override suspend fun stage(candidates: List<CanonicalMemory>) = delegate.stage(candidates)
 
         override suspend fun confirm(id: MemoryId): CanonicalMemory {
             journal += "confirm"
             failConfirmWith?.let { throw it }
-            return delegate.confirm(id)
+            return returned("confirm", delegate.confirm(id))
         }
 
         override suspend fun reject(id: MemoryId): CanonicalMemory {
             journal += "reject"
-            return delegate.reject(id)
+            return returned("reject", delegate.reject(id))
         }
 
         override suspend fun remember(memory: CanonicalMemory) = delegate.remember(memory)
@@ -930,7 +1022,7 @@ class MemoryTrustTest {
             journal += "edit"
             editCalls++
             failEditWith?.let { throw it }
-            return delegate.edit(id, edit)
+            return returned("edit", delegate.edit(id, edit))
         }
 
         override suspend fun recall(query: MemoryQuery) = delegate.recall(query)
@@ -940,12 +1032,13 @@ class MemoryTrustTest {
             characterScope: CharacterScope?,
         ): List<CanonicalMemory> {
             journal += "list"
+            if (responseLost && failReconciliation) throw java.io.IOException("read-back unavailable")
             return delegate.list(statuses, characterScope)
         }
 
         override suspend fun forget(id: MemoryId): Boolean {
             journal += "forget"
-            return delegate.forget(id)
+            return returned("forget", delegate.forget(id))
         }
     }
 
