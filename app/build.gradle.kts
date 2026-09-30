@@ -12,8 +12,8 @@ android {
         applicationId = "com.aiwatch.probe"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-product-preview"
+        versionCode = 4
+        versionName = "0.4.0-preview"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
