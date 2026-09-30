@@ -2,6 +2,7 @@
 
 | 来源与 commit | License 文件 | 结论 | 分发义务/限制 |
 |---|---|---|---|
+| `org.ow2.asm:asm:9.6` | Maven POM / upstream `LICENSE.txt` | BSD-3-Clause；W4 JVM test-only | 复用字节码读取器；不进入 APK。版本固定，不自研 class parser；POM 已核查，不代表完整供应链安全审计。 |
 | `78/xiaozhi-esp32@64b57d0...` | `/LICENSE` | MIT | 源码实质复制需保留版权与许可文本。 |
 | `xinnan-tech/xiaozhi-esp32-server@788f530...` | `/LICENSE` | MIT | 后端 patch 保留版权与许可文本。 |
 | `mdloverm/rokid-xiaozhi@8e3c920...` | `/LICENSE` | MIT，Copyright 2026 DLOVER | 抽取代码时保留 copyright + MIT notice。 |
