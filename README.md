@@ -333,6 +333,12 @@ Python 契约     canonical 语义契约、HTTP 边界、HTTP handler（仅 stdl
 
 ---
 
+## Banxuan Debug Preview
+
+绿色 CI 构建提供 `banxuan-preview-<commit>` APK artifact，附 SHA-256、构建提交和签名摘要。
+下载和验收边界见 [PREVIEW.md](PREVIEW.md)。这是调试预览，不是完整语音/记忆服务；普通安装
+默认显示「记忆服务尚未连接」，不展示测试 fixture。不同调试证书不保证覆盖升级。
+
 ## Reference XiaoZhi build
 
 **第三方参考实现，不是 Banxuan 的版本，也不由本仓库分发。**
