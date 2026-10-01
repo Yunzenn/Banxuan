@@ -1,7 +1,7 @@
 # Contributing
 
-This project is a wrist-worn companion agent for one specific piece of hardware. It is not a generic
-Android app, and several things that are normal elsewhere are deliberately excluded here. Please read
+This project is a companion agent for Android 9+ phones and Full Android watches. CD12Max is a reference
+watch, not the sole product target or a development prerequisite. Please read
 this before opening a PR — most rejected changes are rejected because they cross one of the boundaries
 below, not because the code is bad.
 
@@ -18,10 +18,9 @@ below, not because the code is bad.
 
 ```text
 No Compose, no Wear Compose, no Wear OS runtime, no new UI stack.
-Native Android Views only - CD12Max is Full Android, compatibility first.
+Native Android Views only; minSdk remains 28. Android 8 and earlier are out of scope.
 
-No on-device ASR/LLM/TTS. The watch is a thin client; the server does the heavy work.
-  (Unisoc W527, 12 nm, 1x A75 + 3x A55, 1400 mAh.)
+No on-device ASR/LLM/TTS. Phones and watches are thin clients; the server does the heavy work.
 
 No shell for the model, ever. Tools are typed. `exec_shell("anything")` is not a design option.
 
@@ -33,19 +32,26 @@ Never commit customer or licensed character assets, and never a named voice acto
 
 ## Target hardware
 
-```text
-CD12Max 4+32G, Full Android 9 / API 28
-2.06" AMOLED, 410 x 502 px, ~315 dpi -> Android's 320 bucket (density 2.0)
-Usable canvas: 205 x 251 dp   (NOT 410 x 502 dp - this mistake already cost one rework)
-```
+The platform target is Android 9+ / API 28+ phones and Full Android watches, not Wear OS.
+This is a product scope, not certification of every Android device. CD12Max specifications remain
+customer-supplied reference information until measured on that device.
 
-Any visual judgement must be made after overriding the emulator to the same geometry:
+Keep **410×502@320dpi = 205×251dp** as a permanent compact regression fixture. It is explicitly
+configured emulator geometry, **not measured CD12Max logical density**. Physical panel dpi does not
+determine Android logical density; insets and the keyboard further reduce available app space.
+Before changing an emulator, record its existing overrides and restore those values afterwards.
 
 ```bash
-adb shell wm size 410x502
-adb shell wm density 320
-adb shell dumpsys window displays | grep 'base=410x502'   # confirm it took effect
+adb -s emulator-5554 shell wm size 410x502
+adb -s emulator-5554 shell wm density 320
+adb -s emulator-5554 shell dumpsys window displays
 ```
+
+The canonical adaptive validation matrix lives in [`DEVICE_COMPATIBILITY.md`](DEVICE_COMPATIBILITY.md).
+PR A changes contracts only; PR B will implement one bounded adaptive UI round using existing Views,
+size tokens and a window-derived `CompanionLayoutSpec`, not model-name checks or three layouts.
+Preserve `ProductUi.page()`'s 560dp maxWidth policy. Do not alter voice, memory, backend, Live2D or
+Operator semantics in that round.
 
 ## Build
 
@@ -99,6 +105,9 @@ state from one test contaminate the next, which produces failures that are not r
 
 This is the part that matters most, and the easiest to erode.
 
+**放宽的是设备限制，不是验证标准。** An unavailable optional capability disables that feature; it does
+not certify the device or excuse a broken core interaction. Record phone and watch results separately.
+
 ```text
 A claim you have not verified must be written as PENDING or UNVERIFIED. Never as PASS.
 
@@ -106,8 +115,8 @@ Static evidence is not runtime evidence.
   "the patch applies cleanly / tests pass in isolation"  !=  "it works on the device"
 
 Simulator results are not device results.
-  The emulator cannot tell you about ABI, GPU texture limits, microphone, speaker,
-  background survival, battery, or vendor-ROM behaviour.
+  An emulator reports its own ABI and GL limits, not those of a physical phone or watch.
+  It cannot certify their microphone, speaker, background survival, battery or vendor-ROM behaviour.
 
 Distinguish a positive control from a real result.
   A harness passing because some other component produced pixels is not evidence

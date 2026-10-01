@@ -1,11 +1,20 @@
 # Handoff — Banxuan 当前交接
 
-## 当前状态（2026-09-30）
+## 当前状态（2026-10-01，产品契约迁移 PR A）
+
+- 本次文档分支基于 main `0f692a1`，不是发布标签的 `0570308`；只改六份契约文档，不改 App、不替换 APK。
+- 新定位：Android 9+ / API 28+ 手机与 Full Android 手表上的长期陪伴型 AI Agent。CD12Max 是参考认证设备，不是唯一目标或开发前置。
+- `minSdk=28`、Native Views、薄客户端不变；不引入 Wear OS/Compose/新 UI 栈，不支持 Android 8 及以下，不开放任意 shell 或无限制自动化。
+- G3 产品名称改为 Android Device Operator；typed tools、权限/确认/审计及 Native API → Accessibility → visual fallback 不变，代码/协议标识符不变。
+- `410×502@320dpi = 205×251dp` 永久保留为模拟器回归 fixture，不是真机 density 证据。Live2D 是可选能力，不支持时静态 fallback，不阻塞基础产品开发。
+- 后续 PR B 仅做一轮 Adaptive UI：tokens + 窗口驱动的 CompanionLayoutSpec；COMPACT 保住 PTT/字幕，EXPANDED 增加舞台/字幕空间并限制宽度。保留 ProductUi.page() 的 560dp maxWidth，不按型号分支。
+- 新四窗口 × fontScale 1.0/1.3 矩阵全部 PENDING，见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)。不改 Voice、Memory semantics、backend、Live2D integration 或 Operator。
+- Daylight UI / 本地 Live2D 属于独立开发分支，本次没有将其并入 main，也不把其证据算作本次验证。
 
 - Preview `v0.4.0-preview` 已发布，发布源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`。下载见 [INSTALL.md](INSTALL.md)。
 - Memory W0–W4 CLOSED / SOFTWARE AUTOMATED PASS。W4：28/28 instrumentation、32/32 app JVM；见 [验证报告](evidence/tests/W4_VALIDATION.md)。
 - 真实记忆服务未部署；Connected Voice 等待真实后端；参考手机、CD12Max 和完整视觉验收没有通过声明。
-- 当前优先级：小智服务端 S2 → 本机 HTTP/WS 验证 → 公网 HTTPS/WSS → Banxuan 真实 PTT → ASR → LLM → TTS → AudioTrack。
+- 当前顺序：PR A 契约迁移 → PR B 一轮适配 → 小智服务端 S2 → 本机 HTTP/WS → 公网 HTTPS/WSS → 真实语音。之后再做 Live2D polish；不继续扩展平板/折叠屏/旧 Android/Wear OS。
 - 复用冻结的小智服务端，不另写语音服务。先核查现有部署、版本和端口归属，保护已有业务；未经授权不修改云端配置。生产客户端不放宽 TLS。
 - 验证真实 Server Hello 与 TTS 音频契约；C4 仍为 STATIC PASS / runtime pending，不能只凭可解码就升级 PASS。
 - 不新增 W5 内部工程，不把 Live2D 当下一步阻塞项。真实记忆服务另需部署、认证与对话集成。
