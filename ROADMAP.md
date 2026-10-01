@@ -3,11 +3,18 @@
 Plan of record. Kept short on purpose: it exists so the Gate is not forgotten and regressions are caught,
 not as a development phase of its own.
 
-## 当前执行顺序（2026-09-30）
+## 当前执行顺序（2026-10-01）
 
 Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`），[下载与安装](INSTALL.md)。Memory W0–W4 已闭环：**SOFTWARE AUTOMATED PASS**，不是完整 v0.4 端到端验收。
 
-下一步只优先推进 Connected Voice：
+当前先做两个独立 PR：**PR A 产品契约迁移（仅六份文档）→ PR B Adaptive UI Round 1**。
+PR B 只将固定尺寸拆成 token + 基于可用窗口的 `CompanionLayoutSpec`，复用同一套 Native Views；
+COMPACT 保住 PTT/字幕，EXPANDED 增加舞台/字幕并限制宽度，保留 ProductUi.page() 的 560dp maxWidth。
+不改 Voice、Memory semantics、backend、Live2D integration 或 Operator，不引入机型分支或三套布局。
+四窗口 × fontScale 1.0/1.3 必测矩阵见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)，**全部待测**。
+
+**通用化只做这一轮，然后立即回到 Connected Voice（P0），之后才是 Live2D polish。**
+不扩展平板、折叠屏、完整横屏、旧 Android 或 Wear OS。真实语音顺序不变：
 
 1. S2：核查并复用小智服务端，明确配置、依赖和现有服务边界。
 2. localhost HTTP / WS 联调（只用于本地开发验证）。
@@ -16,7 +23,11 @@ Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ec
 
 真实记忆 authority 尚未部署，接通语音不会自动完成记忆集成。参考手机和 CD12Max 验收仍待完成；Live2D 为非阻塞增强。本轮不再扩展 W5 一类内部架构任务。
 
-## Target hardware (supplied by the customer, 2026-09-26)
+## Platform and reference watch profile
+
+产品目标为 **Android 9+ / API 28+ 手机与 Full Android 手表**，minSdk 28 不变。
+CD12Max 是参考认证设备，不是唯一产品目标或开发前置；普通 Android 手机做真实音频/网络验证，
+SDK 模拟器做自动回归。下面是用户于 2026-09-26 提供的参考规格，不是真机证据或全平台最低配置。
 
 | | |
 |---|---|
@@ -37,21 +48,24 @@ panel (transcript and push-to-talk pushed off-screen) until `CompanionDimensions
 * **G1 — shippable, no Live2D required.** On the device: open app -> see the character -> hold to talk ->
   hear a reply -> correct state -> relaunch still works.
 * **G2 — memory works.** A day later it raises something she said before.
-* **G3 — Watch Operator.** Operating the watch through natural language. **V1 core, not optional.**
+* **G3 — Android Device Operator.** Typed, permissioned and auditable Android device actions. **V1 core, not optional.**
+
+Only the product name changes; code/protocol identifiers stay intact. Preserve Native API → Accessibility →
+visual fallback and per-action confirmation. No arbitrary shell or unrestricted automation.
 
 ## Architecture: thin client
 
-The watch does character UI, capture, playback and a small cache. LLM, long-term memory and TTS live on the
-server. W527 should not run a local LLM, large embeddings, VITS or a reranker — that is battery and heat
-spent to make the product worse. 1400 mAh belongs to the panel, the microphone and the radio.
+Phones and Full Android watches do character UI, capture, playback and a small cache. ASR, LLM,
+long-term memory and TTS live on the server. No on-device LLM, large embeddings, VITS or reranker;
+this boundary applies to every target device, not just W527.
 
 ```
-watch:  Companion UI (IDLE/LISTENING/THINKING/SPEAKING)
+client: Companion UI (IDLE/LISTENING/THINKING/SPEAKING)
       + core-audio (PCM / Opus / AudioTrack)
       + core-memory semantics (typed canonical schema + gateway contract; JVM module)
       + local cache (recent turns, profile cache, event cache) - durable store is a later increment
       + core-protocol  <-- WebSocket / HTTPS -->  backend
-backend: ASR -> context builder -> LLM -> TTS (streamed PCM/Opus back to the watch)
+backend: ASR -> context builder -> LLM -> TTS (streamed PCM/Opus back to the client)
                               ^
                     memory service (candidate retrieval -> rerank)
 ```
@@ -66,7 +80,7 @@ The earlier `P0-1 … P1+` list that used to live here was a second, conflicting
 on purpose: two roadmaps in one plan-of-record is how the G3 definition drifted apart in the first place.
 
 For reference, the mapping is one-way: `P0-1 → v0.1`, `P0-2 → v0.2/v0.3`, `P0-3…P0-5 → v0.4/v0.5`,
-Watch Operator `→ v0.6/v0.7/v0.9`, `P1 (Live2D) → Visual Enhancement Gate`, `P1+ (Jev-Mem) → v0.5 A/B`.
+Android Device Operator `→ v0.6/v0.7/v0.9`, `P1 (Live2D) → Visual Enhancement Gate`, `P1+ (Jev-Mem) → v0.5 A/B`.
 
 ## Memory model
 
@@ -127,7 +141,7 @@ vector store as substrate underneath it.
 * `VoiceProvider { CloudTtsVoice, AuthorizedCustomVoice, GenericStyleVoice }`. If the corresponding licence
   is held, the licensed voice may be wired in; otherwise the product only offers descriptive styles
   (sweet/soft, bright, gentle, calm) and **does not clone a named voice actor's voiceprint**.
-* TTS is server-side; the watch receives streamed PCM/Opus.
+* TTS is server-side; the Android client receives streamed PCM/Opus.
 
 ## User-visible trust surface
 
@@ -141,8 +155,9 @@ deletable, and raw audio is not retained longer than transcription needs it.
 ## Scope fences
 
 ```
-do not keep chasing Cubism / editing the official Framework   <- until the two device gates below are read
+do not keep chasing Cubism / editing the official Framework; optional rendering is not a base-product blocker
 no Compose, no Wear OS runtime, no new UI stack
+no Android 8 or earlier; minSdk 28 unchanged
 no on-device ASR/LLM/TTS
 no multi-character, no character store, no importer
 no large animation library for polish
@@ -150,13 +165,17 @@ no large animation library for polish
 
 ## Device gates that are still unread
 
-`C1 Device Probe` has never been run — no CD12Max has ever been connected. Two readings decide Live2D's fate
-and should be taken the moment a device is available, even though Live2D is P1:
+CD12Max `C1 Device Probe` remains TARGET VALIDATION PENDING. Reference phones can be validated independently.
+ABI and GL readings are initial evidence, not sufficient for runtime certification:
 
 ```
-getprop ro.product.cpu.abilist     # arm64-v8a present? W527 is 64-bit silicon, but the ROM may be 32-bit
-GL_MAX_TEXTURE_SIZE                # Mahiro's atlas is 8192x8192; a 4096 cap makes Live2D impossible here
+getprop ro.product.cpu.abilist     # match the packaged Core and process ABI, not just silicon capabilities
+GL_MAX_TEXTURE_SIZE                # compare actual uploaded texture sizes and runtime memory budget
 ```
+
+An unsupported Cubism capability falls back to a static avatar; it does not make the base product unsupported.
+Actual audio, protocol, Memory Trust and Operator acceptance remains mandatory for the claimed device support.
+Neither a 64-bit SoC nor two readings certify Core runtime; an original 8192 atlas is not a platform-wide minimum.
 
 ## Governance rule
 
@@ -230,13 +249,13 @@ G1/G2/G3 **都属于 V1**；Live2D 是增强，不占 Gate 编号。
 | v0.1 | Companion Shell | 打开看到角色 / 最近消息 / PTT / 四态 / 设置 | — | ✅ 410×502@320dpi 无溢出；三测试通过 |
 | v0.2 | Voice Core | 软件内部真正跑通 Session 状态、气泡、埋点、打断 | 无 | ✅ `1f32417`：P0-2B contract A–J **10/10**（emulator-5554 / API 28）；`releaseToFirstAudioMs=360`；两轮首写埋点恢复；打断顺序 `pauseAndFlush→abort→pauseAndFlush→disconnect→reconnect`、stale samples=0。**模拟器证据，非 CD12Max 真机** |
 | v0.3 | Connected Voice | 真能"按住说话 → 听到回复" | **endpoint** | `PTT→ASR→LLM→TTS→AudioTrack`；`t_release→first_audio` ≈ <1.2 s |
-| v0.4 | Memory Companion | 小智记得住，第二次聊天会主动用过去信息 | 无手表 | CanonicalMemory、画像/事件/经历/关系、Memory Gateway、"我的记忆"可编辑删除 |
-| v0.5 | Memory Beta | 记忆从"能存"到"会用" | 无手表 | 候选检索、时间衰减、去重、**条件式** Jev rerank、隔天回忆测试 |
-| v0.6 | Native Watch Agent | 真正操作 Android：音量/亮度/闹钟/计时器/日历/App 启动/媒体 | **v0.3** | 5–8 个 typed native tools；Action Card；确认策略；审计日志 |
+| v0.4 | Memory Companion | 小智记得住，第二次聊天会主动用过去信息 | 不依赖指定机型 | CanonicalMemory、画像/事件/经历/关系、Memory Gateway、"我的记忆"可编辑删除 |
+| v0.5 | Memory Beta | 记忆从"能存"到"会用" | 不依赖指定机型 | 候选检索、时间衰减、去重、**条件式** Jev rerank、隔天回忆测试 |
+| v0.6 | Native Android Device Agent | 真正操作 Android：音量/亮度/闹钟/计时器/日历/App 启动/媒体 | **v0.3** | 5–8 个 typed native tools；Action Card；确认策略；审计日志 |
 | v0.7 | Integrated Companion Agent | 陪伴+记忆+操作合进同一个 Agent Planner | v0.5, v0.6 | "那个事"→记忆消解→确认→创建提醒；对话与工具调用共用上下文 |
-| v0.8 | CD12Max Hardware Beta | 真正适配目标手表 | **手表** | 麦克风/扬声器/网络/续航/后台/ABI/GL texture/ROM 权限全部实测 |
-| v0.9 | UI Operator Beta | 尝试 Codex 式操作第三方 App UI | **真机 Accessibility** | `launch_app→inspect_ui→click/set_text→observe`；糯米OS 不可靠则明确降级 |
-| v1.0 | First Product Release | 可交付的腕上陪伴智能体 | 以上 | G1+G2+G3 核心达标；**Live2D 不阻塞** |
+| v0.8 | Reference Device Certification | 按参考手机/手表分别认证 | **对应真机** | 麦克风/扬声器/网络/续航/后台/ABI/ROM 权限实测；GL/Live2D 单独验收；CD12Max 仍 PENDING |
+| v0.9 | UI Operator Beta | 尝试 Codex 式操作第三方 App UI | **真机 Accessibility** | `launch_app→inspect_ui→click/set_text→observe`；对应 OEM 不可靠则明确降级 |
+| v1.0 | First Product Release | 可交付的 Android 陪伴智能体 | 核心版本与声明支持的设备档验收 | G1+G2+G3 核心达标；不把 CD12Max 未认证变成其他设备的前置；**Live2D 不阻塞** |
 
 ### v0.4 执行状态（组合层队列）
 
@@ -313,18 +332,19 @@ v0.6 的 native tools 可先在 **API 28 模拟器或普通 Android 手机**验�
 Alarm/Calendar、Intent/App launch、MediaSession 都是标准 API。CD12Max 到手时做的不是"第一次开发"，
 而是**验证糯米OS 把这些标准能力允许到什么程度**。
 
-**必须等手表的只有**：真实麦克风/扬声器、后台保活、`AccessibilityService` 可否启用且稳定、
+**必须在对应真机上测的项目**：真实麦克风/扬声器、后台保活、`AccessibilityService` 可否启用且稳定、
 厂商 App 的 UI tree 质量、`ro.product.cpu.abilist`、`GL_MAX_TEXTURE_SIZE`、真实电池与发热。
+手机证据不冒充手表认证，模拟器证据不冒充任何真机；缺少 CD12Max 不阻塞参考手机验证。
 
 ### v1.0 必需 / 非必需（写死，防止再次跑偏）
 
 ```text
-必需：  Voice · Memory · Native Watch Operator · Agent Planner · 确认/权限/审计 · 角色 UI
+必需：  Voice · Memory · Android Device Operator · Agent Planner · 确认/权限/审计 · 角色 UI
 非必需：Live2D · 视觉 GUI Agent · 复杂自动化 · 多角色商城
 ```
 
 ### Accessibility 单独成 v0.9
 
-**v0.6 的"会操作手表"不依赖 Accessibility 才成立。** 先用 native tools 交付明确可感的 Agent 行为
+**v0.6 的"会操作设备"不依赖 Accessibility 才成立。** 先用 native tools 交付明确可感的 Agent 行为
 （"声音小一点""十分钟后提醒我""打开网易云""暂停音乐""今天有什么安排"），v0.9 才挑战
 "打开微信找到某个人"。Operator 分层顺序是硬约束：`Native API → Accessibility → Visual fallback`。

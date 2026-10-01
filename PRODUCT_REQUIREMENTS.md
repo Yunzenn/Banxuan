@@ -7,17 +7,16 @@
 
 ## 一句话定位
 
-> 一个以二次元角色呈现、拥有长期个人记忆，并能**像 Codex 操作电脑一样通过自然语言观察、理解和操作
-> 整块 Android 手表**的个人 AI Agent。
+> **Banxuan / 伴星是一款面向 Android 9+ 手机与 Full Android 手表的长期陪伴型 AI Agent。基础能力在兼容设备上保持一致，角色表现、动画和部分设备感知能力根据窗口与硬件能力渐进增强。**
 
-内部称之为 **Companion Agent Runtime**／**腕上陪伴智能体**。
+内部称之为 **Companion Agent Runtime**／**Android 陪伴智能体**。这是产品目标，不是全设备兼容性声明。
 
-不是"一个会聊天的二次元手表 App，后面顺便加一点设备控制"。三者缺一不可：
+不是"一个会聊天的二次元 App，后面顺便加一点设备控制"。三者缺一不可：
 
 ```text
 陪伴 = 人格层
 记忆 = 持续性
-接管手表 = 行动能力
+有边界的 Android 设备操作 = 行动能力
 ```
 
 产品核心是**三个并列能力面**，由 Agent Planner 统一决定这一轮该不该调工具：
@@ -28,22 +27,27 @@
       ┌─────────────┼─────────────┐
       ▼             ▼             ▼
  Companion       Memory        Operator
- 陪伴人格         长期记忆        手表控制
+ 陪伴人格         长期记忆        设备操作
 ```
 
 它更接近：
 
 ```text
 Codex = 模型 + 上下文 + 工具 + 电脑执行器
-小智  = 角色人格 + 长期记忆 + 模型 + 工具 + 手表执行器
+小智  = 角色人格 + 长期记忆 + 模型 + 工具 + Android 设备执行器
 ```
 
 
 ---
 
-## 1. 目标设备
+## 1. 平台范围与参考设备（2026-10-01 更新）
 
-为 **CD12Max 4+32G** 做定制软件。
+目标为 **Android 9+ / API 28+ 手机与 Full Android 手表**，`minSdk = 28` 不变。
+不支持 Wear OS runtime 或 Android 8 及以下，不承诺任意 OEM 已兼容。
+CD12Max 是 reference / certification device；普通 Android 手机承担真实音频/网络验证；
+SDK 模拟器承担自动回归。缺少 CD12Max 不阻塞其他设备的软件开发。
+
+以下 **CD12Max 4+32G** 参数是用户提供的参考规格，不是真机采集，也不是产品全平台最低要求：
 
 | | |
 |---|---|
@@ -53,10 +57,11 @@ Codex = 模型 + 上下文 + 工具 + 电脑执行器
 | 屏幕 | 2.06" AMOLED，**410 × 502 px**，60 Hz |
 | 电池 | 1400 mAh，磁吸快充 |
 
-**密度（已实测确认，曾据此返工一次）**：410×502 对角 648px ÷ 2.06" ≈ **315 dpi → Android 取 320 档
-（density 2.0）**，可用画布只有 **205 × 251 dp**，不是 410 × 502 dp。所有 UI 尺寸以 205×251dp 为基准。
-验证方式：`adb shell wm size 410x502; adb shell wm density 320`，看 `dumpsys window displays` 的
-`base=410x502 320dpi`。
+**密度证据更正**：物理面板约 315dpi 不能推出 Android 逻辑 density 为 320。
+**410×502@320dpi = 205×251dp** 只是显式配置的模拟器 compact regression fixture，永久保留；
+CD12Max 真机 density 仍待 Probe。扣除系统栏/键盘后可用窗口还会变化，不把 fixture 写死成所有设备的内容区。
+尺寸 token 与运行时 `CompanionLayoutSpec` 分离、根据实际可用窗口适配的工作留给独立 PR B。
+四窗口 × fontScale 1.0/1.3 的待测矩阵以 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md) 为正本。
 
 ---
 
@@ -64,7 +69,7 @@ Codex = 模型 + 上下文 + 工具 + 电脑执行器
 
 不是"手表版 ChatGPT"，而是**长期陪伴型二次元 AI 角色**。
 
-打开手表的第一感觉必须是「**这个角色住在手表里**」，而不是工具页、设置页或工程 Demo。
+打开应用的第一感觉必须是「**这个角色住在我的设备里**」，而不是工具页、设置页或工程 Demo。
 
 ---
 
@@ -86,7 +91,7 @@ Codex = 模型 + 上下文 + 工具 + 电脑执行器
 - **合规边界（不可越）**：没有相应授权时，**不得把"陈奕雯/苏暖暖声纹"作为默认官方克隆音色**。
   若客户自己持有合法授权，再接授权语音。
 - 无授权时产品层只提供**描述性风格**（甜软 / 元气 / 温柔 / 平静），不克隆特定真人声纹。
-- **TTS 放服务端**，手表只接收流式 PCM/Opus。
+- **TTS 放服务端**，Android 客户端只接收流式 PCM/Opus。
 
 ---
 
@@ -106,7 +111,7 @@ IDLE → LISTENING → THINKING → SPEAKING → IDLE
 ## 6. 语音链路
 
 ```text
-手表端：录音 → Opus → 播放
+Android 客户端：录音 → Opus → 播放
 服务端：ASR → Context/Memory → LLM → TTS
 ```
 
@@ -203,9 +208,9 @@ PROFILE / EVENT 查询                 → 重排
 ## 10. UI 设计原则
 
 - 用户偏二次元，**不能是默认 Android Button / TextView 风格**。
-- 目标：**OLED 深色 + 柔和少女系**，角色为视觉中心，简洁但精致。
+- 目标：**明亮、克制的二次元风格**，角色为视觉中心，简洁但精致；这是产品方向，不宣称相关 UI 分支已合并。
 - 参考 GitHub 成熟项目的**布局、气泡、PTT、状态反馈**，不重复造轮子。
-- 已冻结的 token 与尺寸见 `app/src/main/kotlin/com/aiwatch/probe/theme/`。
+- 现有 token 与尺寸见 `app/src/main/kotlin/com/aiwatch/probe/theme/`；窗口自适应留给 PR B，不在本次文档迁移中实现。
 
 ---
 
@@ -218,7 +223,7 @@ Compose / Wear Compose / Wear OS runtime
 新渲染栈 / 大型动画库 / 新的网络库 / 新的数据库
 ```
 
-CD12Max 是 Full Android，**兼容优先**。
+手机与手表都以 Full Android 为范围，**兼容优先**。不降低 minSdk，不引入无限制设备自动化。
 
 ---
 
@@ -228,14 +233,16 @@ CD12Max 是 Full Android，**兼容优先**。
 - 真机一接上，**提前**读取这两个值（不等 P1）：
 
 ```text
-ro.product.cpu.abilist     # 是否存在 arm64-v8a（W527 是 64 位硅片，但 ROM 可能是 32 位 userspace）
+ro.product.cpu.abilist     # 与实际打包 Core/进程 ABI 核对，不能仅凭 SoC 推断
 GL_MAX_TEXTURE_SIZE        # Mahiro 原始 atlas 是 8192×8192；若上限 < 8192，原图不可能直接上传
 ```
 
 - 判定规则：
-  - 没有 `arm64-v8a` → Live2D Core 直接判不适配。
-  - `GL_MAX_TEXTURE_SIZE < 8192` → 从产品设计上固定走**静态立绘 / 降采样 atlas / 序列帧**，
-    不再幻想原始 8192 直接跑。
+  - 无匹配 Core ABI → 禁用 Live2D 并回退静态角色，不把 Banxuan 基础产品判不适配。
+  - 纹理上限须与**实际上传尺寸**、内存预算一起判断；不能将原始 8192 atlas 作为全平台门槛。
+    降采样是否可行仍需独立验证；本轮不实现新的渲染或导入系统。
+  - 能力存在不等于 runtime PASS。Live2D 另验帧率、内存和生命周期；基础音频/协议/记忆/Operator 另验。
+  - 第一轮只需简单 runtime capability 与静态 fallback，不先造复杂 capability framework。
 - 读法：debug build 内已有的 GLES capability probe（`PlainShaderProbe`），
   比 `dumpsys` 可靠。**只读值，不做任何 Live2D 调试。**
 
@@ -244,7 +251,7 @@ GL_MAX_TEXTURE_SIZE        # Mahiro 原始 atlas 是 8192×8192；若上限 < 81
 ## 13. 整体架构：薄客户端
 
 ```text
-CD12Max 手表
+Android 手机 / Full Android 手表
 ├── Companion UI（角色舞台 / 最近对话 / PTT / 四态）
 ├── core-audio（PCM / Opus / AudioTrack）
 ├── core-memory 本地缓存（Room：最近会话、画像缓存、事件缓存）
@@ -256,7 +263,7 @@ CD12Max 手表
                     Memory Service（候选检索 → 条件重排）
 ```
 
-**W527 不跑本地 LLM、大 embedding、VITS、Jev reranker。**
+**所有目标设备均不跑端侧 ASR/LLM/TTS、大 embedding、VITS、Jev reranker。**
 电池和热预算优先留给屏幕、麦克风、网络和播放。
 
 ---
@@ -275,29 +282,25 @@ CD12Max 手表
 ## 15. 当前优先级
 
 ```text
-P0-1  二次元 Companion Home          ← 已基本完成，并已按真实密度 320dpi 修正
-P0-2  真实语音闭环                    ← 下一步
-P0-3  Memory Gateway + Room cache
-P0-4  记忆后端（类型化 schema + 候选检索）
-P0-5  用户画像 + 事件 + 长期记忆
-P0-6  Jev Recall 条件式重排
-P0-7  主动关心 / 提醒
-P1    Live2D / Mahiro
-P1+   Jev-Mem A/B
+PR A  产品契约迁移（仅六份文档，无代码）
+PR B  Adaptive UI Round 1（仅窗口布局与回归）
+P0    Connected Voice：真实 Xiaozhi endpoint → 真实语音闭环
+后续  Live2D polish（可选增强，不挤占 G1/G2）
 ```
 
-**长期记忆在 P0，Live2D 在 P1。**
+唯一产品版本线和进度以 [ROADMAP.md](ROADMAP.md) 为准。只做一轮适配，不扩到折叠屏、平板、旧 Android 或 Wear OS。
+PR B 不改 Voice、Memory semantics、backend、Live2D integration 或 Operator。长期记忆仍是核心，Live2D 仍是增强。
 
-### G3 Watch Operator —— V1 核心能力之一（不是可选增强）
+### G3 Android Device Operator —— V1 核心能力之一（不是可选增强）
 
 `G1 / G2 / G3` **三者都属于最终 V1**。只有**工程顺序**是 G1 → G2 → G3，因为 Agent 连"听懂并正常对话"都还没稳定时，
 先让它乱点系统没有意义。**Live2D 才是 optional。**
 
 ```text
-G1 真语音闭环  →  G2 长期记忆生效  →  G3 Watch Operator
+G1 真语音闭环  →  G2 长期记忆生效  →  G3 Android Device Operator
 ```
 
-> G3 Watch Operator is gated behind G1 and G2. No MCP capability advertisement, Accessibility
+> G3 Android Device Operator is gated behind G1 and G2. No MCP capability advertisement, Accessibility
 > integration, or device-control dependency may enter the production path before the real P0-2 voice
 > E2E is measured.
 
@@ -321,7 +324,7 @@ read_calendar / media play·pause / vibrate / （可选 brightness）
 强制确认     发短信 / 拨号 / 任何"离开设备"的动作
 ```
 
-敏感能力（通知 / 通讯录 / 短信 / 位置 / 相机）必须：用户主动开启 + 明确说明哪些数据离开手表 + 高风险动作逐项确认
+敏感能力（通知 / 通讯录 / 短信 / 位置 / 相机）必须：用户主动开启 + 明确说明哪些数据离开设备 + 高风险动作逐项确认
 + 调用日志用户可查 + 随时撤权。
 
 **协议现状（不要误解为"已经支持 MCP"）**：`core-protocol` 目前只有 `type="mcp"` 的**入站信封解析**
@@ -335,9 +338,10 @@ read_calendar / media play·pause / vibrate / （可选 brightness）
 ## 16. 范围围栏（明确不做）
 
 ```text
-不继续死磕 Cubism、不改官方 Live2D Framework   ← 直到两道设备门槛有结论
+不继续死磕 Cubism、不改官方 Live2D Framework；可选渲染不能阻塞基础产品开发
 不引 Compose / Wear OS runtime / 新 UI 栈
 不做端侧 ASR/LLM/TTS
+不支持 Android 8 及以下，不开放任意 shell 或无限制设备自动化
 不做多角色、角色商城、importer
 不为"好看"引入大型动画库
 不把某个 IP 角色作为公共发行版默认资源
@@ -356,16 +360,16 @@ read_calendar / media play·pause / vibrate / （可选 brightness）
 
 - **G1**（不依赖 Live2D）：真机上打开 App → 看到角色 → 按住说话 → 听到回答 → 状态正确 → 重进仍在。
 - **G2**：记忆生效——隔天它能提起她之前说过的事。
-- **G3**：Watch Operator——通过自然语言真正操作手表。**V1 核心，不是增强项。**
+- **G3**：Android Device Operator——通过有权限、确认与审计边界的工具操作设备。**V1 核心，不是增强项。**
 - **Visual Enhancement Gate**（不占 G 编号）：Live2D / Mahiro 形象。**永不阻塞 G1/G2/G3。**
 
 > 2026-09-26 修正：本节此前把 G3 写成"Live2D / Mahiro 形象"，与第 18 节冲突。**G3 = Watch Operator**，
-> Live2D 降为独立的 Visual Enhancement Gate。以本节 + 第 18 节为准。
+> Live2D 降为独立的 Visual Enhancement Gate。2026-10-01 将该产品 Gate 更名为 **Android Device Operator**；安全边界不变，以本节 + 第 18 节为准。
 
 
 ---
 
-## 18. 三面能力架构与 Watch Operator（2026-09-26 产品定义更新）
+## 18. 三面能力架构与 Android Device Operator（2026-09-26 定义，2026-10-01 平台迁移）
 
 本节取代此前把 G3 描述为"未来边界"的措辞。**G1/G2/G3 都是 V1 核心**，Live2D 才是增强项。
 
@@ -376,7 +380,7 @@ read_calendar / media play·pause / vibrate / （可选 brightness）
 ──────
 G1  Voice / Conversation     会自然交流
 G2  Long-term Memory         会长期记住
-G3  Watch Operator           会真正替用户操作手表
+G3  Android Device Operator  通过受控工具替用户操作 Android 设备
 
 增强
 ────
@@ -385,7 +389,7 @@ Live2D / 视觉 GUI fallback / 主动陪伴 / 更复杂自动化
 
 工程顺序仍是 G1 → G2 → G3（`Phase A → B → C`），但 A+B+C 才是第一版产品，不是"A+B 做完再说"。
 
-### 18.2 Watch Operator Runtime 三层（优先级即顺序，不可颠倒）
+### 18.2 Android Device Operator Runtime 三层（优先级即顺序，不可颠倒）
 
 ```text
 1. Native Tools        直接 Android API —— 永远优先
@@ -395,6 +399,8 @@ Live2D / 视觉 GUI fallback / 主动陪伴 / 更复杂自动化
 
 **有 API 就绝不模拟点击。** 用户说"声音太大了"→ `watch.set_volume(30)`，不是"打开设置→声音→拖滑块"。
 第一层最可靠、最省电、也最不容易坏，是第一版最重要的控制能力。
+
+本次只更名产品 Gate，不改代码/协议标识符；上述 `watch.set_volume` 保留为历史命名示例，不限定目标设备。
 
 第二层才是 Codex 式循环：`launch_app → inspect_ui → click → inspect_ui → set_text → …`
 
@@ -469,9 +475,10 @@ create_reminder(...)
 ● 调整媒体音量
 ```
 
-**但只有 205 × 251 dp，不能做桌面 Codex 那种大块 terminal/log UI。**
-而且首页的固定预算（顶栏 38 + 舞台 84 + PTT 44 + 间距/边距 ≈ 188dp）只剩约 63dp 给消息区——
-action card 与对话区**抢同一块空间**。
+**205×251dp 仍是最严格的小屏 fixture，而不是所有设备的固定画布。**
+COMPACT 优先保住 PTT 与字幕，必要时缩小舞台、减少可见历史；EXPANDED 增加舞台与字幕空间，
+为 PTT/内容设置合理 maxWidth，保留 `ProductUi.page()` 的 560dp 上限。由窗口驱动同一套 Views，
+不按机型分支、不复制 Watch/Phone/Tablet 三套布局。Action card 与消息共享有限空间。
 
 因此决定：**action card 不做独立面板，而是作为消息流里的附着元素**（紧跟触发它的那条回复），
 随消息一起滚动。这样不需要额外的垂直预算，也不会在只有一条消息时把页面撑空。
@@ -479,15 +486,15 @@ action card 与对话区**抢同一块空间**。
 ### 18.6 架构定位
 
 ```text
-手表端 = Thin Agent Client + Tool Runtime + Companion UI + Local Cache
+Android 客户端 = Thin Agent Client + Tool Runtime + Companion UI + Local Cache
 服务端 = ASR + LLM + Memory + Planning + TTS
 ```
 
-**手表端不持有 LLM。** 这对 W527 + 4GB 是唯一合理的选择。
+**客户端不持有 LLM。** 这是手机和手表共同的架构边界，而非仅针对 W527 的特例。
 
 ### 18.7 命名
 
-文档与内部讨论改称 **Companion Agent Runtime**／**腕上陪伴智能体**。
+文档与内部讨论使用 **Companion Agent Runtime**／**Android 陪伴智能体**。
 不改 `applicationId` 与包名——那是产品化步骤，不应在开发中途动。
 
 ---
@@ -496,16 +503,16 @@ action card 与对话区**抢同一块空间**。
 
 ### 19.1 一句话定位
 
-> **Banxuan / 伴星是一个长期认识用户、理解用户此刻所处情境，并能通过自然语言直接操作整块 Android 手表的角色型个人 AI Agent。**
+> **Banxuan / 伴星面向 Android 9+ 手机与 Full Android 手表：长期认识用户、理解可获得的当前情境，并通过有权限与确认边界的工具操作设备。**
 
-内部定位继续使用 **Companion Agent Runtime / 腕上陪伴智能体**。
+内部定位使用 **Companion Agent Runtime / Android 陪伴智能体**；本节平台范围按 2026-10-01 契约更新。
 
 它不是"手表版 ChatGPT"，也不是"给聊天机器人套一个二次元角色"。价值来自三个用户可感知的能力面：
 
 ```text
 Companion   人格、声音、角色存在感、自然交流
 Memory      长期认识用户，记住关系、偏好、事件与过去
-Operator    真正替用户操作这块 Android 手表
+Operator    通过受控工具替用户操作 Android 设备
 ```
 
 在三者之下增加一个**横向基础能力**：
@@ -530,10 +537,10 @@ Context / Awareness
 **Context 不是第四个 Gate，也不是独立产品面。** 它是 Companion / Memory / Operator 共同使用的感知底座。
 G1 / G2 / G3 定义不变，**不另设 G4**；Context 服务于三个 Gate，并在 G1/G2 稳定后逐渐进入产品路径。
 
-### 19.2 为什么必须是一块手表
+### 19.2 手机与手表的不同使用情境
 
-"为什么不用手机上的普通 AI App？"——答案不能是"更方便打开 / 能语音聊天 / 二次元好看"，这些都不足以形成长期差异。
-手表真正不可替代的是：
+产品差异来自持续关系、可信记忆与有边界的行动能力，不来自必须佩戴某款硬件。
+手机与手表共享基础产品语义；手表可额外利用以下佩戴情境，但不把这些条件作为手机使用前提：
 
 ```text
 Persistent Presence      它一直戴在用户身上
@@ -558,7 +565,7 @@ Low-friction Interaction 抬腕、说一句话、得到反馈，不需要拿出�
     对话 / 提醒 / 操作设备
 ```
 
-这才是"角色住在手表里"，而不是"把一个聊天 App 缩小到手腕上"。
+目标是“角色住在自己的设备里”。传感器或权限不存在时保持 absent，不将可选感知变成产品准入门槛。
 
 ### 19.3 产品核心公式
 
@@ -677,7 +684,7 @@ SensorManager · BatteryManager · PowerManager · UsageStatsManager
 BroadcastReceiver · CalendarContract · AlarmManager · PackageManager feature detection
 ```
 
-理由：API 28 可用、零额外 runtime、体积最小、行为最容易审计、最符合 CD12Max 的硬件限制。
+理由：API 28 可用、零额外 runtime、体积最小、行为最容易审计，符合手机/手表共用的薄客户端约束。
 
 #### RADAR-base / radar-commons-android — ADAPT（Apache-2.0）
 
@@ -758,7 +765,7 @@ LICENSE: AGPL-3.0
 最值得学习的是把 Agent runtime 定义为 `Perception → Reasoning → Execution → Verification`，
 并让 UI state、real-world context、speech、scheduled trigger、memory、action 进入同一个 runtime。
 但它的 Android 工程同时使用 Compose、Chaquopy/Python、ONNX Runtime、ML Kit、Retrofit、NanoHTTPD、
-多模态本地推理与大量权限，**不符合 CD12Max 的资源预算**。
+多模态本地推理与大量权限，**不符合本项目手机/手表共用的薄客户端边界**。
 
 ```text
 Agent architecture   REFERENCE
@@ -776,7 +783,7 @@ G1/G2 完成前不进入 production path。它属于 **Operator reuse audit**，
 
 ### 19.10 Context 第一阶段只做 capability probe
 
-**现在禁止直接建设完整 Context subsystem。** 首先在 CD12Max 真机执行 **`C2 Context Capability Probe`**。
+**现在禁止直接建设完整 Context subsystem。** 后续在各参考真机分别执行 **`C2 Context Capability Probe`**，不以 CD12Max 到货作为其他设备的前置。
 C2 不实现产品能力，只回答事实：
 
 ```text
@@ -905,8 +912,8 @@ location off · camera off · ambient microphone off`。敏感 Context 必须单
 
 四个问题全部为否 → **不做。**
 
-> **Banxuan / 伴星不是运行在手表上的聊天机器人，而是一个长期认识用户、能够理解当前情境、
-> 以固定角色持续陪伴，并能直接操作其 Android 手表的个人 AI Agent。**
+> **Banxuan / 伴星是面向 Android 9+ 手机与 Full Android 手表的长期陪伴型 AI Agent：
+> 以角色持续陪伴、可信记忆与受控设备操作为基础，视觉与可选感知按窗口和硬件能力渐进增强。**
 
 ```text
 Voice      让她能交流
@@ -928,6 +935,6 @@ Persona    让以上能力属于"同一个人"
 2. Context 不插队。
    先让 (d) 组合同步层收绿、把 remote / cache / UI 真实接起来。
    Context 现在只作为产品定位与未来硬件 Gate 写入本正本。
-   CD12Max 可连接时，一次 C2 Context Capability Probe 就能决定后面 80% 的方案：
+   在各参考真机上分别做 C2 Context Capability Probe，不能把一个 OEM 的结果推广到所有设备：
    若系统已暴露 step counter / heart rate / significant motion，连 HAR 都不必写。
 ```

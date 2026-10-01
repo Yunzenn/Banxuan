@@ -1,8 +1,8 @@
 # Banxuan / 伴星
 
-> 正在开发的 Android 手表陪伴应用。目标是自然语音交流、长期个人记忆，以及通过自然语言操作手表；这些目标尚未全部实现。
+> Banxuan / 伴星是一款面向 Android 9+ 手机与 Full Android 手表的长期陪伴型 AI Agent。基础能力在兼容设备上保持一致，角色表现、动画和部分设备感知能力根据窗口与硬件能力渐进增强。
 >
-> 内部代号：**Companion Agent Runtime**（腕上陪伴智能体）。
+> 内部代号：**Companion Agent Runtime**（Android 陪伴智能体）。以上为产品目标，尚未全部实现；不代表所有设备已通过兼容性验证。
 
 ## 下载测试版：不需要编程
 
@@ -22,7 +22,7 @@
 | 「我的记忆」入口；未连接时明确提示 | 真实聊天记忆：记忆服务器尚未部署 |
 | 自有源码构建的可安装 Preview | Live2D、CD12Max 真机通过、稳定覆盖升级 |
 
-当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环。** 下一步优先接通小智服务端和真实语音，不再扩展记忆内部工程。发布版本号不代表完整 Memory Companion 已验收。
+当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环。** 当前先统一产品契约（PR A），再做一轮窗口适配（PR B），之后立即回到小智服务端和真实语音；不再扩展记忆内部工程。发布版本号不代表完整 Memory Companion 已验收。
 
 ---
 
@@ -31,8 +31,8 @@
 | 常见的误判 | 实际 |
 |---|---|
 | 手表版 ChatGPT | 不是。目标是一个**长期记住这个用户、会自然说话、能被打断、有角色感**的陪伴体。记忆和人格是核心能力，不是加在聊天框上的装饰。 |
-| 通用 Android 应用 | 不是。只为**一个具体型号**开发，硬件约束可以（也必须）写进设计里。 |
-| Wear OS 应用 | 不是。目标机是 **Full Android**，我们**不使用** Wear Compose / Wear OS runtime。 |
+| 支持所有 Android 设备 | 不是。目标为 **Android 9+ / API 28+ 手机与 Full Android 手表**，每类设备仍需验证；不承诺任意 OEM 兼容，不支持 Android 8 及以下。 |
+| Wear OS 应用 | 不是。我们**不使用** Wear Compose / Wear OS runtime，也不为兼容性引入新 UI 框架。 |
 | 又一个 Live2D 看板 | 不是。Live2D 是可选视觉增强，**不占 Gate 编号、不阻塞任何版本**。 |
 | 能跑 shell 的语音助手 | 不是。**永远不给模型 shell。** 工具是 typed 的，`exec_shell("anything")` 不是设计选项。 |
 | Banxuan 的"基础版"安装包 | 不是。**本仓库不分发任何第三方 APK。** 被当作参考的那个第三方构建与 Banxuan 无关，见 [Reference XiaoZhi build](#reference-xiaozhi-build)。 |
@@ -41,7 +41,11 @@
 
 ---
 
-## 目标硬件：一个型号，不是一类设备
+## 平台范围与参考设备
+
+`minSdk = 28` 不变，采用 Native Android Views。普通 Android 手机承担真实音频/网络验证，
+SDK 模拟器承担自动回归；CD12Max 是参考小屏手表与 OEM 认证设备，不是唯一产品目标或开发前置。
+下面是用户提供的参考手表规格，不是所有设备的最低要求：
 
 ```text
 CD12Max 4+32G
@@ -50,14 +54,16 @@ CD12Max 4+32G
   内存/存储  4 GB + 32 GB
   面板       2.06" AMOLED, 410 x 502 px, ~315 dpi
              -> 模拟器测试采用 320 dpi (density 2.0)
-             -> 测试画布 205 x 251 dp；真机逻辑密度待采集
+             -> 逻辑显示 fixture 205 x 251 dp；内容可用空间还需扣除 insets
   电池       ~1400 mAh
 ```
 
 > 上述硬件信息为目标规格，并非真机采集。屏幕物理密度不能直接确定 Android 逻辑密度。
 > 当前小屏回归基线是 410×502@320dpi；命令见 [CONTRIBUTING.md](CONTRIBUTING.md#target-hardware)。
 
-电池归面板、麦克风和射频。所以 W527 **不跑**本地 LLM、大 embedding、VITS 或 reranker —— 那是把电和发热花在让产品变差上。
+手机和手表均采用薄客户端：**不跑**端侧 LLM / ASR / TTS、大 embedding 或 reranker。
+Live2D 能力不足时回退静态角色，不让可选渲染决定基础产品可用性；基础能力仍须验收。
+四种窗口与两档字体的待测矩阵见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)。
 
 ---
 
@@ -71,7 +77,7 @@ CD12Max 4+32G
 | v0.2 | Voice Core — 软件内部真正跑通 Session 状态、气泡、埋点、打断 | ✅ **完成**（10/10 契约测试，含精确 `releaseToFirstAudioMs=360`；**模拟器证据**） |
 | **v0.3** | Connected Voice — 真能"按住说话 → 听到回复" | 🚫 **BLOCKED：缺一个可达的 HTTPS endpoint** |
 | v0.4 | Memory Companion — 记得住，第二次聊天会主动用过去信息 | 🚧 **进行中**，见下 |
-| v0.5 – v1.0 | Memory Beta / Native Watch Agent / Integrated Agent / 真机适配 / UI Operator / 首发 | ⬜ 未开始 |
+| v0.5 – v1.0 | Memory Beta / Native Android Device Agent / Integrated Agent / 参考设备认证 / UI Operator / 首发 | ⬜ 未开始 |
 
 ### v0.4 具体进度
 
@@ -94,15 +100,15 @@ W4      单 owner、无绕过、成功不 re-list、不确定结果不盲重试 
 ```text
 麦克风 / 扬声器 / 真实网络 / 续航 / 后台保活
 ro.product.cpu.abilist        # arm64-v8a 是否存在
-GL_MAX_TEXTURE_SIZE           # 若 < 8192，Mahiro 的 atlas 在这台设备上不可能上传
+GL_MAX_TEXTURE_SIZE           # 检查实际上传纹理尺寸、预算与 runtime，不以原始 atlas 大小一票否决
 糯米OS 厂商 ROM 行为 / AccessibilityService 是否可启用且稳定
 ```
 
-**这是当前最大的风险。** 模拟器不能替你回答 ABI、GPU 纹理上限、麦克风、扬声器、后台存活或厂商 ROM 行为。
+这是 **CD12Max 专项认证风险**，不是其他设备开发的阻塞。模拟器只能证明自身行为，不能代替参考手机或手表的 ABI、GPU、音频、后台和 ROM 验收。
 
 ### Live2D 的现状
 
-`P2B-1A = NOT COMPLETE (2/5)`，且 Live2D 现在**完全不在产品构建里**：`:app` 对 Live2D 零编译依赖，
+当前 main 的 `P2B-1A = NOT COMPLETE (2/5)`，且 Live2D **不在默认产品构建里**：`:app` 对 Live2D 零编译依赖，
 `app/src/main` 无任何 `com.aiwatch.live2d` 引用。本次发布 APK 为 **6,887,807 bytes（约 6.9 MB）**。
 
 专有 Cubism SDK 不随本仓库或本次 Preview 分发。`settings.gradle.kts` 只在 SDK 根目录真实存在时才 include `:core-live2d`；未来启用前仍需独立许可证和兼容性审查。
@@ -114,7 +120,7 @@ GL_MAX_TEXTURE_SIZE           # 若 < 8192，Mahiro 的 atlas 在这台设备上
 ```text
 G1  Voice          按住说话 → 听到回复，状态正确，重启仍可用
 G2  Memory         隔一天，她主动提起你之前说过的事
-G3  Watch Operator 用自然语言操作整块手表
+G3  Android Device Operator 通过有权限、确认与审计边界的工具操作 Android 设备
 ```
 
 **G1 / G2 / G3 都属于 V1，都不是可选项。** 当初把 G3 降级成"加分项"是这个项目走过的一次方向漂移，
@@ -122,12 +128,15 @@ G3  Watch Operator 用自然语言操作整块手表
 
 Live2D 是一个独立的 **Visual Enhancement Gate**：不占 G 编号，不阻塞任何一个版本。
 
+G3 更名不改变 `Native API → Accessibility → visual fallback` 顺序，也不授权任意 shell 或无限制自动化。
+这次仅改产品用语，不改代码与协议中的标识符。
+
 ---
 
-## 架构：手表是薄客户端
+## 架构：Android 设备是薄客户端
 
 ```text
-watch (CD12Max)                        backend
+Android phone / Full Android watch    backend
 ├── Companion UI                       ASR
 │   角色舞台 · 气泡 · PTT · 四态          ↓
 ├── core-audio                         context builder ←─ memory service
@@ -151,13 +160,13 @@ watch (CD12Max)                        backend
         ↑
 RemoteMemoryGateway
         ↑
-watch Room cache                  ← 只是 last-known copy，无任何语义
+device Room cache                 ← 只是 last-known copy，无任何语义
         ↑
 Memory Trust UI
 ```
 
 反面形态是被明确拒绝的：`DefaultMemoryGateway(RoomMemoryStore)`。它会让去重、生命周期和 identity 冲突
-判定回到手表本地执行。缓存模块因此**不实现 `MemoryStore`、不是 `MemoryGateway`**，并且有测试用反射
+判定回到客户端本地执行。缓存模块因此**不实现 `MemoryStore`、不是 `MemoryGateway`**，并且有测试用反射
 与真实 SQLite schema 把这一点钉住。
 
 ### 模块
@@ -196,9 +205,10 @@ PATCH DEPLOYMENT  : NOT VERIFIED
 **离线也能帮**：即使没有公网地址，在本地跑起服务端、把 `t_release → first_audio` 的实际分布
 （p50 / p95）贴出来，就是有价值的证据。
 
-### 2. 一台 CD12Max，或仅仅是两条设备读数
+### 2. 参考 Android 手机，以及后续 CD12Max 认证
 
-如果你有这台表（或有同款 ROM 的设备），两条命令就能决定 Live2D 的命运，也能补上 ABI 这个空白：
+普通 Android 9+ 手机可先验证真实语音、网络和生命周期；CD12Max 后续独立验证。ABI/GL 是初步事实，
+不能仅凭两条读数就宣称 Live2D runtime 或整机兼容性通过：
 
 ```bash
 adb shell getprop ro.product.cpu.abilist
@@ -227,7 +237,7 @@ REJECT     不适用，并说明原因（许可证 / minSdk / 平台 / 体积 / 
 
 ### 4. 设计评审（不需要写代码）
 
-目标屏是 **205 x 251 dp**。如果你有手表 / 小屏交互经验，请挑刺：
+永久保留 **205 x 251 dp** 小屏回归，并扩展手机窗口（完整待测矩阵见 DEVICE_COMPATIBILITY）。请挑刺：
 
 - "我的记忆"的信任面（列出 / 确认 / 忽略 / 删除 / 行内编辑）在 205 dp 宽下是否可用
 - 待确认、已记住、已忽略三态的信息密度是否合理
@@ -268,7 +278,7 @@ third_party/live2d 的任何内容（私有本地依赖，git ls-files 必须为
   "补丁能干净应用 / 单测通过"  ≠  "它在设备上工作"
 
 模拟器结果不是真机结果。
-  模拟器无法告诉你 ABI、GPU 纹理上限、麦克风、扬声器、后台存活、耗电或厂商 ROM 行为。
+  模拟器只能报告自身 ABI/GL 和行为，不能认证参考手机或手表的音频、后台、耗电或 ROM 行为。
 
 正对照不等于真实结果。
   harness 因为别的组件产生了像素而通过，不能证明被测组件产生了像素。
@@ -295,8 +305,8 @@ Gradle wrapper 已提交，用 `./gradlew`。
 
 - **fresh clone 可直接构建**：`:core-live2d` 只在 SDK 存在时才进入项目图，所以干净检出会正常配置。
 - `compileSdk 35` · `minSdk 28` · `targetSdk 35`
-- 需要模拟器的验收：先覆盖几何（`wm size 410x502` / `wm density 320`），
-  并且**每个测试方法单独一次 `am instrument`** —— 同类同进程整跑会因静态状态污染而出现假失败。
+- 模拟器永久保留 compact fixture（`wm size 410x502` / `wm density 320`）；PR B 扩展矩阵见 DEVICE_COMPATIBILITY，当前仍待执行。
+  改几何前记录原值，使用明确 serial；**每个测试方法单独一次 `am instrument`** —— 同类同进程整跑会因静态状态污染而出现假失败。
 - 本机离线构建的坑（`androidx.annotation` 版本固定等）见 CONTRIBUTING，**不要把它当成通用 Android 规则**。
 
 CI（`.github/workflows/ci.yml`，job 名 `fresh-clone`）只做干净检出能做的事：
@@ -422,4 +432,4 @@ concentus / Opus          见 app/src/main/assets/licenses/
 ```
 
 **IP 角色永远不是可再分发 APK 的默认资源。** 未获授权不得克隆特定真人声纹；
-没有授权时产品只提供描述性音色（甜软 / 明亮 / 温柔 / 沉静）。TTS 在服务端，手表只收流式 PCM/Opus。
+没有授权时产品只提供描述性音色（甜软 / 明亮 / 温柔 / 沉静）。TTS 在服务端，Android 客户端只收流式 PCM/Opus。
