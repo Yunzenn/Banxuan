@@ -2,6 +2,7 @@
 
 ## 用户指定的本地 Live2D 预览（2026-10-01）
 
+- 代码检查点 `b995b5f`，分支 `codex/local-live2d-preview`；基于 `codex/daylight-ui` 的 `a0e1399`。Daylight PR #33 尚未合并（本轮只读核对），本次推送不代表进入 main 或发布新 APK。
 - 基于 daylight UI 分支加入用户提供的 Mahiro 模型本地预览；不覆盖已发布 Preview，不升级历史完整 Runtime Gate。
 - 官方 R5 渲染器强制 mipmap 采样，原纹理加载缺少 mipmap 是本次黑帧根因；按官方 Sample 补齐，未修改 Core/Framework。
 - SDK 模拟器 `emulator-5554`：本地模型像素/生命周期/失败回退 2/2 PASS；默认 UI 10/10、app JVM 32/32 PASS。

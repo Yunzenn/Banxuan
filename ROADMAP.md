@@ -7,7 +7,7 @@ not as a development phase of its own.
 
 Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`），[下载与安装](INSTALL.md)。Memory W0–W4 已闭环：**SOFTWARE AUTOMATED PASS**，不是完整 v0.4 端到端验收。
 
-下一步只优先推进 Connected Voice：
+产品主线优先推进 Connected Voice（用户指定的视觉预览工作作为并行、非阻塞分支）：
 
 1. S2：核查并复用小智服务端，明确配置、依赖和现有服务边界。
 2. localhost HTTP / WS 联调（只用于本地开发验证）。
@@ -15,6 +15,15 @@ Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ec
 4. Banxuan 真实 PTT → ASR → LLM → TTS → AudioTrack，验证打断、重连和实际音频契约。
 
 真实记忆 authority 尚未部署，接通语音不会自动完成记忆集成。参考手机和 CD12Max 验收仍待完成；Live2D 为非阻塞增强。本轮不再扩展 W5 一类内部架构任务。
+
+## 用户指定的视觉预览支线（2026-10-01）
+
+Daylight 首页与本地 Live2D 接入已形成开发检查点；公开 Release 未改变。
+本地模型测试 2/2、默认界面测试 10/10、app JVM 32/32 通过，证据见
+[LOCAL_LIVE2D_PREVIEW](evidence/LOCAL_LIVE2D_PREVIEW.md)。仅 SDK 模拟器软件验证，不代表参考手机或 CD12Max 通过。
+
+待办：优化冷启动与小屏角色比例；另行验证长时间运行、真实硬件与发布许可。
+动作、表情、语音口型和通用模型导入器仍未完成，不据此关闭完整 Live2D Gate。
 
 ## Target hardware (supplied by the customer, 2026-09-26)
 
@@ -155,8 +164,13 @@ and should be taken the moment a device is available, even though Live2D is P1:
 
 ```
 getprop ro.product.cpu.abilist     # arm64-v8a present? W527 is 64-bit silicon, but the ROM may be 32-bit
-GL_MAX_TEXTURE_SIZE                # Mahiro's atlas is 8192x8192; a 4096 cap makes Live2D impossible here
+GL_MAX_TEXTURE_SIZE                # Validate actual upload size and memory, not just source atlas size
 ```
+
+The source Mahiro atlas is 8192×8192, but the local preview now decodes it to at most 2048×2048
+(also bounded by the reported GL limit). A 4096 texture limit therefore does **not** by itself
+rule out this model. ABI, rendering correctness, memory and sustained performance still require
+target-device measurements; emulator success is not certification.
 
 ## Governance rule
 
