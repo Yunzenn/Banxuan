@@ -25,8 +25,9 @@ while read -r local_ref local_oid remote_ref remote_oid; do
     fi
 
     if [ "$remote_oid" != "$zero" ]; then
-        # Existing destination ref: exactly what this update adds.
-        commits=$(git rev-list "$remote_oid..$local_oid")
+        # Existing ref may merge another already-published branch (e.g. GitHub's main squash).
+        # Validate only commits new to this destination REMOTE, not just new to this branch.
+        commits=$(git rev-list "$remote_oid..$local_oid" --not --remotes="$remote_name")
     else
         # New destination ref: reachable here but not already published by THIS remote.
         # Deliberately not `--not --remotes`, which would trust every other remote and let an

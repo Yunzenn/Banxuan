@@ -99,3 +99,9 @@ Large font scales, phone-size visual review, real audio, hardware and server int
   This is not a claim that the first run was all-green; no assertions or production behavior were weakened.
 - Sync APK SHA-256: `4ce8c9f1ee7c6fe6170dfa10d1e0abfe511ea17911bc92369c85adb93440671e`.
   Local debug build only; not a new public Preview and not the old release's hash.
+- Push initially exposed a privacy-hook bug: updating an existing branch revalidated an already
+  published main squash commit. The minimal guard fix excludes commits already on the destination
+  remote, just as the new-branch path does; no hook bypass or accepted-identity relaxation.
+  [Local empty-repository regression](tests/test_privacy_remote_guard.sh) verified **4/4** allow/block
+  cases, including new bad identities present only on an unrelated remote:
+  [guard output](tests/DAYLIGHT_SYNC_PRIVACY_GUARD.log). Synthetic test email only, no real personal data.
