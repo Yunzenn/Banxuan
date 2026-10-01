@@ -49,7 +49,9 @@ class CompanionActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
 
-        // Native immersive mode only for watch-sized windows; edge swipe restores system controls.
+        // Legacy Daylight compact-fixture heuristic, NOT watch/model detection or adaptive certification.
+        // PR B replaces this configuration-time rule with available-window/inset policy. Keep the
+        // existing compact visual baseline unchanged during the main-contract sync; edge swipe restores controls.
         if (resources.configuration.screenHeightDp <= 300) {
             window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
                 android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION

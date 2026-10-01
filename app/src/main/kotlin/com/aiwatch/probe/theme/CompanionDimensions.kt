@@ -7,12 +7,14 @@ package com.aiwatch.probe.theme
  * not determine Android logical density. CD12Max metrics must still be measured independently.
  *
  * This file was originally written against a 410x502 dp assumption and the layout overflowed the panel
- * at the real density (the transcript and the push-to-talk capsule were pushed off-screen). Every value
+ * at the configured test density (the transcript and the push-to-talk capsule were pushed off-screen). Every value
  * below is derived from 205x251 dp. All sizes live here on purpose so that a density correction is a
  * one-file change.
  *
  * Daylight budget: header 48 + transcript 48 + PTT 48 + gaps/bottom 14 = 158dp.
  * The stage gets remaining height (93dp at the baseline), and grows on larger windows.
+ * This is the legacy visual baseline, not the completed four-window adaptive contract. PR B separates
+ * design tokens from runtime window geometry without reducing typography to fit.
  */
 object CompanionDimensions {
     const val targetWidthDp = 205

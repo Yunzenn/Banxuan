@@ -1,0 +1,43 @@
+METHOD com.aiwatch.probe.memory.MemoryTrustTest#everyCanonicalTypeOpensAnEditorWithItsOwnFields
+
+com.aiwatch.probe.memory.MemoryTrustTest:.
+
+Time: 7.011
+
+OK (1 test)
+
+
+METHOD com.aiwatch.probe.ProductShellTest#profilesPersistIndependentlyAndRejectInvalidInput
+
+com.aiwatch.probe.ProductShellTest:.
+
+Time: 0.371
+
+OK (1 test)
+
+
+METHOD com.aiwatch.probe.ProductShellTest#importedImageIsPrivateBoundedAndIndependentOfOriginal
+
+com.aiwatch.probe.ProductShellTest:.
+
+Time: 0.766
+
+OK (1 test)
+
+
+METHOD com.aiwatch.probe.ProductShellTest#rejectedImportPreservesPreviousAvatarAndCleansTemporaryFiles
+
+com.aiwatch.probe.ProductShellTest:.
+
+Time: 0.869
+
+OK (1 test)
+
+
+METHOD com.aiwatch.probe.ProductShellTest#companionHomeKeepsSettingsAndDiagnosticsReachable
+
+com.aiwatch.probe.ProductShellTest:.
+
+Time: 6.849
+
+OK (1 test)

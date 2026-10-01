@@ -1,0 +1,45 @@
+class=com.aiwatch.probe.CompanionHomeTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/CompanionHomeTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=4
+
+=== companionHomeIsTheLauncherAndShowsCharacterTranscriptAndPushToTalk ===
+
+com.aiwatch.probe.CompanionHomeTest:.
+
+Time: 7.189
+
+OK (1 test)
+
+
+
+=== pushToTalkDrivesTheFourStatesAndAppendsBothSides ===
+
+com.aiwatch.probe.CompanionHomeTest:.
+
+Time: 8.145
+
+OK (1 test)
+
+
+
+=== protocolConversationMapsOntoTheFourUiStates ===
+
+com.aiwatch.probe.CompanionHomeTest:.
+
+Time: 0.062
+
+OK (1 test)
+
+
+
+=== realVoicePathStaysIdleAndFabricatesNothingWithoutEndpoint ===
+
+com.aiwatch.probe.CompanionHomeTest:.
+
+Time: 7.796
+
+OK (1 test)

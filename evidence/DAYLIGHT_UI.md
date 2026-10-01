@@ -30,8 +30,9 @@ No claim of exclusive copyright is made for generated artwork.
 
 - Home reserves 48dp touch targets and a scrollable 48dp transcript tail; the illustration receives
   remaining height. History/state handling remains unchanged.
-- Watch-sized windows (configuration height <= 300dp) use native immersive-sticky mode;
-  edge swipe restores system controls. Phone-sized windows retain system bars.
+- The legacy `configuration.screenHeightDp <= 300dp` heuristic uses native immersive-sticky mode;
+  edge swipe restores system controls. This is not device/model detection and is not evidence of
+  complete window/inset adaptation. PR B must replace it with available-window policy.
 - Settings and memory pages share semantic colors with Home.
 - Primary/secondary text and status text contrast against the default surface are tested at >=4.5:1.
 - Static illustration only: no claim of expression changes or playback-driven lip sync.
@@ -63,3 +64,38 @@ No claim of exclusive copyright is made for generated artwork.
 
 Visual scope: first light-theme iteration with screenshot inspection, not user aesthetic sign-off.
 Large font scales, phone-size visual review, real audio, hardware and server integration remain unverified.
+
+## Main contract sync (2026-10-01)
+
+- Synchronized main `2d9ba0ed53e2decf335072dcc72d26661fd9b345` into the existing shared Daylight branch
+  using a merge, preserving branch history and all six PR #34 contract documents.
+- Daylight remains a visual baseline. No claim of Android-wide compatibility; the four windows ×
+  fontScale 1.0/1.3 matrix in DEVICE_COMPATIBILITY.md remains PENDING for PR B.
+- Existing 410×502@320dpi evidence above is retained, not reclassified as target-hardware evidence.
+- The earlier adaptive draft on the old UI is a local-only checkpoint, not part of PR #33;
+  its instrumentation compilation failed and no adaptive matrix cell was executed.
+- Public `v0.4.0-preview` remains immutable at `0570308`. Merging this PR does not replace its APK.
+  A new Preview must be built and released separately after Adaptive Round 1.
+
+### Sync verification
+
+- Rebuilt on the synchronized branch: `:app:assembleDebug :app:assembleDebugAndroidTest
+  :app:testDebugUnitTest :app:lintDebug`, offline Gradle 8.9, JDK 21.0.8; Kotlin compiled in-process.
+  BUILD SUCCESSFUL; JVM **32/32**, zero failures/errors/skips; lint **0 errors / 32 warnings**.
+- Installed both APKs with `adb -s emulator-5554 install -r` (test APK additionally `-t`);
+  no uninstall/data clear. API28 SDK emulator, 410×502@320dpi; no Lenovo or physical-device validation.
+- Daylight **2/2**, Home **4/4** passed via per-method execution:
+  [Daylight](tests/DAYLIGHT_SYNC_DaylightUiTest.log), [Home](tests/DAYLIGHT_SYNC_CompanionHomeTest.log).
+- The legacy runner discovers **zero** ProductShell methods because these use same-line `@Test fun`.
+  [Discovery log](tests/DAYLIGHT_SYNC_ProductShellTest.log) is **NOT RUN, not PASS**.
+  Explicit method execution then verified all four; the runner itself is not changed in this visual sync.
+- Execution mistake: ProductShell was first launched before MemoryTrust finished. The overlapping
+  instrumentation processes crashed, affecting ProductShell's first method and MemoryTrust's
+  `everyCanonicalTypeOpensAnEditorWithItsOwnFields`. Preserve the unsuccessful attempts:
+  [Product](tests/DAYLIGHT_SYNC_ProductShellExplicit.log), [Memory](tests/DAYLIGHT_SYNC_memory.MemoryTrustTest.log).
+  Memory initially completed **27/28**. After all processes finished, the affected memory method and
+  all four ProductShell methods passed serially: [explicit recheck](tests/DAYLIGHT_SYNC_SERIAL_RECHECK.log).
+- Final distinct coverage: **10/10 UI/Home/Product and 28/28 Memory methods with the serial recheck**.
+  This is not a claim that the first run was all-green; no assertions or production behavior were weakened.
+- Sync APK SHA-256: `4ce8c9f1ee7c6fe6170dfa10d1e0abfe511ea17911bc92369c85adb93440671e`.
+  Local debug build only; not a new public Preview and not the old release's hash.

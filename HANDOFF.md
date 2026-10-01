@@ -1,5 +1,14 @@
 # Handoff — Banxuan 当前交接
 
+## Daylight 基线同步（2026-10-01，PR #33）
+
+- Daylight 分支已同步 main `2d9ba0e` 的产品契约，保留浅色 Home / Settings / Memory 与静态角色设计；不宣称完成通用适配。
+- 下一步 PR B 必须从合并后的 Daylight 基线开始，不能直接合入旧 UI 上的适配草稿。旧草稿仅保存在本地分支，测试编译失败、八组矩阵未执行。
+- `screenHeightDp <= 300dp` 沉浸模式仍是旧视觉基线的启发式，不是硬件检测或已验收的窗口策略；在 PR B 中按实际可用窗口与 insets 处理。
+- 四窗口 × fontScale 1.0/1.3 仍全部 PENDING；不缩字体过测试，不改语音、记忆语义、Live2D 或 Operator。
+- PR B 一轮通过后停止泛化，回到 Connected Voice。新 Preview 需另建版本；现有 `v0.4.0-preview` 的标签与 APK 不变。
+- Daylight 同步后的验证见 [DAYLIGHT_UI.md](evidence/DAYLIGHT_UI.md)。以下 PR A 状态是当时交接记录。
+
 ## 当前状态（2026-10-01，产品契约迁移 PR A）
 
 - 本次文档分支基于 main `0f692a1`，不是发布标签的 `0570308`；只改六份契约文档，不改 App、不替换 APK。
