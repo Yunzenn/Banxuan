@@ -13,6 +13,11 @@ import com.live2d.sdk.cubism.framework.model.CubismModel
 import com.live2d.sdk.cubism.framework.rendering.CubismRenderer
 import com.live2d.sdk.cubism.framework.rendering.android.CubismOffscreenManagerAndroid
 import com.live2d.sdk.cubism.framework.rendering.android.CubismRendererAndroid
+import com.live2d.sdk.cubism.framework.effect.CubismEyeBlink
+import com.live2d.sdk.cubism.framework.motion.CubismEyeBlinkUpdater
+import com.live2d.sdk.cubism.framework.motion.CubismPhysicsUpdater
+import com.live2d.sdk.cubism.framework.motion.CubismUpdateScheduler
+import com.live2d.sdk.cubism.framework.physics.CubismPhysics
 
 /**
  * Owns one Live2D runtime: moc, model, renderer, GL textures and the MVP matrix.
@@ -30,7 +35,7 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
 
     enum class State { NEW, READY, FAILED, RELEASED }
 
-    var state: State = State.NEW
+    @Volatile var state: State = State.NEW
         private set
 
     /** Human-readable reason when [state] is [State.FAILED]; surfaced so Home can fall back visibly. */
@@ -38,7 +43,7 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
         private set
 
     /** Frames drawn since the last surface creation; used by the GL-recreation assertion. */
-    private var frames = 0L
+    @Volatile private var frames = 0L
     override val framesDrawn: Long get() = frames
 
     override val isReady: Boolean get() = state == State.READY
@@ -59,6 +64,8 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
     private var viewHeight = 0
     private var rendererWidth = 0
     private var rendererHeight = 0
+    private var scheduler = CubismUpdateScheduler()
+    private var lastFrameNanos = 0L
 
     /**
      * Loads the model and builds its GL resources. Must be called on the GL thread. Any failure is
@@ -77,6 +84,16 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
             moc = createdMoc
             val createdModel = createdMoc.createModel()
             model = createdModel
+            // Official R5 LAppModel setup/update ordering, not a second animation engine.
+            if (setting.eyeBlinkParameterCount > 0) {
+                scheduler.addUpdatableList(CubismEyeBlinkUpdater({ false }, CubismEyeBlink.create(setting)))
+            }
+            if (setting.physicsFileName.isNotEmpty()) {
+                val physics = CubismPhysics.create(CubismAssets.readRequired(assets, modelDir + setting.physicsFileName))
+                scheduler.addUpdatableList(CubismPhysicsUpdater(physics))
+            }
+            scheduler.sortUpdatableList()
+            createdModel.saveParameters()
 
             // Textures are uploaded now, on this GL thread, by the dedicated texture manager. The renderer
             // is created lazily in ensureRenderer() once the surface size is known, and binds them there.
@@ -104,13 +121,16 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
     }
 
     /**
-     * Advances the model. Motion, expression, physics and lip sync are deliberately NOT part of
-     * Phase 2B-1A; this only runs the model's own update so the runtime is exercised end to end.
+     * Official blink/physics updaters only. Motion, expression and lip sync are not synthesized.
      */
     override fun update() {
         val current = model ?: return
         current.loadParameters()
         current.saveParameters()
+        val now = System.nanoTime()
+        val delta = if (lastFrameNanos == 0L) 0f else ((now - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.1f)
+        lastFrameNanos = now
+        scheduler.onLateUpdate(current, delta)
         current.update()
     }
 
@@ -237,6 +257,8 @@ class CubismRuntimeOwner(private val appContext: Context) : AvatarRuntime {
         rendererWidth = 0
         rendererHeight = 0
         frames = 0L
+        scheduler = CubismUpdateScheduler()
+        lastFrameNanos = 0L
         state = State.RELEASED
     }
 

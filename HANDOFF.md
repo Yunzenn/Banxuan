@@ -1,5 +1,15 @@
 # Handoff — Banxuan 当前交接
 
+## 用户指定的本地 Live2D 预览（2026-10-01）
+
+- 基于 daylight UI 分支加入用户提供的 Mahiro 模型本地预览；不覆盖已发布 Preview，不升级历史完整 Runtime Gate。
+- 官方 R5 渲染器强制 mipmap 采样，原纹理加载缺少 mipmap 是本次黑帧根因；按官方 Sample 补齐，未修改 Core/Framework。
+- SDK 模拟器 `emulator-5554`：本地模型像素/生命周期/失败回退 2/2 PASS；默认 UI 10/10、app JVM 32/32 PASS。
+- 开关 `localLive2d=true` + `live2dModelDir`，独立包名 `com.aiwatch.probe.live2ddev`；默认构建不包含 Core/模型。两种 APK 已分别查验。
+- 模型、Core、APK、模型截图均留在本地忽略目录。没有模型分发许可；不要上传此本地 APK 或替换公开 Release。
+- 下一步可优化本地预览加载耗时/角色尺寸；没有新增动作、表情、口型或导入器。硬件、真实服务端与发布许可仍待验证。
+- 详细复用路径、哈希、失败过程与边界见 [本地验证报告](evidence/LOCAL_LIVE2D_PREVIEW.md)。本轮没有更改云服务器。
+
 ## 当前状态（2026-09-30）
 
 - Preview `v0.4.0-preview` 已发布，发布源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`。下载见 [INSTALL.md](INSTALL.md)。

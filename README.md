@@ -102,8 +102,9 @@ GL_MAX_TEXTURE_SIZE           # 若 < 8192，Mahiro 的 atlas 在这台设备上
 
 ### Live2D 的现状
 
-`P2B-1A = NOT COMPLETE (2/5)`，且 Live2D 现在**完全不在产品构建里**：`:app` 对 Live2D 零编译依赖，
-`app/src/main` 无任何 `com.aiwatch.live2d` 引用。本次发布 APK 为 **6,887,807 bytes（约 6.9 MB）**。
+公开 Preview 和默认构建**不包含 Live2D**，`:app` 默认不依赖 Cubism；已发布 v0.4.0-preview APK 为 **6,887,807 bytes（约 6.9 MB）**。
+
+2026-10-01 增加了用户自备模型的**本地开发预览**：复用官方 Cubism 与现有容器，已在 API 28 SDK 模拟器验证角色显示、生命周期重建和失败回退。它使用独立包名，不替换公开 Preview；模型和 Core 不上传、不随公开 APK 分发。原先 `P2B-1A = NOT COMPLETE (2/5)` 是历史基线，不能与本次单模型测试混算成完整 Gate PASS。见 [本地 Live2D 验证记录](evidence/LOCAL_LIVE2D_PREVIEW.md)。
 
 专有 Cubism SDK 不随本仓库或本次 Preview 分发。`settings.gradle.kts` 只在 SDK 根目录真实存在时才 include `:core-live2d`；未来启用前仍需独立许可证和兼容性审查。
 
@@ -164,7 +165,7 @@ Memory Trust UI
 
 | 模块 | 职责 |
 |---|---|
-| `:app` | 首页 / 对话 / 角色 / 语音 / 主题 / **记忆信任面**。对 Live2D 零编译依赖 |
+| `:app` | 首页 / 对话 / 角色 / 语音 / 主题 / **记忆信任面**。默认无 Live2D 依赖，显式本地预览开关除外 |
 | `:core-protocol` | Xiaozhi Protocol v1、bootstrap、WebSocket、会话状态机、interrupt |
 | `:core-audio` | PCM 组帧、Opus（Concentus）、播放队列、音频设备枚举 |
 | `:core-memory` | **唯一的 canonical schema**（PROFILE / EVENT / EPISODE / RELATION）+ `MemoryGateway` 契约。纯 JVM，无 Android |

@@ -3,6 +3,15 @@ plugins {
     kotlin("android")
 }
 
+// Explicit local-only build. Public/CI builds neither resolve Core nor package a user's model.
+val localLive2d = providers.gradleProperty("localLive2d").orNull == "true"
+val modelRoot = if (localLive2d) file(providers.gradleProperty("live2dModelDir").get()) else null
+val modelEntry = modelRoot?.listFiles()?.filter { it.name.endsWith(".model3.json") }?.singleOrNull()
+if (localLive2d) {
+    check(modelEntry != null) { "live2dModelDir must contain exactly one model3.json" }
+    check(project.findProject(":core-live2d") != null) { "Official local Cubism R5 SDK required" }
+}
+
 android {
     namespace = "com.aiwatch.probe"
     compileSdk = 35
@@ -15,6 +24,15 @@ android {
         versionCode = 4
         versionName = "0.4.0-preview"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        if (localLive2d) applicationId = "com.aiwatch.probe.live2ddev"
+    }
+
+    buildFeatures { buildConfig = true }
+    defaultConfig.buildConfigField("String", "LOCAL_MODEL_JSON", "\"${modelEntry?.name ?: ""}\"")
+    sourceSets.getByName("main").java.srcDir(if (localLive2d) "src/localLive2d/kotlin" else "src/staticAvatar/kotlin")
+    if (localLive2d) {
+        sourceSets.getByName("androidTest").java.srcDir("src/localLive2dTest/kotlin")
+        sourceSets.getByName("debug").manifest.srcFile("src/localLive2d/AndroidManifest.xml")
     }
 
     compileOptions {
@@ -26,6 +44,22 @@ android {
     }
 }
 
+androidComponents {
+    beforeVariants(selector().all()) { if (localLive2d && it.buildType != "debug") it.enable = false }
+}
+
+if (localLive2d) {
+    val stageLocalModel by tasks.registering(Sync::class) {
+        from(requireNotNull(modelRoot)) { into("local-model") }
+        into(layout.buildDirectory.dir("generated/localLive2dAssets"))
+        // No preview PNG, unrelated archives, or sample models. This directory is build output only.
+        include("**/*.model3.json", "**/*.moc3", "**/*.physics3.json", "**/*.pose3.json",
+            "**/*.motion3.json", "**/*.exp3.json", "**/texture*.png")
+    }
+    android.sourceSets.getByName("main").assets.srcDir(stageLocalModel.map { it.destinationDir })
+    tasks.named("preBuild") { dependsOn(stageLocalModel) }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -33,6 +67,10 @@ kotlin {
 }
 
 dependencies {
+    if (localLive2d) {
+        implementation(project(":core-live2d"))
+        implementation(files(rootProject.file("third_party/live2d/sdk-r5/CubismSdkForJava-5-r.5/Core/android/Live2DCubismCore.aar")))
+    }
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("junit:junit:4.13.2")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

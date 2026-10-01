@@ -50,15 +50,30 @@ internal class CubismTextureManager {
             val path = modelDirectory + setting.getTextureFileName(index)
             val encoded = CubismAssets.readRequired(assets, path)
             stats.add(readStats(path, encoded))
+            val bounds = stats.last()
+            require(bounds.width > 0 && bounds.height > 0) { "Invalid texture bounds: $path" }
+            val deviceLimit = IntArray(1)
+            GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, deviceLimit, 0)
+            require(deviceLimit[0] > 0) { "No GL texture capacity" }
+            // Same strategy as Wanyu's Live2DRenderer: bounded decode for a small viewport.
+            // Keep the original atlas untouched; normalized Cubism UV coordinates still apply.
+            val limit = minOf(2048, deviceLimit[0])
+            var sample = 1
+            while ((maxOf(bounds.width, bounds.height) + sample - 1) / sample > limit) sample *= 2
             // Official Sample alpha contract, part 1: BitmapFactory.Options.inPremultiplied = true.
             // Uploading premultiplied pixels while telling the renderer otherwise is an invalid
             // combination — the flag feeds Cubism's shaderIndex/shader-variant selection, not just blending.
-            val options = BitmapFactory.Options().apply { inPremultiplied = true }
+            val options = BitmapFactory.Options().apply {
+                inPremultiplied = true
+                inSampleSize = sample
+            }
             val bitmap = BitmapFactory.decodeByteArray(encoded, 0, encoded.size, options)
                 ?: throw IllegalStateException("texture '$path' could not be decoded")
             val premultiplied = bitmap.isPremultiplied
-            val id = upload(bitmap)
-            bitmap.recycle()
+            val id = try {
+                Log.i(TAG, "texture budget source=${bounds.width}x${bounds.height} upload=${bitmap.width}x${bitmap.height} max=$limit")
+                upload(bitmap)
+            } finally { bitmap.recycle() }
             glIds.add(id)
             Log.i(TAG, "texture[$index] $path ${stats.last().width}x${stats.last().height} " +
                 "glId=$id premultiplied=$premultiplied decodedBytes=${stats.last().decodedBytes}")
@@ -105,6 +120,16 @@ internal class CubismTextureManager {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        // R5 CubismShaderAndroid.setUpTexture resets MIN_FILTER to LINEAR_MIPMAP_LINEAR
+        // on EVERY draw. A base-level-only texture is incomplete and samples black, even
+        // when glIsTexture, binding, shaders and glGetError all look healthy. The official
+        // LAppTextureManager.createTextureFromPngFile generates this chain after upload.
+        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
+        val error = GLES20.glGetError()
+        if (error != GLES20.GL_NO_ERROR) {
+            GLES20.glDeleteTextures(1, ids, 0)
+            error("Texture upload failed: GL 0x${Integer.toHexString(error)}")
+        }
         return ids[0]
     }
 

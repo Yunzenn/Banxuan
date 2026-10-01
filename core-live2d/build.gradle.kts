@@ -38,13 +38,13 @@ android {
             java.srcDirs(frameworkMain.resolve("java"))
             // The framework's shaders are loaded AT RUNTIME by CubismShaderAndroid. Shipping only
             // java.srcDirs compiles and packages cleanly and then fails on the device, so these assets are
-            // part of the contract, not an optimisation. Sample assets are included so the dev-only build
-            // has a model to show; they stay out of version control.
+            // part of the contract, not an optimisation. Official sample models belong to androidTest
+            // only; a local product preview receives its model from the app's opt-in build input.
             assets.srcDirs(
                 frameworkMain.resolve("assets"),
-                File(cubismSdk, "Sample/src/main/assets"),
             )
         }
+        getByName("androidTest").assets.srcDir(File(cubismSdk, "Sample/src/main/assets"))
     }
 
     compileOptions {

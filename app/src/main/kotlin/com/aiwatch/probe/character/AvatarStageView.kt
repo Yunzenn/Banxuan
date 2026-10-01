@@ -51,6 +51,16 @@ class AvatarStageView @JvmOverloads constructor(
 
     private var breathing: ObjectAnimator? = null
     private var state: ConversationState = ConversationState.IDLE
+    private var staticArt = true
+
+    fun showStaticArt(show: Boolean) {
+        staticArt = show
+        art.visibility = if (show) VISIBLE else INVISIBLE
+        if (!show) {
+            placeholderLabel.visibility = GONE
+            stopBreathing()
+        }
+    }
 
     init {
         addView(plate, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -79,7 +89,7 @@ class AvatarStageView @JvmOverloads constructor(
     }
 
     private fun startBreathing() {
-        if (breathing != null || !isShown) return
+        if (breathing != null || !isShown || !staticArt) return
         breathing = ObjectAnimator.ofPropertyValuesHolder(
             art,
             PropertyValuesHolder.ofFloat(SCALE_X, 1.0f, 1.015f),

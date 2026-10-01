@@ -2,12 +2,15 @@ package com.aiwatch.live2d
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.graphics.Color
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.util.Log
 import android.util.AttributeSet
 import com.aiwatch.live2d.oracle.OfficialOracleRuntime
 import com.live2d.sdk.cubism.framework.rendering.android.CubismOffscreenManagerAndroid
+import com.live2d.sdk.cubism.framework.rendering.android.CubismShaderAndroid
+import com.live2d.sdk.cubism.framework.CubismFramework
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.CountDownLatch
@@ -61,6 +64,8 @@ class Live2DAvatarView @JvmOverloads constructor(
     /** Model to load. Overridable so callers are not hard-wired to one asset and tests can force a miss. */
     var modelDirectory: String = CubismRuntimeOwner.DEFAULT_MODEL_DIR
     var modelJson: String = CubismRuntimeOwner.DEFAULT_MODEL_JSON
+    /** Opaque stage colour avoids platform-specific transparent SurfaceView composition. */
+    @Volatile var clearColorArgb: Int = Color.TRANSPARENT
 
     private val runtime: AvatarRuntime = when (runtimeBackend) {
         RuntimeBackend.OURS -> CubismRuntimeOwner(context.applicationContext)
@@ -143,14 +148,20 @@ class Live2DAvatarView @JvmOverloads constructor(
     }
     private inner class FrameRenderer : GLSurfaceView.Renderer {
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            // Home can be closed before EGL finishes creating its first surface.
+            // Never allocate a new model after the queued release has already completed.
+            if (releaseRequested) return
+            // Official R5 LAppDelegate.onSurfaceCreated: programs belong to an EGL context.
+            if (CubismFramework.isStarted()) {
+                CubismShaderAndroid.getInstance().releaseInvalidShaderProgram()
+                CubismShaderAndroid.deleteInstance()
+            }
             // A new EGL context means every previous GL object is gone. Rebuild instead of reusing, which
             // is also what proves the shaders are loaded again after a context loss.
             if (runtime.isReady) runtime.release()
             val ready = runtime.initialize(modelDirectory, modelJson)
             if (ready) generations++
-            val target = listener ?: return
-            if (ready) post { target.onLive2DReady(generations) }
-            else post { target.onLive2DFailed(runtime.failureMessage ?: "unknown Live2D failure") }
+            if (!ready) post { listener?.onLive2DFailed(runtime.failureMessage ?: "unknown Live2D failure") }
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -179,7 +190,9 @@ class Live2DAvatarView @JvmOverloads constructor(
             if (hostMode == HostMode.HARNESS_LIKE) {
                 GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f)
             } else {
-                GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+                val color = clearColorArgb
+                GLES20.glClearColor(Color.red(color) / 255f, Color.green(color) / 255f,
+                    Color.blue(color) / 255f, Color.alpha(color) / 255f)
             }
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
             if (!runtime.isReady) return
@@ -205,7 +218,7 @@ class Live2DAvatarView @JvmOverloads constructor(
             // Defensive: draw into the window framebuffer explicitly rather than relying on whatever the
             // previous stage left bound. Measured (O1d-2): for this model the render-target path is NOT
             // taken at all (blendModeEnabled=false, modelRenderTargets=0), so this is hygiene, not a fix.
-            // The black-screen root cause is still open; see PLAIN_SHADER_PROBE below for the current probe.
+            // The incomplete-mipmap fix belongs in CubismTextureManager, not this framebuffer binding.
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
             GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight)
             val offscreen = CubismOffscreenManagerAndroid.getInstance()
@@ -213,6 +226,7 @@ class Live2DAvatarView @JvmOverloads constructor(
             try {
                 runtime.update()
                 runtime.draw()
+                if (runtime.framesDrawn == 1L) post { listener?.onLive2DReady(generations) }
                 // Runs last so it owns the final state of the frame. It uses no Cubism type at all.
                 // Runs every frame on purpose: the host clears the framebuffer each frame, so a one-shot
                 // probe would be wiped before the test's PixelCopy ever executes.
@@ -233,18 +247,26 @@ class Live2DAvatarView @JvmOverloads constructor(
 
     /**
      * Releases the runtime on the GL thread. Called from the View's own detach path, so the GL side of
-     * the runtime cannot outlive the View. If the GL thread is already gone this falls back to releasing
-     * what it can; it never throws.
+     * the runtime cannot outlive the View. The host must call this BEFORE onPause while EGL is current.
+     * A timeout is logged; it must never fall back to racing GL/native deletion on the UI thread.
      */
     fun releaseRuntime(timeoutMillis: Long = 3000L) {
         if (released) return
         releaseRequested = true
+        queueEvent {
+            if (!released) {
+                runtime.release()
+                plainShaderProbe?.release()
+                released = true
+                releaseLatch.countDown()
+            }
+        }
         requestRender()
         val drained = runCatching { releaseLatch.await(timeoutMillis, TimeUnit.MILLISECONDS) }
             .getOrDefault(false)
         if (!drained) {
-            runCatching { runtime.release() }
-            released = true
+            // Never race the renderer by deleting its native model or GL textures on the UI thread.
+            Log.w(TAG, "GL release pending; UI-thread native/GL deletion refused")
         }
         listener = null
     }

@@ -7,6 +7,7 @@ import android.view.Window
 import com.aiwatch.probe.ProbeApplication
 import com.aiwatch.probe.character.AvatarProviders
 import com.aiwatch.probe.character.CharacterProfile
+import com.aiwatch.probe.character.HomeAvatarBinding
 import com.aiwatch.probe.conversation.ConversationController
 import com.aiwatch.probe.conversation.ConversationState
 import com.aiwatch.probe.conversation.MessageItem
@@ -37,6 +38,7 @@ class CompanionActivity : Activity() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var home: CompanionHomeView
+    private var avatarBinding: HomeAvatarBinding? = null
     private val profile: CharacterProfile = CharacterProfile.developmentDefault()
 
     /** Production path. */
@@ -58,6 +60,7 @@ class CompanionActivity : Activity() {
         home = CompanionHomeView(this)
         setContentView(home)
         home.bind(profile, AvatarProviders.forSource(profile.avatar))
+        avatarBinding = HomeAvatarBinding(home.avatarStage)
         home.onSettingsClick = {
             startActivity(Intent(this@CompanionActivity, SettingsActivity::class.java))
         }
@@ -98,7 +101,13 @@ class CompanionActivity : Activity() {
         controller.seedGreeting()
     }
 
+    override fun onResume() {
+        super.onResume()
+        avatarBinding?.resume()
+    }
+
     override fun onPause() {
+        avatarBinding?.pause()
         // Never record in the background. The real session stays connected; only capture stops.
         voice?.stopTalking()
         scripted?.cancel()
@@ -107,6 +116,8 @@ class CompanionActivity : Activity() {
     }
 
     override fun onDestroy() {
+        avatarBinding?.close()
+        avatarBinding = null
         scope.cancel()
         voice?.close()
         voice = null

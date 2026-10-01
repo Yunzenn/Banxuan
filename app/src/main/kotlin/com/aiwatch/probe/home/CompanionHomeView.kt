@@ -36,7 +36,8 @@ class CompanionHomeView @JvmOverloads constructor(
     var onSettingsClick: (() -> Unit)? = null
 
     private val topBar = CompanionTopBar(context)
-    private val stage = AvatarStageView(context)
+    val avatarStage = AvatarStageView(context)
+    private val stage get() = avatarStage
     private val transcript = ConversationListView(context)
     private val pushToTalk = PushToTalkView(context)
 
