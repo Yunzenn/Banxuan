@@ -2,6 +2,11 @@
 
 审计日期：2026-09-25。所有证据均固定到 commit SHA；后续升级必须重新审计差异。
 
+Daylight UI 补充（2026-09-30）：直接复用 Android 原生浅色 Material 控件及 Google
+Material Design Icons `bd8cb85bd4bad964fe6918f79665bb40c3a8efef` 的设置图标。
+采用路径、最小改动、Apache-2.0 许可和新生成的预览立绘来源见 [DAYLIGHT_UI](evidence/DAYLIGHT_UI.md)。
+不复制未核清许可的 Android 小智 UI，不引入第二套音频链。
+
 | 能力 | 冻结证据 | Class / function | Decision | 许可与采用方式 |
 |---|---|---|---|---|
 | Protocol | `78/xiaozhi-esp32@64b57d0ba5c2f11a30974a0216dc28221c5b9d5b`：`docs/websocket.md`、`main/protocols/websocket_protocol.cc` | `WebsocketProtocol::OpenAudioChannel`、`ParseServerHello` | ADAPT | MIT；把协议行为重写为 Kotlin，不复制 ESP-IDF transport。若复制实质代码，保留原 MIT copyright/permission notice。 |

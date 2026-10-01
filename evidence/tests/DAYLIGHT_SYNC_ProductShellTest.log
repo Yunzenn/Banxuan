@@ -1,0 +1,7 @@
+class=com.aiwatch.probe.ProductShellTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/ProductShellTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=0

@@ -21,9 +21,8 @@ import com.aiwatch.probe.voice.PushToTalkView
 /**
  * The P0-1 Home surface.
  *
- * Three things must be visible at once on a 410x502 panel — the character, the tail of the conversation
- * and the push-to-talk control — so the transcript takes the remaining weight instead of the stage
- * stretching to fill the screen.
+ * Daylight Home reserves a readable transcript tail and 48dp controls, then gives the remaining
+ * height to the illustration. System bars remain visible on phone-sized windows.
  *
  * The view owns no conversation logic; it renders what it is handed and forwards presses.
  */
@@ -64,14 +63,14 @@ class CompanionHomeView @JvmOverloads constructor(
         addView(topBar, LayoutParams(LayoutParams.MATCH_PARENT,
             CompanionDrawables.dp(context, CompanionDimensions.topBarHeightDp.toFloat()).toInt()))
 
-        addView(stage, LayoutParams(LayoutParams.MATCH_PARENT,
-            CompanionDrawables.dp(context, CompanionDimensions.stageHeightDp.toFloat()).toInt()).apply {
+        addView(stage, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f).apply {
             leftMargin = margin
             rightMargin = margin
         })
 
-        addView(transcript, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f).apply {
-            topMargin = CompanionDrawables.dp(context, 10f).toInt()
+        addView(transcript, LayoutParams(LayoutParams.MATCH_PARENT,
+            CompanionDrawables.dp(context, 48f).toInt()).apply {
+            topMargin = CompanionDrawables.dp(context, 4f).toInt()
             leftMargin = margin
             rightMargin = margin
         })
@@ -80,8 +79,8 @@ class CompanionHomeView @JvmOverloads constructor(
             LayoutParams.WRAP_CONTENT).apply {
             leftMargin = margin
             rightMargin = margin
-            topMargin = CompanionDrawables.dp(context, 8f).toInt()
-            bottomMargin = margin
+            topMargin = CompanionDrawables.dp(context, 4f).toInt()
+            bottomMargin = CompanionDrawables.dp(context, 6f).toInt()
         })
 
         topBar.onSettingsClick = { onSettingsClick?.invoke() }

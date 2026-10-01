@@ -1,0 +1,7 @@
+PASS published-main-merge: allow
+PASS new-branch-private: allow
+Push blocked: unpublished commit b6ef4b4871d2cabe7edaf926c07e00991857f533 has non-private identity: yunzenn|synthetic-test@example.invalid|yunzenn|209125778+Yunzenn@users.noreply.github.com
+PASS unpublished-bad-existing-ref: block
+Push blocked: unpublished commit b6ef4b4871d2cabe7edaf926c07e00991857f533 has non-private identity: yunzenn|synthetic-test@example.invalid|yunzenn|209125778+Yunzenn@users.noreply.github.com
+PASS unpublished-bad-new-ref: block
+4/4 local privacy-guard cases passed; unrelated remote did not confer trust.

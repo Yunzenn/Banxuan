@@ -2,19 +2,21 @@
     <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#315D9A</item>
-        <item name="android:navigationBarColor">#101820</item>
-        <item name="android:statusBarColor">#101820</item>
+        <item name="android:navigationBarColor">#FAF8F5</item>
+        <item name="android:statusBarColor">#FAF8F5</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-    <!-- P0-1 companion Home: OLED-dark surface. Scoped to CompanionActivity so the Phase 2A screens keep
-         the light probe theme they were validated with. -->
-    <style name="CompanionTheme" parent="android:style/Theme.Material.NoActionBar">
+    <!-- Daylight Home shares the system's native light controls with Settings. -->
+    <style name="CompanionTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowBackground">#0D1110</item>
-        <item name="android:colorBackground">#0D1110</item>
-        <item name="android:navigationBarColor">#0D1110</item>
-        <item name="android:statusBarColor">#0D1110</item>
-        <item name="android:colorAccent">#CAE8B3</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">#FAF8F5</item>
+        <item name="android:colorBackground">#FAF8F5</item>
+        <item name="android:navigationBarColor">#FAF8F5</item>
+        <item name="android:statusBarColor">#FAF8F5</item>
+        <item name="android:colorAccent">#476782</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

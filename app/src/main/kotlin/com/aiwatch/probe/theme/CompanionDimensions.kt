@@ -1,19 +1,20 @@
 package com.aiwatch.probe.theme
 
 /**
- * Geometry for the real target panel.
+ * Geometry for the 410x502@320dpi emulator baseline, not a measured target device.
  *
- * CD12Max: 2.06" AMOLED, 410x502 px. Diagonal 648 px over 2.06" is ~315 dpi, which Android buckets to
- * **320 dpi / density 2.0**, so the usable canvas is only **205 x 251 dp** — not 410 x 502 dp.
+ * At the explicitly selected 320dpi test density the canvas is 205x251dp. Physical screen PPI does
+ * not determine Android logical density. CD12Max metrics must still be measured independently.
  *
  * This file was originally written against a 410x502 dp assumption and the layout overflowed the panel
- * at the real density (the transcript and the push-to-talk capsule were pushed off-screen). Every value
+ * at the configured test density (the transcript and the push-to-talk capsule were pushed off-screen). Every value
  * below is derived from 205x251 dp. All sizes live here on purpose so that a density correction is a
  * one-file change.
  *
- * Vertical budget at 251 dp:
- *   top bar 38 + stage 84 + transcript gap 6 + [transcript, weight 1] + ptt gap 6 + ptt 44 + bottom 10
- *   = 188 dp of fixed content, leaving ~63 dp for the transcript tail.
+ * Daylight budget: header 48 + transcript 48 + PTT 48 + gaps/bottom 14 = 158dp.
+ * The stage gets remaining height (93dp at the baseline), and grows on larger windows.
+ * This is the legacy visual baseline, not the completed four-window adaptive contract. PR B separates
+ * design tokens from runtime window geometry without reducing typography to fit.
  */
 object CompanionDimensions {
     const val targetWidthDp = 205
@@ -21,7 +22,7 @@ object CompanionDimensions {
     const val targetDensityDpi = 320
 
     const val edgeMarginDp = 10
-    const val topBarHeightDp = 38
+    const val topBarHeightDp = 48
 
     /** Character stage: a third of the panel, so it stays the visual centre without crowding the chat. */
     const val stageHeightDp = 84
@@ -32,10 +33,10 @@ object CompanionDimensions {
     const val bubblePaddingVerticalDp = 6
     const val bubbleCornerLargeDp = 12
     const val bubbleCornerSmallDp = 3
-    const val bubbleTextSp = 11f
+    const val bubbleTextSp = 12f
     const val bubbleLineSpacingMultiplier = 1.12f
 
-    const val pttHeightDp = 44
+    const val pttHeightDp = 48
     const val pttRadiusDp = 22
     const val pttTextSp = 12f
     const val pttPressedScale = 0.97f

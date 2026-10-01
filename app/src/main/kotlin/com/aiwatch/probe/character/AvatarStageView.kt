@@ -10,7 +10,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.Gravity
-import android.view.animation.LinearInterpolator
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
@@ -79,16 +79,17 @@ class AvatarStageView @JvmOverloads constructor(
     }
 
     private fun startBreathing() {
-        if (breathing != null) return
+        if (breathing != null || !isShown) return
         breathing = ObjectAnimator.ofPropertyValuesHolder(
             art,
             PropertyValuesHolder.ofFloat(SCALE_X, 1.0f, 1.015f),
             PropertyValuesHolder.ofFloat(SCALE_Y, 1.0f, 1.015f),
         ).apply {
             duration = BREATHE_PERIOD_MS
-            repeatCount = ObjectAnimator.INFINITE
+            // A single settling breath, not an always-on render loop on a battery-limited watch.
+            repeatCount = 1
             repeatMode = ObjectAnimator.REVERSE
-            interpolator = LinearInterpolator()
+            interpolator = AccelerateDecelerateInterpolator()
             start()
         }
     }
@@ -105,8 +106,13 @@ class AvatarStageView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (isVisible && state == ConversationState.IDLE) startBreathing() else stopBreathing()
+    }
+
     private companion object {
-        const val BREATHE_PERIOD_MS = 3000L
+        const val BREATHE_PERIOD_MS = 900L
     }
 
     /**
@@ -122,10 +128,10 @@ class AvatarStageView @JvmOverloads constructor(
 
         fun setState(state: ConversationState) {
             val base = when (state) {
-                ConversationState.IDLE -> Color.argb(31, 202, 232, 179)
-                ConversationState.LISTENING -> Color.argb(41, 158, 216, 255)
-                ConversationState.THINKING -> Color.argb(41, 232, 216, 148)
-                ConversationState.SPEAKING -> Color.argb(59, 202, 232, 179)
+                ConversationState.IDLE -> Color.rgb(234, 240, 243)
+                ConversationState.LISTENING -> Color.rgb(220, 235, 245)
+                ConversationState.THINKING -> Color.rgb(236, 230, 240)
+                ConversationState.SPEAKING -> Color.rgb(226, 239, 231)
             }
             if (base != tint) {
                 tint = base
@@ -135,8 +141,10 @@ class AvatarStageView @JvmOverloads constructor(
 
         override fun onDraw(canvas: Canvas) {
             paint.color = tint
-            val r = android.graphics.RectF(inset, inset, width - inset, height - inset)
-            canvas.drawRoundRect(r, radius, radius, paint)
+            // One quiet oval, not another rectangular card around the illustration.
+            val diameter = minOf(width.toFloat(), height.toFloat()) * 0.92f
+            canvas.drawOval(width / 2f - diameter / 2, height - diameter,
+                width / 2f + diameter / 2, height.toFloat(), paint)
         }
     }
 }

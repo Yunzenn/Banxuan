@@ -2,6 +2,7 @@
 
 | 来源与 commit | License 文件 | 结论 | 分发义务/限制 |
 |---|---|---|---|
+| `google/material-design-icons@bd8cb85bd4bad964fe6918f79665bb40c3a8efef` | `/LICENSE` | Apache-2.0；Daylight 设置图标 | 原始 pathData 保留，仅调整原生主题 tint 命名空间；完整许可随 APK assets/licenses 分发，修改说明见 evidence/DAYLIGHT_UI.md。 |
 | `org.ow2.asm:asm:9.6` | Maven POM / upstream `LICENSE.txt` | BSD-3-Clause；W4 JVM test-only | 复用字节码读取器；不进入 APK。版本固定，不自研 class parser；POM 已核查，不代表完整供应链安全审计。 |
 | `78/xiaozhi-esp32@64b57d0...` | `/LICENSE` | MIT | 源码实质复制需保留版权与许可文本。 |
 | `xinnan-tech/xiaozhi-esp32-server@788f530...` | `/LICENSE` | MIT | 后端 patch 保留版权与许可文本。 |

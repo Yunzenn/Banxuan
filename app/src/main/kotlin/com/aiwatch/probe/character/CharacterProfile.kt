@@ -16,10 +16,10 @@ data class CharacterProfile(
         /**
          * Development default. The customer-supplied Mahiro assets are explicitly NOT shipped (P0-1
          * constraint 14) and the still that accompanies them is a watermarked promo card, so the
-         * packaged build uses the designed placeholder. A clean still dropped into
+         * packaged build uses an original generated Daylight illustration. A clean still dropped into
          * `app/src/main/assets/character/` (gitignored) takes over automatically at dev time.
          */
-        const val DEV_DISPLAY_NAME = "真寻"
+        const val DEV_DISPLAY_NAME = "小星"
 
         fun developmentDefault(): CharacterProfile = CharacterProfile(
             id = "dev-companion",
