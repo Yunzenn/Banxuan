@@ -1,39 +1,31 @@
-# Banxuan Debug Preview 0.4
+# Banxuan Debug Preview 0.4.1
 
-**已发布：[直接下载安装包](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.0-preview/banxuan-preview-v0.4.apk)** · [三步安装教程](INSTALL.md) · [发布页](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview)
+**[下载新版 APK](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.1-preview/banxuan-0.4.1-preview.apk)** · [安装说明](INSTALL.md)
 
-发布标签 `v0.4.0-preview`，源码提交 `057030884f2c754a316ac52f7e1a84f75ece39fc`。安装后的桌面名称是「小星陪伴 · 预览」。这是已发布版本的说明，不代表后续任意构建也使用同一签名或校验值。
+标签 v0.4.1-preview；versionName 0.4.1-preview；versionCode 5；minSdk 28。
+精确构建提交和 APK SHA-256 以本 Release 的 BUILD_INFO.json / SHA256SUMS.txt 为准。
 
-这是开发预览，不是 v1，不是完整 Alpha，也不是第三方 XiaoZhi APK。
-Android 9 / API28 起可尝试安装；CD12Max、参考手机和完整视觉验收尚未完成。
+## 更新内容
 
-## 普通安装实际能体验什么
+- Daylight 浅色 Home / Settings / Memory 和静态角色。
+- Adaptive Round 1：按实际窗口分配角色、字幕和 PTT，保留字体大小。
+- UI 软件矩阵 8/8，既有界面回归 38/38，app JVM 34/34。
+- 原始失败与修复、验收边界见 evidence/ADAPTIVE_ROUND_1.md。
 
-- 自有首页、角色占位区域、设置、PTT 控件与状态展示。
-- 「我的记忆」入口；默认未连接记忆服务器，诚实显示「记忆服务尚未连接」。
-- 不包含示例记忆，也不会把测试 fixture 当成真实聊天积累。
-- 未配置并验证真实 HTTPS/WSS 服务端，不能宣称开箱即可与线上 AI 完整语音聊天。
-- 不包含 Cubism Core、Live2D 模型、客户角色图片或第三方 XiaoZhi APK。
+不是 v1、完整 Alpha 或第三方 XiaoZhi APK。没有默认测试记忆，普通安装显示「记忆服务尚未连接」。
+真实 HTTPS/WSS 语音、参考手机、CD12Max、物理音频与完整视觉验收尚未完成。
+默认包不含 Cubism Core、Live2D 模型、客户图片/声音资产。
 
-## 已有软件证据不等于默认可用功能
+## 签名与升级
 
-W0–W4 的模拟器/单测覆盖了记忆读取、编辑、确认、忽略、删除、cache freshness、
-单实例接线、不确定结果不盲重试、成功后不重复 list。这些行为的设备测试通过注入
-测试 gateway 执行；不是已部署记忆服务或真实对话记忆的证据。
-W4：API28 SDK 模拟器 410x502@320dpi，28/28 instrumentation；app JVM 32/32。
-详见 [W3 验证](evidence/tests/W3_VALIDATION.md) 和 [W4 验证](evidence/tests/W4_VALIDATION.md)。W0–W4 基础设施闭环，不等于真实记忆服务已上线。
+**CI Debug signing，不是稳定更新身份；UPDATE COMPATIBILITY: NOT YET VERIFIED。**
+不同构建可能不能覆盖安装，不要直接卸载有数据的旧版。
+卸载会清除 identity、设置和缓存，可能需要重新绑定；不承诺已提供导出/导入迁移。
+本次按用户要求发布新 Debug Preview，不代表固定签名或 tag 自动发布基础设施已完成。
 
-## 下载、校验与安装风险
+## 来源与许可
 
-绿色 Actions run 的 `banxuan-preview-<commit>` artifact 提供 APK、SHA256SUMS、
-BUILD_INFO、APK manifest 摘要和签名证书摘要。PR artifact 对应临时合并提交，不是正式发布。
-首个 GitHub prerelease 只使用绿色 main 构建的同一份 APK，不二次打包/重签名。
-校验 `SHA256SUMS.txt` 后再安装，不需要安装 androidTest APK。
-
-**这是 debuggable APK，只供测试，不要存放敏感数据。** 使用 CI 调试证书，未建立稳定发布
-签名。不同 CI run/本地构建可能无法覆盖安装；不要为解决签名冲突直接卸载有重要数据的
-旧版本。卸载会删除设备身份、设置和缓存，可能需要重新绑定。先确认数据可丢弃。
-不能用 W3 曾经卸载旧测试包的运行结果证明跨签名/跨版本身份持久性。
-
-只分发本仓库构建产物。APK 内保留 Concentus 许可，应用代码许可见仓库 LICENSE。
-未来启用 Live2D 或附带角色/声音资产，必须重新完成独立发布审查。
+只提升成功 main CI 构建的原始已检查 APK，不二次打包或重签名。
+随包保留 BUILD_INFO、SHA256SUMS、badging、signature 和许可；核对构建提交与 tag。
+APK 包含 Concentus 许可，自有源码许可见 LICENSE。
+旧 v0.4.0-preview 标签和附件保持不变。

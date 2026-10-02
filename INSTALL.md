@@ -1,70 +1,33 @@
-# Banxuan 测试版：下载与安装
+# Banxuan 新版测试包：下载与安装
 
-不需要编程，也不需要下载源码。本页对应 **Preview 0.4 / v0.4.0-preview**。
+**[下载 Banxuan 0.4.1-preview APK](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.1-preview/banxuan-0.4.1-preview.apk)**
 
-## 先看这三点
+新版包含 Daylight 浅色界面和手机/小屏窗口适配，Android 9+ 可尝试安装。
+仍是 CI Debug Preview，不是稳定签名版，真实 AI 语音和记忆后端尚未接通验收。
 
-- 需要 Android 9 或以上的完整 Android 设备。不是 iPhone 或 Wear OS 安装包；CD12Max 尚未完成真机验收。
-- 现在适合看首页、设置和产品形态，**还不能开箱直接与 AI 语音聊天**。「记忆服务尚未连接」是当前预期提示。
-- 这是调试测试版。不要存放敏感数据。若已有旧版，遇到安装冲突请先停下；**卸载会清空设备身份、设置和缓存，可能需要重新绑定**，不能保证覆盖升级。
+1. 在 Android 浏览器中点击上面的下载按钮。
+2. 在「下载」中打开 banxuan-0.4.1-preview.apk，按系统提示允许当前来源安装。
+3. 打开「小星陪伴 · 预览」，体验首页、设置和「我的记忆」。
 
-## 三步安装
-
-1. 用 Android 设备的浏览器点击 **[下载 APK（约 6.9 MB）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.0-preview/banxuan-preview-v0.4.apk)**。
-2. 打开浏览器或文件管理器的「下载」，找到 **`banxuan-preview-v0.4.apk`**，点击安装。如果系统要求允许此来源安装，只在确认文件来自本仓库后，为当前浏览器或文件管理器授权；安装后可关闭该授权。不要关闭系统整体安全防护。
-3. 安装完成后点击「打开」，或在应用列表找到 **「小星陪伴 · 预览」**。这是当前 APK 的桌面名称，并不是下错软件。
-
-如果在电脑上下载，请将 APK 传到 Android 设备后再打开；Windows 不能直接安装 Android APK。手表的文件传输方式以厂商说明为准。
-
-## 第一次打开可以试什么
-
-查看首页、角色占位区域、状态和设置，再进入「我的记忆」。当前没有部署记忆服务器，因此这里不会出现真实聊天记忆，也不会自动填入测试用的假数据。
-
-PTT 是「按住说话」控件。它已经有软件测试，但本版没有接通并验收真实语音服务。授予麦克风权限并不等于服务器已连接；没有 AI 回复不应直接判断为麦克风损坏。
-
-本版不包含 Live2D 模型，也不是第三方 XiaoZhi 软件。详细边界见 [PREVIEW.md](PREVIEW.md)。
-
-## 新版界面测试包（面向测试人员）
-
-**Preview 0.4 的下载按钮不会自动变成新界面。** Daylight + Adaptive Round 1 是较新的源码；
-新版用户 Release 尚未发布。普通用户可以等待新版发布，测试人员可按以下步骤获取 CI 包：
-
-1. 打开[GitHub Actions 构建列表](https://github.com/Yunzenn/Banxuan/actions/workflows/ci.yml)，选择
-   `codex/adaptive-daylight` 对应、带绿色成功标记的构建；不要误选旧 main 或失败构建。
-2. 进入构建详情，在 **Artifacts** 区下载 `banxuan-preview-<提交号>`。通常需要登录 GitHub；
-   测试文件保留 14 天，过期后不能再下载，不能把这个入口当永久发布渠道。
-3. 解压 ZIP，安装其中的 `.apk`，不要安装 `androidTest` 测试程序。可查看 `BUILD_INFO.json`
-   核对构建提交；PR 构建可能对应 GitHub 的测试合并提交，而不是分支头提交。
-
-**文件名不代表界面版本。** 当前打包脚本仍使用 `banxuan-preview-v0.4.apk` 和 `0.4.0-preview`
-版本号，所以新 CI 包也可能叫这个名字；必须结合构建分支、提交号判断。版本来源收口属于下一轮发布基础设施。
-
-CI 包仍是临时 Debug 签名，可能不能覆盖已安装版本。不要为尝鲜直接卸载有数据的旧版。
-本轮本地覆盖安装成功，不代表 CI 包之间、或旧 Release 到新包的签名兼容性已验证。
-适配证据见 [验证报告](evidence/ADAPTIVE_ROUND_1.md)。
+**已有旧版不要直接卸载。** CI 调试签名可能不同，不能保证覆盖安装。
+卸载会清空设备身份、设置和缓存，可能需要重新绑定。遇到签名冲突先保留错误信息。
 
 ## 常见问题
 
-| 遇到的问题 | 怎么处理 |
-|---|---|
-| 下载链接打不开 | 用系统浏览器打开[发布页](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview)，展开 Assets，选择 `banxuan-preview-v0.4.apk`。网络无法访问 GitHub 时换可访问的网络，不要从未知镜像下载。 |
-| 看见一堆文件，不知道选哪个 | 只选上面的 `.apk`。`Source code` 是开发源码，`SHA256SUMS.txt` 等是校验材料，都不是安装包。不要下载 androidTest APK。 |
-| 为什么安装后还是旧界面 | 本页顶部的公开下载是固定的 Preview 0.4。新版界面尚未发 Release；测试人员可按上文获取对应分支的成功 CI 包。 |
-| 提示签名冲突或应用未安装 | 可能是已有版本签名不同，也可能是设备条件不满足。先保留错误信息，不要直接卸载旧版；确认旧数据可丢弃后再决定是否重装。 |
-| 打开后没有记忆、不能聊天 | 这是已知限制，后端尚未完成接入，不是需要购买解锁。 |
-| 能当正式版长期使用吗 | 暂时不能。没有稳定发布签名，后续不保证直接升级；适合预览和反馈。 |
+- 下载打不开：打开[发布页](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.1-preview)，在 Assets 中选择上述 APK，不要选 Source code 或 androidTest APK。
+- 还是旧界面：检查是否误下了旧的 banxuan-preview-v0.4.apk。
+- 没有回复或记忆：后端尚未部署验收，不是需要购买解锁，也不能直接判断麦克风坏了。
+- 能否自动升级：目前没有内置更新器、稳定签名或数据迁移保证。
+- 是否含 Live2D：默认包只有静态角色，不含 proprietary Core 或用户模型。
 
-反馈请到 [GitHub Issues](https://github.com/Yunzenn/Banxuan/issues)，附设备型号、Android 版本、操作步骤和错误截图。请遮住个人信息、设备身份和服务端凭据。
+## 校验与版本
 
-## 可选：检查下载文件是否完整
+versionName = 0.4.1-preview；versionCode = 5；minSdk = 28。
+发布页附 SHA256SUMS.txt、BUILD_INFO.json、APK_BADGING.txt、APK_SIGNATURE.txt、许可文件。
+请以本版 BUILD_INFO 的提交和 SHA-256 为准，不沿用旧包校验值。
+[适配报告](evidence/ADAPTIVE_ROUND_1.md) 是同一 UI 代码的本地软件证据，不是真机或跨签名升级认证。
 
-普通用户无需编译。下面用于核对本次发布，不适用于其他 CI 或本地构建。
-
-| 项目 | 值 |
-|---|---|
-| 文件名 | `banxuan-preview-v0.4.apk` |
-| 文件大小 | `6,887,807 bytes` |
-| SHA-256 | `916c77b363c1abf772db8d854c64b394fbd86880bd812528adfa1e1608742c9a` |
-| 源码提交 | `057030884f2c754a316ac52f7e1a84f75ece39fc` |
-
-发布页另附构建信息、签名摘要和许可文件。校验不一致时不要安装，重新从官方发布页下载。
+PR/main 临时测试包仍在 [Actions](https://github.com/Yunzenn/Banxuan/actions/workflows/ci.yml) 的 Artifacts 中，
+通常需要登录 GitHub，保留 14 天；普通用户优先下载本页顶部的版本化 Release。
+[旧版归档](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview) 保留，不覆盖旧附件。
+[反馈问题](https://github.com/Yunzenn/Banxuan/issues)时请遮住个人信息、身份和凭据。

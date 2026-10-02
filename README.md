@@ -6,15 +6,14 @@
 
 ## 下载测试版：不需要编程
 
-**[⬇ 下载 Banxuan Preview 0.4 安装包（APK，约 6.9 MB）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.0-preview/banxuan-preview-v0.4.apk)**
+**[⬇ 下载 Banxuan 0.4.1-preview 安装包（Daylight + 窗口适配）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.1-preview/banxuan-0.4.1-preview.apk)**
 
-[下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview) · [本版能力与限制](PREVIEW.md)
+[下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.1-preview) · [本版能力与限制](PREVIEW.md)
 
-> **上面的下载仍是旧界面的 Preview 0.4。** 新 Daylight 浅色界面与窗口适配已完成软件验证，
-> 尚未发布成新版 Release。想试新界面的测试人员，请看[新版测试包获取说明](INSTALL.md#新版界面测试包面向测试人员)。
+> **新版包含 Daylight 浅色界面与 Adaptive Round 1。** 仍是 CI Debug 签名，不保证覆盖升级；不要直接卸载有数据的旧版。
 
 1. 用 Android 9 或以上设备的浏览器点击下载。
-2. 在「下载」中打开 `banxuan-preview-v0.4.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
+2. 在「下载」中打开 `banxuan-0.4.1-preview.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
 3. 安装后打开 **「小星陪伴 · 预览」**（当前桌面显示名称），体验首页和设置。
 
 **安装前请注意：这是调试测试版，不是正式版。** 不保证与其他构建覆盖升级；遇到签名冲突不要直接卸载旧版，卸载会清空身份、设置和缓存。不要存放敏感数据。CD12Max 真机兼容性仍待验证。
@@ -30,7 +29,7 @@
 这不是参考手机、CD12Max、云端或完整视觉验收。发布版本号也不代表完整 Memory Companion 已验收。
 
 **源码界面与已发布 APK 要区分：** Daylight 浅色界面已随 PR #33 合并；本轮在此基础上完成窗口适配，保留 Native Views 和用户字体大小。
-上面的 `v0.4.0-preview` 下载仍固定为旧 UI，不会随源码合并自动更新；新版 APK 需在适配验收后另行发布。
+新版下载对应独立 `v0.4.1-preview`；旧版标签及附件保留归档，不覆盖旧制品。
 本轮验证范围、首轮失败及修复记录见 [Adaptive Round 1 报告](evidence/ADAPTIVE_ROUND_1.md)。
 
 **下一步停止 UI 泛化：** 独立完成固定签名与 tag 发布流程 → 稳定签名 Preview → 关于页检查更新 → Xiaozhi Connected Voice。
@@ -121,7 +120,7 @@ GL_MAX_TEXTURE_SIZE           # 检查实际上传纹理尺寸、预算与 runti
 ### Live2D 的现状
 
 当前 main 的 `P2B-1A = NOT COMPLETE (2/5)`，且 Live2D **不在默认产品构建里**：`:app` 对 Live2D 零编译依赖，
-`app/src/main` 无任何 `com.aiwatch.live2d` 引用。本次发布 APK 为 **6,887,807 bytes（约 6.9 MB）**。
+`app/src/main` 无任何 `com.aiwatch.live2d` 引用。新版 APK 大小和校验值以对应 Release 制品为准。
 
 专有 Cubism SDK 不随本仓库或本次 Preview 分发。`settings.gradle.kts` 只在 SDK 根目录真实存在时才 include `:core-live2d`；未来启用前仍需独立许可证和兼容性审查。
 

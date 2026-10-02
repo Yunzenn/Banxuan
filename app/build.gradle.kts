@@ -12,8 +12,8 @@ android {
         applicationId = "com.aiwatch.probe"
         minSdk = 28
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0-preview"
+        versionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
+        versionName = providers.gradleProperty("VERSION_NAME").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
