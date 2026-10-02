@@ -102,7 +102,8 @@ W4      单 owner、无绕过、成功不 re-list、不确定结果不盲重试 
 
 证据：[W3](evidence/tests/W3_VALIDATION.md)、[W4](evidence/tests/W4_VALIDATION.md)。测试环境为 API28 SDK 模拟器，不能扩大为完整视觉审查、参考手机、CD12Max 或云端验收。普通安装没有注入测试数据，默认显示「记忆服务尚未连接」。
 
-发布基线：`v0.4.0-preview` → `057030884f2c754a316ac52f7e1a84f75ece39fc`；W4 PR #30、分发 PR #31 均已合并。
+历史发布基线：`v0.4.0-preview` → `057030884f2c754a316ac52f7e1a84f75ece39fc`；W4 PR #30、分发 PR #31 均已合并。
+新版 `v0.4.1-preview` 包含已合并的 Adaptive PR #35；精确发布源码、APK 哈希以新版 BUILD_INFO.json 为准。
 
 ### 尚未完成的目标设备验收
 

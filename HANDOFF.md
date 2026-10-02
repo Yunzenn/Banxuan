@@ -1,5 +1,14 @@
 # Handoff — Banxuan 当前交接
 
+## 0.4.1 Debug Preview 分发（2026-10-02）
+
+- 用户授权合并并提供最新 APK；Adaptive PR #35 已合并，main 基线 `44272b1`。
+- 新渠道为 `v0.4.1-preview`，APK `banxuan-0.4.1-preview.apk`，versionCode 5。
+- 版本由 gradle.properties 统一供 Gradle 和打包校验读取。只发布成功 main CI 的原始制品。
+- [发布页](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.1-preview)及其 BUILD_INFO 是发布状态和精确提交的依据。
+- 旧 `v0.4.0-preview` 不覆盖。本次仍是 CI Debug 签名，稳定签名/迁移验证仍未完成。
+- 下文的“尚未发布/未更新”是适配完成时的历史记录；新版分发以本节入口为准。
+
 ## 当前：Adaptive Round 1（2026-10-02）
 
 - 基于已合并 Daylight `2b423920`，本地分支 `codex/adaptive-daylight`，不是旧 UI 草稿。
