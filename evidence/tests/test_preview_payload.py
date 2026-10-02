@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import tempfile
 
 spec = importlib.util.spec_from_file_location("prepare_preview", Path(__file__).resolve().parents[2] / "scripts/prepare_preview.py")
 preview = importlib.util.module_from_spec(spec)
@@ -12,6 +13,21 @@ class PreviewPayloadTest(unittest.TestCase):
 
     def test_minimal_payload(self):
         preview.check_contents(self.baseline + ["lib/arm64-v8a/libdatastore_shared_counter.so"])
+
+    def test_version_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "gradle.properties").write_text("VERSION_NAME=0.4.1-preview\nVERSION_CODE=5\n")
+            self.assertEqual(("0.4.1-preview", 5), preview.read_version(root))
+
+    def test_invalid_or_duplicate_version_is_rejected(self):
+        for value in ["VERSION_NAME=bad\nVERSION_CODE=5", "VERSION_NAME=0.4.1-preview\nVERSION_CODE=0",
+                      "VERSION_NAME=0.4.1-preview\nVERSION_CODE=5\nVERSION_CODE=6"]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "gradle.properties").write_text(value)
+                with self.assertRaises(ValueError):
+                    preview.read_version(root)
 
     def test_missing_license(self):
         with self.assertRaises(ValueError):
