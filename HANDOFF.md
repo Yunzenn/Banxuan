@@ -1,5 +1,14 @@
 # Handoff — Banxuan 当前交接
 
+## Release Infrastructure 接线（2026-10-02）
+
+- 用户确认暂无长期签名 keystore，仅先完成接线。见 [接线与配置说明](RELEASE_INFRASTRUCTURE.md)。
+- tag-only workflow 复用完整 CI；unsigned 构建不拿密钥；签名 job 单独使用 release Environment；
+  publisher 再核验 APK、tag、BUILD_INFO、签名和远端附件 digest。PR/main 无 release secrets。
+- 本地 Debug/Release JVM 各 34/34、Python 12/12、actionlint、真实 unsigned APK 的一次性测试签名通过。
+- 固定证书仍 UNCONFIGURED；Environment 保护、真实密钥、tag 实发、升级迁移均 PENDING / NOT RUN。
+- 现有公开 0.4.1 APK/标签不变，不进入 About updater 或继续 UI 泛化。
+
 ## 0.4.1 Debug Preview 分发（2026-10-02）
 
 - 用户授权合并并提供最新 APK；Adaptive PR #35 已合并，main 基线 `44272b1`。
