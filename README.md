@@ -10,6 +10,9 @@
 
 [下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview) · [本版能力与限制](PREVIEW.md)
 
+> **上面的下载仍是旧界面的 Preview 0.4。** 新 Daylight 浅色界面与窗口适配已完成软件验证，
+> 尚未发布成新版 Release。想试新界面的测试人员，请看[新版测试包获取说明](INSTALL.md#新版界面测试包面向测试人员)。
+
 1. 用 Android 9 或以上设备的浏览器点击下载。
 2. 在「下载」中打开 `banxuan-preview-v0.4.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
 3. 安装后打开 **「小星陪伴 · 预览」**（当前桌面显示名称），体验首页和设置。
@@ -22,11 +25,16 @@
 | 「我的记忆」入口；未连接时明确提示 | 真实聊天记忆：记忆服务器尚未部署 |
 | 自有源码构建的可安装 Preview | Live2D、CD12Max 真机通过、稳定覆盖升级 |
 
-当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环。** 当前先统一产品契约（PR A），再做一轮窗口适配（PR B），之后立即回到小智服务端和真实语音；不再扩展记忆内部工程。发布版本号不代表完整 Memory Companion 已验收。
+当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环；Daylight 已合并，Adaptive Round 1 软件验证通过。**
+窗口适配开发提交 `de56be2`：八格矩阵 8/8、既有界面回归 38/38、JVM 34/34、lint 0 错误 / 31 警告。
+这不是参考手机、CD12Max、云端或完整视觉验收。发布版本号也不代表完整 Memory Companion 已验收。
 
-**源码界面与已发布 APK 要区分：** Daylight 浅色界面是 PR #33 的视觉升级，后续 PR B 在此基础上做窗口适配。
+**源码界面与已发布 APK 要区分：** Daylight 浅色界面已随 PR #33 合并；本轮在此基础上完成窗口适配，保留 Native Views 和用户字体大小。
 上面的 `v0.4.0-preview` 下载仍固定为旧 UI，不会随源码合并自动更新；新版 APK 需在适配验收后另行发布。
-Daylight 的现有小屏验证不等于四窗口/大字体或真机兼容性通过，见 [验证范围](evidence/DAYLIGHT_UI.md)。
+本轮验证范围、首轮失败及修复记录见 [Adaptive Round 1 报告](evidence/ADAPTIVE_ROUND_1.md)。
+
+**下一步停止 UI 泛化：** 独立完成固定签名与 tag 发布流程 → 稳定签名 Preview → 关于页检查更新 → Xiaozhi Connected Voice。
+PR/main 继续只生成 Debug 测试包；不自动发布用户版本，不承诺旧调试签名可直接升级。
 
 ---
 
@@ -67,7 +75,7 @@ CD12Max 4+32G
 
 手机和手表均采用薄客户端：**不跑**端侧 LLM / ASR / TTS、大 embedding 或 reranker。
 Live2D 能力不足时回退静态角色，不让可选渲染决定基础产品可用性；基础能力仍须验收。
-四种窗口与两档字体的待测矩阵见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)。
+四种窗口与两档字体的已执行软件矩阵及未验证边界见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)。
 
 ---
 
