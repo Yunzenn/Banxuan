@@ -8,6 +8,8 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.text.TextPaint
+import android.text.TextUtils
 import com.aiwatch.probe.conversation.ConversationState
 import com.aiwatch.probe.conversation.accentColor
 import com.aiwatch.probe.conversation.isBusy
@@ -39,7 +41,7 @@ class PushToTalkView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
         strokeWidth = CompanionDrawables.dp(context, 1.6f)
     }
-    private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val label = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.LEFT
         textSize = CompanionDimensions.pttTextSp * resources.displayMetrics.scaledDensity
     }
@@ -72,7 +74,7 @@ class PushToTalkView @JvmOverloads constructor(
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = CompanionDrawables.dp(context, CompanionDimensions.pttHeightDp).toInt() +
             paddingTop + paddingBottom
-        setMeasuredDimension(width, height)
+        setMeasuredDimension(resolveSize(width, widthMeasureSpec), resolveSize(height, heightMeasureSpec))
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -92,13 +94,17 @@ class PushToTalkView @JvmOverloads constructor(
         label.color = textColor
         glyph.color = glyphColor
 
-        val textWidth = label.measureText(labelText)
+        // Preserve user font scale; long character names truncate, never shrink text to fit.
+        val visibleLabel = TextUtils.ellipsize(labelText, label,
+            (width - glyphWidth - glyphGap - CompanionDrawables.dp(context, 16f)).coerceAtLeast(0f),
+            TextUtils.TruncateAt.END).toString()
+        val textWidth = label.measureText(visibleLabel)
         val total = glyphWidth + glyphGap + textWidth
         val startX = ((width - total) / 2f).coerceAtLeast(0f)
         val centerY = height / 2f
 
         drawMic(canvas, startX, centerY)
-        canvas.drawText(labelText, startX + glyphWidth + glyphGap, centerY - (label.descent() + label.ascent()) / 2f, label)
+        canvas.drawText(visibleLabel, startX + glyphWidth + glyphGap, centerY - (label.descent() + label.ascent()) / 2f, label)
     }
 
     /** Small microphone: capsule, cradle arc, stem, base. */

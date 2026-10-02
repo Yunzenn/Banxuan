@@ -1,5 +1,17 @@
 # Handoff — Banxuan 当前交接
 
+## 当前：Adaptive Round 1（2026-10-02）
+
+- 基于已合并 Daylight `2b423920`，本地分支 `codex/adaptive-daylight`，不是旧 UI 草稿。
+- 八格窗口/字体矩阵 **8/8 SOFTWARE AUTOMATED PASS**；最终证据见 [报告](evidence/ADAPTIVE_ROUND_1.md)。
+- JVM 34/34；Daylight/Home/Product/Memory 回归 38/38；lint 0 errors / 31 warnings。
+- 首轮窗口配置失败与一次角色区高度回归均保留日志；未削弱旧断言，最终重新执行八格。
+- 仅窗口布局和测试/文档变化，无 Voice/Memory/Live2D/Operator 业务改动。未使用联想模拟器。
+- 本地 Debug APK 已更新；GitHub Release `v0.4.0-preview` 未更新，不宣称稳定签名升级可用。
+- **停止 UI 泛化**。下一独立任务是 Release Infrastructure（tag-only、固定签名、单一版本/provenance），
+  然后 About 检查更新，再 Connected Voice。此轮没有创建密钥、更新器或云端变更。
+- 下文为历史交接；其“矩阵 PENDING”和旧沉浸模式描述已被本节及报告取代。
+
 ## Daylight 基线同步（2026-10-01，PR #33）
 
 - Daylight 分支已同步 main `2d9ba0e` 的产品契约，保留浅色 Home / Settings / Memory 与静态角色设计；不宣称完成通用适配。

@@ -24,12 +24,32 @@ PTT 是「按住说话」控件。它已经有软件测试，但本版没有接�
 
 本版不包含 Live2D 模型，也不是第三方 XiaoZhi 软件。详细边界见 [PREVIEW.md](PREVIEW.md)。
 
+## 新版界面测试包（面向测试人员）
+
+**Preview 0.4 的下载按钮不会自动变成新界面。** Daylight + Adaptive Round 1 是较新的源码；
+新版用户 Release 尚未发布。普通用户可以等待新版发布，测试人员可按以下步骤获取 CI 包：
+
+1. 打开[GitHub Actions 构建列表](https://github.com/Yunzenn/Banxuan/actions/workflows/ci.yml)，选择
+   `codex/adaptive-daylight` 对应、带绿色成功标记的构建；不要误选旧 main 或失败构建。
+2. 进入构建详情，在 **Artifacts** 区下载 `banxuan-preview-<提交号>`。通常需要登录 GitHub；
+   测试文件保留 14 天，过期后不能再下载，不能把这个入口当永久发布渠道。
+3. 解压 ZIP，安装其中的 `.apk`，不要安装 `androidTest` 测试程序。可查看 `BUILD_INFO.json`
+   核对构建提交；PR 构建可能对应 GitHub 的测试合并提交，而不是分支头提交。
+
+**文件名不代表界面版本。** 当前打包脚本仍使用 `banxuan-preview-v0.4.apk` 和 `0.4.0-preview`
+版本号，所以新 CI 包也可能叫这个名字；必须结合构建分支、提交号判断。版本来源收口属于下一轮发布基础设施。
+
+CI 包仍是临时 Debug 签名，可能不能覆盖已安装版本。不要为尝鲜直接卸载有数据的旧版。
+本轮本地覆盖安装成功，不代表 CI 包之间、或旧 Release 到新包的签名兼容性已验证。
+适配证据见 [验证报告](evidence/ADAPTIVE_ROUND_1.md)。
+
 ## 常见问题
 
 | 遇到的问题 | 怎么处理 |
 |---|---|
 | 下载链接打不开 | 用系统浏览器打开[发布页](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.0-preview)，展开 Assets，选择 `banxuan-preview-v0.4.apk`。网络无法访问 GitHub 时换可访问的网络，不要从未知镜像下载。 |
 | 看见一堆文件，不知道选哪个 | 只选上面的 `.apk`。`Source code` 是开发源码，`SHA256SUMS.txt` 等是校验材料，都不是安装包。不要下载 androidTest APK。 |
+| 为什么安装后还是旧界面 | 本页顶部的公开下载是固定的 Preview 0.4。新版界面尚未发 Release；测试人员可按上文获取对应分支的成功 CI 包。 |
 | 提示签名冲突或应用未安装 | 可能是已有版本签名不同，也可能是设备条件不满足。先保留错误信息，不要直接卸载旧版；确认旧数据可丢弃后再决定是否重装。 |
 | 打开后没有记忆、不能聊天 | 这是已知限制，后端尚未完成接入，不是需要购买解锁。 |
 | 能当正式版长期使用吗 | 暂时不能。没有稳定发布签名，后续不保证直接升级；适合预览和反馈。 |

@@ -3,17 +3,20 @@
 Plan of record. Kept short on purpose: it exists so the Gate is not forgotten and regressions are caught,
 not as a development phase of its own.
 
-## 当前执行顺序（2026-10-01）
+## 当前执行顺序（2026-10-02）
 
 Preview `v0.4.0-preview` 已发布（源码 `057030884f2c754a316ac52f7e1a84f75ece39fc`），[下载与安装](INSTALL.md)。Memory W0–W4 已闭环：**SOFTWARE AUTOMATED PASS**，不是完整 v0.4 端到端验收。
 
-当前先做两个独立 PR：**PR A 产品契约迁移（仅六份文档）→ PR B Adaptive UI Round 1**。
+PR A 产品契约迁移及 Daylight #33 已合并；**PR B Adaptive UI Round 1 本地软件验证通过，尚未发布**。
 PR B 只将固定尺寸拆成 token + 基于可用窗口的 `CompanionLayoutSpec`，复用同一套 Native Views；
 COMPACT 保住 PTT/字幕，EXPANDED 增加舞台/字幕并限制宽度，保留 ProductUi.page() 的 560dp maxWidth。
 不改 Voice、Memory semantics、backend、Live2D integration 或 Operator，不引入机型分支或三套布局。
-四窗口 × fontScale 1.0/1.3 必测矩阵见 [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md)，**全部待测**。
+四窗口 × fontScale 1.0/1.3 **8/8 软件自动验证通过**，见 [报告](evidence/ADAPTIVE_ROUND_1.md)；不等于真机认证。
 
-**通用化只做这一轮，然后立即回到 Connected Voice（P0），之后才是 Live2D polish。**
+**停止 UI 泛化**。按最新冻结顺序，下一独立 PR 为 Release Infrastructure：单一版本来源、
+受保护 release Environment 固定签名、tag 对应源码完整 gate、APK/BUILD_INFO/tag 的 provenance 校验。
+PR/main 只产 Debug artifact，不自动发用户 Release；旧签名迁移须实测 PASS 或 EXPECTED BLOCKED。
+该任务当前未实施。其后补轻量 About 更新入口，再回到 Connected Voice（P0），之后才是 Live2D polish。
 不扩展平板、折叠屏、完整横屏、旧 Android 或 Wear OS。真实语音顺序不变：
 
 1. S2：核查并复用小智服务端，明确配置、依赖和现有服务边界。

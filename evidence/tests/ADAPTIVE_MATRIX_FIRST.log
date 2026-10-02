@@ -1,0 +1,142 @@
+Adaptive Round 1: SDK emulator only, not hardware certification
+CELL 205x251 fontScale=1.0
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 13.414
+
+OK (1 test)
+
+
+CELL 205x251 fontScale=1.3
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 15.18
+
+OK (1 test)
+
+
+CELL 240x320 fontScale=1.0
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 13.821
+
+OK (1 test)
+
+
+CELL 240x320 fontScale=1.3
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 14.794
+
+OK (1 test)
+
+
+CELL 360x640 fontScale=1.0
+
+com.aiwatch.probe.AdaptiveWindowTest:
+Error in windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest):
+java.lang.AssertionError: expected:<360> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+
+Time: 4.987
+There was 1 failure:
+1) windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest)
+java.lang.AssertionError: expected:<360> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+CELL 360x640 fontScale=1.3
+
+com.aiwatch.probe.AdaptiveWindowTest:
+Error in windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest):
+java.lang.AssertionError: expected:<360> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+
+Time: 4.058
+There was 1 failure:
+1) windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest)
+java.lang.AssertionError: expected:<360> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+CELL 411x891 fontScale=1.0
+
+com.aiwatch.probe.AdaptiveWindowTest:
+Error in windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest):
+java.lang.AssertionError: expected:<411> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+
+Time: 4.26
+There was 1 failure:
+1) windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest)
+java.lang.AssertionError: expected:<411> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+CELL 411x891 fontScale=1.3
+
+com.aiwatch.probe.AdaptiveWindowTest:
+Error in windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest):
+java.lang.AssertionError: expected:<411> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+
+Time: 4.526
+There was 1 failure:
+1) windowKeepsInteractionsReadableAndReachableAfterRecreation(com.aiwatch.probe.AdaptiveWindowTest)
+java.lang.AssertionError: expected:<411> but was:<320>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.AdaptiveWindowTest.windowKeepsInteractionsReadableAndReachableAfterRecreation(AdaptiveWindowTest.kt:107)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+RESULT 4/8

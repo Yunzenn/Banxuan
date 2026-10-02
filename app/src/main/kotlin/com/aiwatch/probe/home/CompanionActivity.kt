@@ -49,12 +49,16 @@ class CompanionActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
 
-        // Legacy Daylight compact-fixture heuristic, NOT watch/model detection or adaptive certification.
-        // PR B replaces this configuration-time rule with available-window/inset policy. Keep the
-        // existing compact visual baseline unchanged during the main-contract sync; edge swipe restores controls.
-        if (resources.configuration.screenHeightDp <= 300) {
-            window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+        // Decor size is the actual window, including bars: using content height here would oscillate
+        // across the threshold as bars appear/disappear. Re-evaluate when the window is resized.
+        window.decorView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            val compact = view.height / resources.displayMetrics.density <= 300
+            val immersiveMask = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
                 android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            // Preserve Daylight's light status/navigation icon flags and any unrelated window policy.
+            val flags = (view.systemUiVisibility and immersiveMask.inv()) or
+                (if (compact) immersiveMask else 0)
+            if (view.systemUiVisibility != flags) view.systemUiVisibility = flags
         }
 
         home = CompanionHomeView(this)

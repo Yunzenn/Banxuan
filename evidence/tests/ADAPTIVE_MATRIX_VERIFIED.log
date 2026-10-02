@@ -1,0 +1,142 @@
+Adaptive Round 1: SDK emulator only, not hardware certification
+CELL 205x251 fontScale=1.0
+Physical size: 320x640
+Override size: 410x502
+Physical density: 160
+Override density: 320
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 4.212
+
+OK (1 test)
+
+
+10-02 05:51:08.304  6842  6842 I System.out: ADAPTIVE window=410x454 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 48 - 410, 502) stage=120 transcript=114 ptt=370x96
+10-02 05:51:10.379  6842  6842 I System.out: ADAPTIVE window=410x502 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 0 - 410, 502) stage=154 transcript=128 ptt=370x96
+10-02 05:51:10.415  6842  6842 I System.out: ADAPTIVE window=410x502 padding=4,6,4,6 fontScale=1.0 safe=Rect(0, 0 - 410, 502) stage=142 transcript=128 ptt=362x96
+10-02 05:51:10.547  6842  6842 I System.out: ADAPTIVE window=410x454 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 48 - 410, 502) stage=120 transcript=114 ptt=370x96
+10-02 05:51:11.308  6842  6858 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 205x251 fontScale=1.3
+Physical size: 320x640
+Override size: 410x502
+Physical density: 160
+Override density: 320
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 5.882
+
+OK (1 test)
+
+
+10-02 05:51:17.263  6976  6976 I System.out: ADAPTIVE window=410x454 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 48 - 410, 502) stage=120 transcript=114 ptt=370x96
+10-02 05:51:19.344  6976  6976 I System.out: ADAPTIVE window=410x502 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 0 - 410, 502) stage=154 transcript=128 ptt=370x96
+10-02 05:51:21.169  6976  6976 I System.out: ADAPTIVE window=410x502 padding=4,6,4,6 fontScale=1.3 safe=Rect(0, 0 - 410, 502) stage=142 transcript=128 ptt=362x96
+10-02 05:51:21.292  6976  6976 I System.out: ADAPTIVE window=410x454 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 48 - 410, 502) stage=120 transcript=114 ptt=370x96
+10-02 05:51:21.972  6976  6993 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 240x320 fontScale=1.0
+Physical size: 320x640
+Override size: 480x640
+Physical density: 160
+Override density: 320
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 4.142
+
+OK (1 test)
+
+
+10-02 05:51:27.602  7102  7102 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:29.653  7102  7102 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:29.675  7102  7102 I System.out: ADAPTIVE window=480x592 padding=4,6,4,6 fontScale=1.0 safe=Rect(0, 48 - 480, 640) stage=232 transcript=128 ptt=432x96
+10-02 05:51:29.788  7102  7102 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:30.525  7102  7118 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 240x320 fontScale=1.3
+Physical size: 320x640
+Override size: 480x640
+Physical density: 160
+Override density: 320
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 4.425
+
+OK (1 test)
+
+
+10-02 05:51:35.949  7226  7226 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:38.002  7226  7226 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:38.050  7226  7226 I System.out: ADAPTIVE window=480x592 padding=4,6,4,6 fontScale=1.3 safe=Rect(0, 48 - 480, 640) stage=232 transcript=128 ptt=432x96
+10-02 05:51:38.161  7226  7226 I System.out: ADAPTIVE window=480x592 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 48 - 480, 640) stage=244 transcript=128 ptt=440x96
+10-02 05:51:39.266  7226  7243 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 360x640 fontScale=1.0
+Physical size: 320x640
+Override size: 360x640
+Physical density: 160
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 6.238
+
+OK (1 test)
+
+
+10-02 05:51:44.700  7359  7359 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:51:46.778  7359  7359 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:51:48.577  7359  7359 I System.out: ADAPTIVE window=360x616 padding=4,6,4,6 fontScale=1.0 safe=Rect(0, 24 - 360, 640) stage=325 transcript=169 ptt=312x48
+10-02 05:51:48.678  7359  7359 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:51:49.826  7359  7376 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 360x640 fontScale=1.3
+Physical size: 320x640
+Override size: 360x640
+Physical density: 160
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 6.517
+
+OK (1 test)
+
+
+10-02 05:51:55.262  7492  7492 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:51:57.344  7492  7492 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:51:59.168  7492  7492 I System.out: ADAPTIVE window=360x616 padding=4,6,4,6 fontScale=1.3 safe=Rect(0, 24 - 360, 640) stage=325 transcript=169 ptt=312x48
+10-02 05:51:59.273  7492  7492 I System.out: ADAPTIVE window=360x616 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 360, 640) stage=334 transcript=172 ptt=320x48
+10-02 05:52:00.631  7492  7508 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 411x891 fontScale=1.0
+Physical size: 320x640
+Override size: 411x891
+Physical density: 160
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 4.485
+
+OK (1 test)
+
+
+10-02 05:52:06.450  7626  7626 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:08.515  7626  7626 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:08.541  7626  7626 I System.out: ADAPTIVE window=411x867 padding=4,6,4,6 fontScale=1.0 safe=Rect(0, 24 - 411, 891) stage=506 transcript=239 ptt=320x48
+10-02 05:52:08.655  7626  7626 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.0 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:09.785  7626  7642 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+CELL 411x891 fontScale=1.3
+Physical size: 320x640
+Override size: 411x891
+Physical density: 160
+
+com.aiwatch.probe.AdaptiveWindowTest:.
+
+Time: 6.333
+
+OK (1 test)
+
+
+10-02 05:52:15.547  7748  7748 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:17.633  7748  7748 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:19.436  7748  7748 I System.out: ADAPTIVE window=411x867 padding=4,6,4,6 fontScale=1.3 safe=Rect(0, 24 - 411, 891) stage=506 transcript=239 ptt=320x48
+10-02 05:52:19.542  7748  7748 I System.out: ADAPTIVE window=411x867 padding=0,0,0,0 fontScale=1.3 safe=Rect(0, 24 - 411, 891) stage=517 transcript=240 ptt=320x48
+10-02 05:52:20.697  7748  7764 I System.out: ADAPTIVE PASS: PTT touch/state, transcript, geometry, fonts, insets, recreate, Settings -> Memory
+RESULT 8/8

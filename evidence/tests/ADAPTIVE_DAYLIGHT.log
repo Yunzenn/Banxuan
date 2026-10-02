@@ -1,0 +1,65 @@
+class=com.aiwatch.probe.DaylightUiTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/DaylightUiTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=2
+
+=== textAndStateColorsHaveReadableContrastOnLightSurfaces ===
+
+com.aiwatch.probe.DaylightUiTest:.
+
+Time: 0.023
+
+OK (1 test)
+
+
+
+=== bundledIllustrationAndAccessibleControlsFitTheWindow ===
+
+com.aiwatch.probe.DaylightUiTest:
+Error in bundledIllustrationAndAccessibleControlsFitTheWindow(com.aiwatch.probe.DaylightUiTest):
+java.lang.AssertionError: stage lost its height
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.aiwatch.probe.DaylightUiTest.bundledIllustrationAndAccessibleControlsFitTheWindow$lambda$4(DaylightUiTest.kt:61)
+	at com.aiwatch.probe.DaylightUiTest.$r8$lambda$fIifldTb5vK2RPCHiTY0sbCDwKM(Unknown Source:0)
+	at com.aiwatch.probe.DaylightUiTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2163)
+	at android.os.Handler.handleCallback(Handler.java:873)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loop(Looper.java:193)
+	at android.app.ActivityThread.main(ActivityThread.java:6669)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:493)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:858)
+
+
+Time: 1.484
+There was 1 failure:
+1) bundledIllustrationAndAccessibleControlsFitTheWindow(com.aiwatch.probe.DaylightUiTest)
+java.lang.AssertionError: stage lost its height
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.aiwatch.probe.DaylightUiTest.bundledIllustrationAndAccessibleControlsFitTheWindow$lambda$4(DaylightUiTest.kt:61)
+	at com.aiwatch.probe.DaylightUiTest.$r8$lambda$fIifldTb5vK2RPCHiTY0sbCDwKM(Unknown Source:0)
+	at com.aiwatch.probe.DaylightUiTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2163)
+	at android.os.Handler.handleCallback(Handler.java:873)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loop(Looper.java:193)
+	at android.app.ActivityThread.main(ActivityThread.java:6669)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:493)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:858)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+
