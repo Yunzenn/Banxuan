@@ -28,6 +28,15 @@ class ConversationListView @JvmOverloads constructor(
     }
 
     private var emptyHint: TextView? = null
+    private var messageLimit = CompanionDimensions.visibleMessageCount
+    private var lastMessages: List<MessageItem> = emptyList()
+    private var lastDotFrame = -1
+
+    fun setMessageLimit(limit: Int) {
+        if (messageLimit == limit) return
+        messageLimit = limit
+        render(lastMessages, lastDotFrame)
+    }
 
     init {
         isFillViewport = true
@@ -39,8 +48,10 @@ class ConversationListView @JvmOverloads constructor(
      * THINKING state becomes visible without a spinner widget.
      */
     fun render(messages: List<MessageItem>, dotFrame: Int = -1) {
+        lastMessages = messages
+        lastDotFrame = dotFrame
         column.removeAllViews()
-        val visible = messages.takeLast(CompanionDimensions.visibleMessageCount)
+        val visible = messages.takeLast(messageLimit)
         if (visible.isEmpty()) {
             showEmptyHint()
             return
@@ -82,8 +93,15 @@ class ConversationListView @JvmOverloads constructor(
     }
 
     private fun maxBubbleWidth(): Int {
-        val screen = resources.displayMetrics.widthPixels
-        val margins = CompanionDrawables.dp(context, CompanionDimensions.edgeMarginDp.toFloat() * 2)
-        return ((screen - margins) * CompanionDimensions.bubbleMaxWidthFraction).toInt()
+        return ((measuredWidth - paddingLeft - paddingRight).coerceAtLeast(0) * CompanionDimensions.bubbleMaxWidthFraction).toInt()
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val maxWidth = ((MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight) *
+            CompanionDimensions.bubbleMaxWidthFraction).toInt().coerceAtLeast(0)
+        for (index in 0 until column.childCount) {
+            (column.getChildAt(index) as? MessageBubbleView)?.maxWidth = maxWidth
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 }

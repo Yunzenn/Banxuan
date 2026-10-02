@@ -15,6 +15,7 @@ import com.aiwatch.probe.conversation.ConversationState
 import com.aiwatch.probe.conversation.MessageItem
 import com.aiwatch.probe.theme.CompanionColors
 import com.aiwatch.probe.theme.CompanionDimensions
+import com.aiwatch.probe.theme.CompanionLayoutSpec
 import com.aiwatch.probe.theme.CompanionDrawables
 import com.aiwatch.probe.voice.PushToTalkView
 
@@ -93,6 +94,36 @@ class CompanionHomeView @JvmOverloads constructor(
         stage.bind(avatarProvider, profile.displayName)
         topBar.render(profile.displayName, state)
         pushToTalk.render(state, profile.displayName)
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val density = resources.displayMetrics.density
+        val availableWidth = (MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight).coerceAtLeast(0)
+        val availableHeight = (MeasureSpec.getSize(heightMeasureSpec) - paddingTop - paddingBottom).coerceAtLeast(0)
+        val spec = CompanionLayoutSpec.forWindow((availableWidth / density).toInt(), (availableHeight / density).toInt())
+        fun px(dp: Int) = (dp * density).toInt()
+        val contentWidth = px(spec.contentWidthDp)
+        (topBar.layoutParams as LayoutParams).apply {
+            width = contentWidth
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        for (child in listOf(stage, transcript)) {
+            (child.layoutParams as LayoutParams).apply {
+                width = (contentWidth - px(spec.edgeDp * 2)).coerceAtLeast(0)
+                leftMargin = 0
+                rightMargin = 0
+                gravity = Gravity.CENTER_HORIZONTAL
+            }
+        }
+        (transcript.layoutParams as LayoutParams).height = px(spec.transcriptHeightDp)
+        (pushToTalk.layoutParams as LayoutParams).apply {
+            width = px(spec.pttWidthDp)
+            leftMargin = 0
+            rightMargin = 0
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        transcript.setMessageLimit(spec.messageCount)
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
     fun renderState(next: ConversationState) {

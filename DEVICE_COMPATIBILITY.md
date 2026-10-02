@@ -23,22 +23,24 @@ Live2D、动画和部分设备感知按能力渐进增强：Core ABI、GL 或资
 模拟器只证明自身环境的行为；不能推广为所有手机或手表 PASS。
 Connected Voice 的真实 HTTPS/WSS 后端及真实记忆 authority 仍需独立闭环。
 
-## Adaptive UI Round 1 — 待执行矩阵
+## Adaptive UI Round 1 — 软件自动验证（2026-10-02）
 
-本次 **PR A 仅迁移文档**。下表是 PR B 的必测契约，不是本次新增测试结果。
+PR A 仅迁移文档；下表现已在 PR B 本地 SDK API28 模拟器实际执行，见 [报告](evidence/ADAPTIVE_ROUND_1.md)。
 宽高使用 dp；每次须同时记录配置的逻辑显示尺寸和扣除系统栏/键盘后的实际可用窗口。
 既有 **410×502 px @320dpi = 205×251dp** 是永久回归 fixture，并非 CD12Max 实测密度；
 205×251dp 也不能直接当作扣除 insets 后的内容区。
 
 | 逻辑窗口 fixture | fontScale 1.0 | fontScale 1.3 |
 |---|---|---|
-| 205×251dp | PENDING（既有局部回归不等于新矩阵全项通过） | PENDING |
-| 240×320dp | PENDING | PENDING |
-| 360×640dp | PENDING | PENDING |
-| 411×891dp | PENDING | PENDING |
+| 205×251dp | PASS / SOFTWARE AUTOMATED | PASS / SOFTWARE AUTOMATED |
+| 240×320dp | PASS / SOFTWARE AUTOMATED | PASS / SOFTWARE AUTOMATED |
+| 360×640dp | PASS / SOFTWARE AUTOMATED | PASS / SOFTWARE AUTOMATED |
+| 411×891dp | PASS / SOFTWARE AUTOMATED | PASS / SOFTWARE AUTOMATED |
 
-每格验收：PTT 可见可按、字幕可读、Settings 可进入、关键控件不重叠、MemoryTrust 确认/忽略/
-编辑/删除可达；检查系统栏与键盘遮挡、旋转/Activity 重建稳定性与交互可达。
+按最终冻结的 Round 1 Done Definition，每格验证：PTT 可见可按、字幕存在、Settings/Memory 页面
+可达、关键文本无重叠、控件无越界、系统可见区域内可操作、Activity 重建后可用。
+Memory mutation/编辑表单另在 compact 基线跑既有 28 项回归，不声称八格分别做过所有 mutation。
+此前扩大契约中的逐格键盘/旋转测试尚未执行，不能从本轮 PASS 推导；完整视觉审查和真机仍待验。
 不扩展成完整横屏、平板或折叠屏设计。
 
 PR B 使用现有 Native Views：尺寸 token 与基于实际可用窗口的 `CompanionLayoutSpec` 分开。

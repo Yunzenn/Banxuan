@@ -1,0 +1,28 @@
+class=com.aiwatch.probe.DaylightUiTest
+serial=emulator-5554
+src=app/src/androidTest/kotlin/com/aiwatch/probe/DaylightUiTest.kt
+sdk=28
+wm_size=Override size: 410x502
+wm_density=Override density: 320
+methods=2
+
+=== textAndStateColorsHaveReadableContrastOnLightSurfaces ===
+
+com.aiwatch.probe.DaylightUiTest:.
+
+Time: 0.028
+
+OK (1 test)
+
+
+
+=== bundledIllustrationAndAccessibleControlsFitTheWindow ===
+
+com.aiwatch.probe.DaylightUiTest:.
+
+Time: 1.776
+
+OK (1 test)
+
+
+

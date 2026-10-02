@@ -1,20 +1,13 @@
 package com.aiwatch.probe.theme
 
 /**
- * Geometry for the 410x502@320dpi emulator baseline, not a measured target device.
+ * Fixed Daylight design tokens; runtime geometry lives in CompanionLayoutSpec.
  *
  * At the explicitly selected 320dpi test density the canvas is 205x251dp. Physical screen PPI does
  * not determine Android logical density. CD12Max metrics must still be measured independently.
  *
- * This file was originally written against a 410x502 dp assumption and the layout overflowed the panel
- * at the configured test density (the transcript and the push-to-talk capsule were pushed off-screen). Every value
- * below is derived from 205x251 dp. All sizes live here on purpose so that a density correction is a
- * one-file change.
- *
- * Daylight budget: header 48 + transcript 48 + PTT 48 + gaps/bottom 14 = 158dp.
- * The stage gets remaining height (93dp at the baseline), and grows on larger windows.
- * This is the legacy visual baseline, not the completed four-window adaptive contract. PR B separates
- * design tokens from runtime window geometry without reducing typography to fit.
+ * The target constants describe a permanent regression fixture, not a production layout constraint.
+ * Fonts remain in sp and are never reduced to make a small window pass.
  */
 object CompanionDimensions {
     const val targetWidthDp = 205
