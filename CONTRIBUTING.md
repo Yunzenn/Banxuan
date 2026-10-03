@@ -93,13 +93,25 @@ connected test task "passed" — it does not run. Use `adb` directly:
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-adb shell am instrument -w \
-    -e class 'com.aiwatch.probe.CompanionHomeTest#pushToTalkDrivesTheFourStatesAndAppendsBothSides' \
-    com.aiwatch.probe.test/androidx.test.runner.AndroidJUnitRunner
+adb -s emulator-5554 shell am instrument -w -r \
+    -e class 'com.aiwatch.probe.IdentityProcessTest,com.aiwatch.probe.memory.MemoryTrustTest,com.aiwatch.probe.CompanionHomeTest,com.aiwatch.probe.ProductShellTest,com.aiwatch.probe.DaylightUiTest,com.aiwatch.probe.AdaptiveWindowTest' \
+    -e expectedWidthDp 205 -e expectedHeightDp 251 -e expectedFontScale 1.0 \
+    com.aiwatch.probe.test/com.aiwatch.probe.ProductTestRunner
 ```
 
-**Run one test method per `am instrument` invocation.** Running a whole class in one process lets static
-state from one test contaminate the next, which produces failures that are not real.
+**Run selected Banxuan product tests in one instrumentation invocation.** `ProductTestRunner` installs
+a test Application that gives MemoryTrust tests their own file/Store/coroutine lifetime. Identity damage
+precedes that Store's first read, including when other tests have warmed the persistent app identity.
+Production retains one cached identity owner; tests do not add a reload/reset behaviour to the app.
+
+On Windows, `evidence/tests/run_product_suite.ps1 -Serial emulator-5554 -Log product-suite.log` is the
+canonical equivalent. It checks the executed count against the selected source annotations and refuses
+zero-match, ignored or assumption-skipped runs. Install the freshly built test APK first.
+The geometry/font arguments above describe the actual permanent compact fixture; configure and record
+the emulator accordingly. Use the matching arguments for other existing adaptive fixtures.
+
+`evidence/tests/run_instrumentation.ps1` remains a per-method diagnostic runner, not the product gate.
+Third-party Cubism smoke may still use process isolation; it is outside this product suite.
 
 ## Evidence rules
 

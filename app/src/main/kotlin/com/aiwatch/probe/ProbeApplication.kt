@@ -17,10 +17,10 @@ import java.io.File
  * `Room.databaseBuilder` here. `:core-memory-cache-android` keeps Room as an `implementation`
  * dependency, so persistence stays behind the module that owns it.
  */
-class ProbeApplication : Application() {
+open class ProbeApplication : Application() {
     val productStore by lazy { com.aiwatch.probe.product.ProductStore(File(noBackupFilesDir, "product")) }
     // One DataStore per process, outside backup/transfer storage.
-    val identityStore: DeviceIdentityStore by lazy {
+    open val identityStore: DeviceIdentityStore by lazy {
         DeviceIdentityStore(File(noBackupFilesDir, "device-identity.bin"))
     }
 

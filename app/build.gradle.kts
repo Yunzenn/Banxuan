@@ -14,7 +14,7 @@ android {
         targetSdk = 35
         versionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
         versionName = providers.gradleProperty("VERSION_NAME").get()
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.aiwatch.probe.ProductTestRunner"
     }
 
     compileOptions {

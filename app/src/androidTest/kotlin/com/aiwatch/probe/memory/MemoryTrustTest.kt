@@ -28,10 +28,12 @@ import com.aiwatch.memory.RelationMemory
 import com.aiwatch.memory.ScopedMemoryIdentity
 import com.aiwatch.memory.scopedIdentity
 import com.aiwatch.probe.ProbeApplication
+import com.aiwatch.probe.ProductTestApplication
 import com.aiwatch.probe.R
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -54,9 +56,23 @@ class MemoryTrustTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
+    private val testApplication get() =
+        instrumentation.targetContext.applicationContext as ProductTestApplication
+
+    @Before
+    fun ownIdentityFixture() {
+        MemoryGatewayRegistry.override = null
+        testApplication.beginIdentityFixture()
+    }
+
     @After
     fun clearGateway() {
-        MemoryGatewayRegistry.override = null
+        try {
+            MemoryGatewayRegistry.override = null
+            instrumentation.waitForIdleSync()
+        } finally {
+            runBlocking { testApplication.endIdentityFixture() }
+        }
     }
 
     // ------------------------------------------------------------------ the product path
@@ -205,18 +221,9 @@ class MemoryTrustTest {
      * unavailable" is also true of an implementation that reads the authority and then chooses to hide
      * the result, and that implementation has already asked for a partition it could not name.
      *
-     * **This test needs a fresh process to mean anything.** The identity store caches what it read, so a
-     * corrupted file is only observed by a process that has not yet read it. The runner in
-     * `evidence/tests/run_instrumentation.ps1` invokes one `am instrument` per method, which gives exactly
-     * that; running this class in a single process would let an earlier test warm the cache and quietly
-     * turn this into a tautology.
-     *
-     * Two ways that runner protects this test specifically, both learned the hard way:
-     *
-     * * it counts only `OK (1 test)` as a pass. A stale test APK makes `-e class X#method` match nothing
-     *   and still exit zero with `OK (0 tests)`, which a looser parser scores as a pass;
-     * * the emulator restores installed APKs from its boot snapshot, so "stale APK after a restart" is
-     *   the expected failure mode, not a surprising one. Reinstall before believing a zero.
+     * The test Application owns a new, unopened identity store for each method. Damage precedes
+     * its first read; the production store retains its normal process cache. No process reset or
+     * behind-the-store rewrite of the persistent app identity is needed.
      */
     @Test
     fun aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject() {
@@ -249,12 +256,11 @@ class MemoryTrustTest {
     }
 
     /**
-     * The same path `ProbeApplication` hands to `DeviceIdentityStore`. Corrupting it is the only way to
-     * reach this state from a test, and it is reachable in reality: the file lives in no-backup storage
-     * and an interrupted write can truncate it.
+     * The test Application's owned backing file. The same production serializer/store observes
+     * damage, without modifying the real app identity or adding production reload behaviour.
      */
     private fun identityFile(): java.io.File =
-        java.io.File(instrumentation.targetContext.noBackupFilesDir, "device-identity.bin")
+        testApplication.fixtureIdentityFile
 
     // ------------------------------------------------------------------ the composition owner (W2-B)
 
@@ -1105,8 +1111,8 @@ class MemoryTrustTest {
      * semantics under constant use in instrumentation instead of only in the cache module's own tests.
      *
      * **Do not route every test through here.** Reading the identity to find the subject warms the
-     * identity store, so `aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject` must use
-     * plain [launch]: its whole point is a process that has not yet read a corrupted file.
+     * fixture store, so `aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject` must use
+     * plain [launch]: damage must precede that fixture's first read.
      * `withoutAGatewayTheScreenSaysSoAndInventsNothing` also stays on [launch], since it deliberately
      * has no gateway and must reach the screen without one.
      */
