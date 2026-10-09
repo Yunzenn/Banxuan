@@ -6,14 +6,14 @@
 
 ## 下载测试版：不需要编程
 
-**[⬇ 下载 Banxuan 0.4.1-preview 安装包（Daylight + 窗口适配）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.1-preview/banxuan-0.4.1-preview.apk)**
+**[⬇ 下载 Banxuan 0.4.2-preview 安装包（新增设备操作）](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.2-preview/banxuan-0.4.2-preview.apk)**
 
-[下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.1-preview) · [本版能力与限制](PREVIEW.md)
+[下载安装教程](INSTALL.md) · [发布页与校验文件](https://github.com/Yunzenn/Banxuan/releases/tag/v0.4.2-preview) · [本版能力与限制](PREVIEW.md)
 
-> **新版包含 Daylight 浅色界面与 Adaptive Round 1。** 仍是 CI Debug 签名，不保证覆盖升级；不要直接卸载有数据的旧版。
+> **新版新增「设置 → 设备操作」：调节媒体音量、打开应用、交给系统时钟设置计时器。** 保留 Daylight 浅色界面与窗口适配。仍是 CI Debug 签名，不保证覆盖升级；不要直接卸载有数据的旧版。
 
 1. 用 Android 9 或以上设备的浏览器点击下载。
-2. 在「下载」中打开 `banxuan-0.4.1-preview.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
+2. 在「下载」中打开 `banxuan-0.4.2-preview.apk`，按系统提示安装。不需要下载 Source code 或测试 APK。
 3. 安装后打开 **「小星陪伴 · 预览」**（当前桌面显示名称），体验首页和设置。
 
 **安装前请注意：这是调试测试版，不是正式版。** 不保证与其他构建覆盖升级；遇到签名冲突不要直接卸载旧版，卸载会清空身份、设置和缓存。不要存放敏感数据。CD12Max 真机兼容性仍待验证。
@@ -24,18 +24,18 @@
 | 「我的记忆」入口；未连接时明确提示 | 真实聊天记忆：记忆服务器尚未部署 |
 | 自有源码构建的可安装 Preview | Live2D、CD12Max 真机通过、稳定覆盖升级 |
 
-当前公开版本：**0.4.1-preview**（Daylight + Adaptive Round 1）。源码已合并 Memory 认证修复 #38、测试隔离 #39、模拟器 CI #40；这些不代表真实 Voice/Memory 服务已上线。
+当前 Preview：**0.4.2-preview**（Daylight + Adaptive Round 1 + Native 设备操作）。包含 Memory 认证修复 #38、测试隔离 #39、模拟器 CI #40、设备操作 #41；这些不代表真实 Voice/Memory 服务已上线。
 窗口适配开发提交 `de56be2`：八格矩阵 8/8、既有界面回归 38/38、JVM 34/34、lint 0 错误 / 31 警告。
 这不是参考手机、CD12Max、云端或完整视觉验收。发布版本号也不代表完整 Memory Companion 已验收。
 
 **源码界面与已发布 APK 要区分：** Daylight 浅色界面已随 PR #33 合并；本轮在此基础上完成窗口适配，保留 Native Views 和用户字体大小。
-新版下载对应独立 `v0.4.1-preview`；旧版标签及附件保留归档，不覆盖旧制品。
+新版下载对应独立 `v0.4.2-preview`；旧版标签及附件保留归档，不覆盖旧制品。
 本轮验证范围、首轮失败及修复记录见 [Adaptive Round 1 报告](evidence/ADAPTIVE_ROUND_1.md)。
 
 **当前用户功能主线：** Native Android 设备操作 → 后台本地提醒验证。服务器暂缓，Connected Voice / 真实 Memory 仍 PENDING；固定签名 #37 属于交付支线，需同步最新 main 后复核。
 PR/main 继续只生成 Debug 测试包；不自动发布用户版本，不承诺旧调试签名可直接升级。
 
-**开发中的新能力（未进入上述公开 APK）：** 设置 → 设备操作，可确认调节媒体音量、选择应用打开、交给系统时钟设置计时器。
+**本版新增能力：** 设置 → 设备操作，可确认调节媒体音量、选择应用打开、交给系统时钟设置计时器。
 无需服务器或无障碍权限，暂不接受语音指令。目标应用接收 Intent 不等于最终任务完成。
 验证与范围见 [Native Operator 报告](evidence/G3_NATIVE_OPERATOR.md)。Accessibility 和后台主动提醒尚未交付。
 

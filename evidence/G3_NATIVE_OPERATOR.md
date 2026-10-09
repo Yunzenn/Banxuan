@@ -56,4 +56,7 @@ Review rerun 37936671647 at 07d6066: fresh-clone PASS, emulator 45/46 (FAIL).
 Confirmation test read rootInActiveWindow before accessibility published the dialog snapshot.
 Main-thread idle alone does not guarantee that publication. Test now waits up to 5 seconds
 for the actual cancel node; dialog visibility, click success and unchanged volume remain required.
-No test removed or skipped; this failed run is not counted as PASS. Corrected rerun pending.
+No test removed or skipped; this failed run is not counted as PASS.
+Corrected rerun at 8d00762: [37937373055](https://github.com/Yunzenn/Banxuan/actions/runs/37937373055)
+fresh-clone and product-emulator PASS; local review rerun 46/46 in 87.909s.
+PR #41 squash merged as 6819d74ebd09cdeac8c45f2fc69c83cad5b407bf.
