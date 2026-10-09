@@ -51,3 +51,9 @@ Initial local install onto emulator-5554 was rejected due to different Debug cer
 mistakenly continued into instrumentation on the stale installed APK; that run FAILED and is not
 evidence for this change (`G3_NATIVE_STALE_APK.log`). No uninstall or clear-data was performed.
 Fresh dedicated `banxuan-operator-api28` / emulator-5556 created instead; installs are now fail-fast.
+
+Review rerun 37936671647 at 07d6066: fresh-clone PASS, emulator 45/46 (FAIL).
+Confirmation test read rootInActiveWindow before accessibility published the dialog snapshot.
+Main-thread idle alone does not guarantee that publication. Test now waits up to 5 seconds
+for the actual cancel node; dialog visibility, click success and unchanged volume remain required.
+No test removed or skipped; this failed run is not counted as PASS. Corrected rerun pending.

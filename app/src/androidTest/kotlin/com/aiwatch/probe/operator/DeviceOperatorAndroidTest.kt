@@ -33,11 +33,17 @@ class DeviceOperatorAndroidTest {
             }
             // Platform UiAutomation inspects the dialog button; no fixture changes the real action.
             instrumentation.waitForIdleSync()
-            val root = instrumentation.uiAutomation.rootInActiveWindow
-            assertNotNull(root)
-            val cancel = root.findAccessibilityNodeInfosByText(activity.getString(android.R.string.cancel))
-            assertTrue(cancel.isNotEmpty())
-            assertTrue(cancel.first().performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+            // Main-thread idle does not imply the accessibility window snapshot is published.
+            // Wait for the actual dialog node, never skip the confirmation/cancel assertion.
+            val deadline = android.os.SystemClock.uptimeMillis() + 5000
+            var cancel: android.view.accessibility.AccessibilityNodeInfo? = null
+            while (cancel == null && android.os.SystemClock.uptimeMillis() < deadline) {
+                cancel = instrumentation.uiAutomation.rootInActiveWindow
+                    ?.findAccessibilityNodeInfosByText(activity.getString(android.R.string.cancel))?.firstOrNull()
+                if (cancel == null) android.os.SystemClock.sleep(50)
+            }
+            assertNotNull("Confirmation dialog cancel button must appear within 5 seconds", cancel)
+            assertTrue(checkNotNull(cancel).performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
             instrumentation.waitForIdleSync()
             assertEquals(original, AndroidDeviceActions(activity).currentVolume())
         } finally { close(activity) }
