@@ -2,6 +2,15 @@
 
 Status: PENDING first GitHub-hosted runtime execution.
 
+Local checks: YAML parse PASS, PowerShell parse PASS, `git diff --check` PASS.
+Synthetic runner-output checks: 4/4 PASS (accept 40/40, reject 0/40, 39/40 and ignored status).
+These validate parsing only, not emulator behaviour.
+
+First hosted run 37906399812: fresh-clone PASS; emulator FAIL before tests.
+Artifact emulator.log: `Unknown AVD name [banxuan-ci]`. Creation and lookup used different
+default directories. Fix: explicit shared ANDROID_AVD_HOME and fail-fast process-liveness check.
+No test failure was hidden and no assertion was removed. Rerun PENDING.
+
 Independent PR after #38/#39. No product behaviour, cloud config, credential, signing or
 proprietary asset changes. Existing whole-run product suite is reused on Ubuntu/API 28/x86_64.
 Compact fixture: 410x502px, 320dpi, fontScale 1.0. Hardware audio disabled.

@@ -21,6 +21,8 @@ jobs:
   product-emulator:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      ANDROID_AVD_HOME: ${{ runner.temp }}/banxuan-avd
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -36,12 +38,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/emulator-evidence
+          mkdir -p "$ANDROID_AVD_HOME"
           sudo chmod a+rw /dev/kvm
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' 'platform-tools' 'system-images;android-28;google_apis;x86_64'
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name banxuan-ci --package 'system-images;android-28;google_apis;x86_64'
           "$ANDROID_HOME/emulator/emulator" -avd banxuan-ci -port 5554 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect -memory 2048 > build/emulator-evidence/emulator.log 2>&1 &
           echo "$!" > build/emulator-evidence/emulator.pid
-          timeout 300 bash -c 'until [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do sleep 2; done'
+          timeout 300 bash -c 'until [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do kill -0 "$(cat build/emulator-evidence/emulator.pid)" || { cat build/emulator-evidence/emulator.log; exit 1; }; sleep 2; done'
           adb -s emulator-5554 shell wm size 410x502
           adb -s emulator-5554 shell wm density 320
           adb -s emulator-5554 shell settings put system font_scale 1.0
