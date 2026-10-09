@@ -1,11 +1,9 @@
 name: CI
 
-# Fresh-clone checks only.
+# Fresh-clone build and selected software emulator checks.
 #
-# There is no :core-live2d job and no emulator job, and that is an architectural statement rather than
-# skipped coverage: the Cubism SDK may not be redistributed, so a GitHub runner has no SDK and
-# settings.gradle.kts does not include the module there. Device and runtime evidence stays a separate
-# evidence layer (see README and CONTRIBUTING).
+# Proprietary Cubism is excluded. The separate product-emulator job validates only software;
+# physical-device, hardware audio and cloud evidence remain separate.
 on:
   pull_request:
   push:
@@ -20,6 +18,68 @@ permissions:
   contents: read
 
 jobs:
+  product-emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build product test APKs (no proprietary SDK)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+      - name: Provision official Android API 28 emulator
+        run: |
+          set -euo pipefail
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/banxuan-avd"
+          mkdir -p build/emulator-evidence
+          mkdir -p "$ANDROID_AVD_HOME"
+          sudo chmod a+rw /dev/kvm
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' 'platform-tools' 'system-images;android-28;google_apis;x86_64'
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          adb start-server
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name banxuan-ci --package 'system-images;android-28;google_apis;x86_64'
+          "$ANDROID_HOME/emulator/emulator" -avd banxuan-ci -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 2048 > build/emulator-evidence/emulator.log 2>&1 &
+          echo "$!" > build/emulator-evidence/emulator.pid
+          timeout 300 bash -c 'until [ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do kill -0 "$(cat build/emulator-evidence/emulator.pid)" || { cat build/emulator-evidence/emulator.log; exit 1; }; sleep 2; done'
+          adb -s emulator-5554 shell wm size 410x502
+          adb -s emulator-5554 shell wm density 320
+          adb -s emulator-5554 shell settings put system font_scale 1.0
+          adb -s emulator-5554 shell settings put global window_animation_scale 0
+          adb -s emulator-5554 shell settings put global transition_animation_scale 0
+          adb -s emulator-5554 shell settings put global animator_duration_scale 0
+          adb -s emulator-5554 shell input keyevent 82
+          adb -s emulator-5554 shell getprop ro.build.version.sdk > build/emulator-evidence/api.txt
+          adb -s emulator-5554 shell getprop ro.product.cpu.abilist > build/emulator-evidence/abi.txt
+          adb -s emulator-5554 shell wm size > build/emulator-evidence/window.txt
+          adb -s emulator-5554 shell wm density >> build/emulator-evidence/window.txt
+      - name: Install product APKs
+        run: |
+          adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+          adb -s emulator-5554 install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+      - name: Whole-run product gate — SOFTWARE EMULATOR
+        shell: pwsh
+        run: ./evidence/tests/run_product_suite.ps1 -Serial emulator-5554 -Log build/emulator-evidence/product-suite.log
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p build/emulator-evidence
+          adb -s emulator-5554 logcat -d > build/emulator-evidence/logcat.txt 2>&1 || true
+          adb -s emulator-5554 emu kill || true
+      - name: Upload software emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-emulator-${{ github.sha }}
+          path: build/emulator-evidence/
+          if-no-files-found: error
+          retention-days: 14
+
   fresh-clone:
     runs-on: ubuntu-latest
     timeout-minutes: 30

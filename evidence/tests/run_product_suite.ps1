@@ -16,7 +16,8 @@ if (-not $Adb) {
         $line = Get-Content $localProps | Where-Object { $_ -match '^\s*sdk\.dir\s*=' } | Select-Object -First 1
         if ($line) { $sdk = ($line -split '=', 2)[1].Trim().Replace('\\', '\').Replace('\:', ':') }
     }
-    $Adb = if ($sdk) { Join-Path $sdk 'platform-tools/adb.exe' } else { 'adb' }
+    $adbName = if ($IsWindows -or $env:OS -eq 'Windows_NT') { 'adb.exe' } else { 'adb' }
+    $Adb = if ($sdk) { Join-Path $sdk "platform-tools/$adbName" } else { 'adb' }
 }
 $classes = @(
     # Warm the persistent identity first: corruption fixture must still work in this same process.
