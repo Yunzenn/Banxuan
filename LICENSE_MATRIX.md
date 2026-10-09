@@ -1,5 +1,9 @@
 # License Matrix — Frozen Evidence
 
+G3 native tools (2026-10-09): frozen `stixez/droid-mcp@aeaa5b9e8e96f56ef64a7ca23d0726585f7b1103`
+`/LICENSE` Apache-2.0, no NOTICE in tree. Reference semantics only, no copied source or dependency.
+Android platform APIs are reused directly; no new APK third-party binary/license obligation.
+
 Product emulator CI (2026-10-09): official Android SDK tooling/system image is used only on
 ephemeral GitHub-hosted runners under the SDK distribution terms; no SDK binary is copied
 into this repository or app. No new third-party emulator action or application dependency.

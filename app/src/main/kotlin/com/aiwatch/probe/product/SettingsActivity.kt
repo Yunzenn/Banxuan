@@ -77,6 +77,9 @@ class SettingsActivity : Activity() {
         // three-dot settings, and a memory screen is a thing you go and look at on purpose.
         section(R.string.memory_entry, R.string.memory_entry_hint)
         ui.add(root, ui.button(getString(R.string.memory_entry)) { startActivity(Intent(this, MemoryTrustActivity::class.java)) })
+        ui.add(root, ui.button(getString(R.string.operator_title)) {
+            startActivity(Intent(this, com.aiwatch.probe.operator.DeviceOperatorActivity::class.java))
+        })
         section(R.string.product_server, R.string.product_server_hint)
         endpoint = field(R.string.bootstrap_endpoint, 2048, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         ui.add(root, endpoint)

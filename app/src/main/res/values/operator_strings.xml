@@ -1,0 +1,23 @@
+<resources>
+    <string name="operator_title">设备操作</string>
+    <string name="operator_intro">帮你调节媒体音量、打开应用或交给系统时钟设置计时器。每次都由你确认；暂不支持语音指令。</string>
+    <string name="operator_volume">媒体音量</string>
+    <string name="operator_volume_level">音量 %1$d / %2$d</string>
+    <string name="operator_apply_volume">应用音量</string>
+    <string name="operator_launch">打开应用</string>
+    <string name="operator_timer">设置计时器</string>
+    <string name="operator_minutes">%1$d 分钟</string>
+    <string name="operator_confirm">确认设备操作</string>
+    <string name="operator_launch_confirm">打开「%1$s」？</string>
+    <string name="operator_timer_confirm">前往系统时钟设置 %1$d 分钟计时器。请在时钟里确认。</string>
+    <string name="operator_audit">本次页面操作记录</string>
+    <string name="operator_no_audit">还没有执行操作。记录只保留在本次页面中，不上传。</string>
+    <string name="operator_no_clock">未找到支持计时器的系统时钟，当前不能使用。</string>
+    <string name="operator_verified">音量已调节，并已读取确认。</string>
+    <string name="operator_handoff">已交给目标应用。最终结果请在目标应用中确认。</string>
+    <string name="operator_unavailable">当前设备不支持此操作。</string>
+    <string name="operator_denied">系统未允许此操作，请检查权限。</string>
+    <string name="operator_invalid">参数无效，没有执行操作。</string>
+    <string name="operator_failed">操作未完成，没有自动重试。</string>
+    <string name="operator_unverified">系统音量与目标不同，未确认成功。</string>
+</resources>
