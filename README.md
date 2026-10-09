@@ -24,7 +24,7 @@
 | 「我的记忆」入口；未连接时明确提示 | 真实聊天记忆：记忆服务器尚未部署 |
 | 自有源码构建的可安装 Preview | Live2D、CD12Max 真机通过、稳定覆盖升级 |
 
-当前里程碑：**Preview 0.4 已发布，Memory W0–W4 软件自动验证闭环；Daylight 已合并，Adaptive Round 1 软件验证通过。**
+当前里程碑：**0.4.1-preview 已发布，Memory W0–W4 软件自动验证闭环；Daylight 与 Adaptive Round 1 软件验证通过。**
 窗口适配开发提交 `de56be2`：八格矩阵 8/8、既有界面回归 38/38、JVM 34/34、lint 0 错误 / 31 警告。
 这不是参考手机、CD12Max、云端或完整视觉验收。发布版本号也不代表完整 Memory Companion 已验收。
 
@@ -34,6 +34,9 @@
 
 **下一步停止 UI 泛化：** 独立完成固定签名与 tag 发布流程 → 稳定签名 Preview → 关于页检查更新 → Xiaozhi Connected Voice。
 PR/main 继续只生成 Debug 测试包；不自动发布用户版本，不承诺旧调试签名可直接升级。
+
+发布基础设施已增加待配置的 tag-only 签名接线，见 [Release Infrastructure](RELEASE_INFRASTRUCTURE.md)。
+长期密钥和受保护环境尚未配置，因此**当前下载的 0.4.1 仍是 Debug 签名**，不能据此宣称升级兼容性通过。
 
 ---
 
