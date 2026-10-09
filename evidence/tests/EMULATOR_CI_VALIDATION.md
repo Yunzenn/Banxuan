@@ -20,6 +20,10 @@ but could not connect to ADB daemon at startup and stayed offline to the poller.
 Fix: use the installed platform-tools first on PATH and start ADB before emulator.
 The 300s boot deadline remains unchanged. Rerun PENDING.
 
+Run 37908577735: provisioning/boot PASS; install FAIL (`adb: command not found`).
+The SDK tools path was step-local. Fixed by exporting it through GITHUB_PATH to subsequent steps.
+No application/test change. Hosted product execution still PENDING.
+
 Independent PR after #38/#39. No product behaviour, cloud config, credential, signing or
 proprietary asset changes. Existing whole-run product suite is reused on Ubuntu/API 28/x86_64.
 Compact fixture: 410x502px, 320dpi, fontScale 1.0. Hardware audio disabled.
