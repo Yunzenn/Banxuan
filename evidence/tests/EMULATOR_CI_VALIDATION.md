@@ -11,6 +11,15 @@ Artifact emulator.log: `Unknown AVD name [banxuan-ci]`. Creation and lookup used
 default directories. Fix: explicit shared ANDROID_AVD_HOME and fail-fast process-liveness check.
 No test failure was hidden and no assertion was removed. Rerun PENDING.
 
+Run 37907392358: workflow validation FAIL before jobs (runner context used at job env scope).
+Corrected to export ANDROID_AVD_HOME from RUNNER_TEMP inside the provisioning step.
+Run 37907676317 started successfully; runtime result still PENDING.
+
+Run 37907676317 subsequently FAIL: emulator reported boot completed in 69468ms,
+but could not connect to ADB daemon at startup and stayed offline to the poller.
+Fix: use the installed platform-tools first on PATH and start ADB before emulator.
+The 300s boot deadline remains unchanged. Rerun PENDING.
+
 Independent PR after #38/#39. No product behaviour, cloud config, credential, signing or
 proprietary asset changes. Existing whole-run product suite is reused on Ubuntu/API 28/x86_64.
 Compact fixture: 410x502px, 320dpi, fontScale 1.0. Hardware audio disabled.
