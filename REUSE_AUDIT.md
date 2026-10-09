@@ -1,5 +1,18 @@
 # Reuse Audit — Evidence Freeze
 
+## G3 Native user tools — 2026-10-09
+
+REFERENCE SEMANTICS ONLY: `stixez/droid-mcp@aeaa5b9e8e96f56ef64a7ca23d0726585f7b1103`,
+`/LICENSE` Apache-2.0; tree has no NOTICE. Read actual `SetVolumeTool.execute`
+(`droid-mcp-settings/src/main/kotlin/io/droidmcp/settings/SetVolumeTool.kt`),
+`LaunchAppTool.execute` (`droid-mcp-apps/src/main/kotlin/io/droidmcp/apps/LaunchAppTool.kt`),
+`CreateTimerTool.execute` (`droid-mcp-alarms/src/main/kotlin/io/droidmcp/alarms/CreateTimerTool.kt`).
+No source copied or MCP dependency introduced: DIRECT reuse of Android AudioManager,
+PackageManager/launcher Intent and AlarmClock.ACTION_SET_TIMER. Our narrow policy adds typed
+input validation, media-only readback, explicit user confirmation, bounded session audit and
+honest HANDOFF status. Clock UI is kept visible; no silent timer creation or blind mutation retry.
+No Ktor/Netty/SSE, new compression/parser, shell or accessibility automation.
+
 ## Product emulator gate — 2026-10-09
 
 DIRECT tool reuse: official Android SDK `sdkmanager`, `avdmanager`, emulator and ADB.

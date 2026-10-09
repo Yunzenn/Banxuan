@@ -1,5 +1,14 @@
 # ROADMAP — Banxuan / 伴星
 
+## 当前用户主线（2026-10-09）
+
+#38 Memory 真实认证、#39 产品测试隔离、#40 hosted emulator CI 已合并。
+当前交付 Native Device Operator：设置内确认调节媒体音量、打开应用、系统时钟计时器交接。
+本轮结果与未证范围以 [G3 Native 报告](evidence/G3_NATIVE_OPERATOR.md) 为准，不宣称语音工具链或真机通过。
+后续独立做 Accessibility 安全闭环与后台本地提醒；服务器由用户暂缓，真实 Voice/Memory 仍 PENDING。
+#37 发布接线需同步 main 后复核，不插队；公开下载仍为 0.4.1-preview，不包含本轮新动作。
+下文旧执行顺序作为历史保留，本节优先。
+
 Plan of record. Kept short on purpose: it exists so the Gate is not forgotten and regressions are caught,
 not as a development phase of its own.
 

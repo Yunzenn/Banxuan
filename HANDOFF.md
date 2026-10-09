@@ -1,5 +1,13 @@
 # Handoff — Banxuan 当前交接
 
+## 当前用户功能交接（2026-10-09）
+
+- main 基线 4110ff7；#38/#39/#40 已合并，40 项产品模拟器 CI 已成立。
+- 新分支 codex/device-operator-native：用户入口在设置 → 设备操作；无服务器依赖。
+- typed native tools：媒体音量读回、应用启动交接、系统时钟 UI 交接，确认/拒绝/审计边界见 G3 Native 报告。
+- Accessibility、后台通知、语音 Agent、真实 Voice/Memory 与手机/CD12Max 验证仍 PENDING；没有更新 Release APK。
+- 旧 S2 本地准备文件保留，未混入本轮 PR、未变更云端；下文为历史，当前优先级以本节为准。
+
 ## 0.4.1 Debug Preview 分发（2026-10-02）
 
 - 用户授权合并并提供最新 APK；Adaptive PR #35 已合并，main 基线 `44272b1`。
