@@ -1,0 +1,672 @@
+serial=emulator-5554
+classes=com.aiwatch.probe.IdentityProcessTest,com.aiwatch.probe.memory.MemoryTrustTest,com.aiwatch.probe.CompanionHomeTest,com.aiwatch.probe.ProductShellTest,com.aiwatch.probe.DaylightUiTest,com.aiwatch.probe.AdaptiveWindowTest,com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+expected_count=45
+fixture=205x251dp fontScale=1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.IdentityProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.IdentityProcessTest:
+INSTRUMENTATION_STATUS: test=exportPersistedIdentity
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.IdentityProcessTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=exportPersistedIdentity
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.memory.MemoryTrustTest:
+INSTRUMENTATION_STATUS: test=aRejectedMemoryOffersNoEditAffordance
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aRejectedMemoryOffersNoEditAffordance
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=successfulRefreshReplacesCachedFrameAndItsBanner
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=successfulRefreshReplacesCachedFrameAndItsBanner
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aConfirmedProfileCanBeEditedAndKeepsItsIdentity
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aConfirmedProfileCanBeEditedAndKeepsItsIdentity
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=anIgnoredCandidateIsLeftOutOfConversationButStaysInspectable
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=savingWithoutChangingAnythingPreservesTheOriginalProvenance
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=savingWithoutChangingAnythingPreservesTheOriginalProvenance
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=theUsersOwnWordsAreShownSoTheClaimCanBeJudged
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=theUsersOwnWordsAreShownSoTheClaimCanBeJudged
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=editingAStagedCandidateDoesNotConfirmIt
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=editingAStagedCandidateDoesNotConfirmIt
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=oneOwnerServesAllFivePathsWithoutSuccessRelisting
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=oneOwnerServesAllFivePathsWithoutSuccessRelisting
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=anIdentityMovingEditKeepsTheIdAndShowsTheNewFact
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: timed out waiting for the editor for m1
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState(MemoryTrustTest.kt:1251)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState$default(MemoryTrustTest.kt:1245)
+	at com.aiwatch.probe.memory.MemoryTrustTest.openEditor(MemoryTrustTest.kt:955)
+	at com.aiwatch.probe.memory.MemoryTrustTest.anIdentityMovingEditKeepsTheIdAndShowsTheNewFact(MemoryTrustTest.kt:671)
+
+INSTRUMENTATION_STATUS: stream=
+Error in anIdentityMovingEditKeepsTheIdAndShowsTheNewFact(com.aiwatch.probe.memory.MemoryTrustTest):
+java.lang.AssertionError: timed out waiting for the editor for m1
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState(MemoryTrustTest.kt:1251)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState$default(MemoryTrustTest.kt:1245)
+	at com.aiwatch.probe.memory.MemoryTrustTest.openEditor(MemoryTrustTest.kt:955)
+	at com.aiwatch.probe.memory.MemoryTrustTest.anIdentityMovingEditKeepsTheIdAndShowsTheNewFact(MemoryTrustTest.kt:671)
+
+INSTRUMENTATION_STATUS: test=anIdentityMovingEditKeepsTheIdAndShowsTheNewFact
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=anIdentityConflictKeepsTheEditorOpenWithTheDraftAndChangesNothing
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=13
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=13
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aConfirmedMemoryTakesTwoTapsToDeleteAndTheFirstTapDeletesNothing
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=14
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=pendingMemoriesAreListedBeforeSettledOnes
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=14
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=pendingMemoriesAreListedBeforeSettledOnes
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=15
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=bothActionButtonsAreWideEnoughForTheirLabels
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=15
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=bothActionButtonsAreWideEnoughForTheirLabels
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=16
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=cancellingAnEditNeverReachesTheGateway
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=16
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=cancellingAnEditNeverReachesTheGateway
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=17
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=cachedFirstFrameStaysLabelledWhenRefreshFails
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=17
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=cachedFirstFrameStaysLabelledWhenRefreshFails
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=18
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=theHeaderFitsThePanelAndActuallyShowsItsTitle
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=18
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=theHeaderFitsThePanelAndActuallyShowsItsTitle
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=19
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=anIndeterminateEditKeepsTheDraftWhileReconciling
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=19
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=anIndeterminateEditKeepsTheDraftWhileReconciling
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=20
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=everyLostMutationResponseIsReconciledWithoutRetry
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=20
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=everyLostMutationResponseIsReconciledWithoutRetry
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=21
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=everyCanonicalTypeOpensAnEditorWithItsOwnFields
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=21
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=everyCanonicalTypeOpensAnEditorWithItsOwnFields
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=22
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=failedReconciliationNeverRetriesAnyMutation
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=22
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=failedReconciliationNeverRetriesAnyMutation
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=23
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=theEditFormFitsThePanelAndItsButtonsAreNotClipped
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=23
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=theEditFormFitsThePanelAndItsButtonsAreNotClipped
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=24
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=24
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=anIndeterminateMutationIsSentExactlyOnceAndReconciledByRead
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=25
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=neverSyncedIsNotAnEmptyMemoryList
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=25
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=neverSyncedIsNotAnEmptyMemoryList
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=26
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aStagedCandidateIsConfirmedThroughTheRealGateway
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=26
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aStagedCandidateIsConfirmedThroughTheRealGateway
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=27
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=withoutAGatewayTheScreenSaysSoAndInventsNothing
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=27
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=withoutAGatewayTheScreenSaysSoAndInventsNothing
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=28
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=28
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=29
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=editingAnEventTitleLeavesTheOriginalInstantExactlyAlone
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.memory.MemoryTrustTest
+INSTRUMENTATION_STATUS: current=29
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=editingAnEventTitleLeavesTheOriginalInstantExactlyAlone
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=30
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.CompanionHomeTest:
+INSTRUMENTATION_STATUS: test=companionHomeIsTheLauncherAndShowsCharacterTranscriptAndPushToTalk
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=30
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=companionHomeIsTheLauncherAndShowsCharacterTranscriptAndPushToTalk
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=31
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=protocolConversationMapsOntoTheFourUiStates
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=31
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=protocolConversationMapsOntoTheFourUiStates
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=32
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=realVoicePathStaysIdleAndFabricatesNothingWithoutEndpoint
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=32
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=realVoicePathStaysIdleAndFabricatesNothingWithoutEndpoint
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=33
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=pushToTalkDrivesTheFourStatesAndAppendsBothSides
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.CompanionHomeTest
+INSTRUMENTATION_STATUS: current=33
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=pushToTalkDrivesTheFourStatesAndAppendsBothSides
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=34
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.ProductShellTest:
+INSTRUMENTATION_STATUS: test=profilesPersistIndependentlyAndRejectInvalidInput
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=34
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=profilesPersistIndependentlyAndRejectInvalidInput
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=35
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=companionHomeKeepsSettingsAndDiagnosticsReachable
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=35
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=companionHomeKeepsSettingsAndDiagnosticsReachable
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=36
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=rejectedImportPreservesPreviousAvatarAndCleansTemporaryFiles
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=36
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=rejectedImportPreservesPreviousAvatarAndCleansTemporaryFiles
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=37
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=importedImageIsPrivateBoundedAndIndependentOfOriginal
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.ProductShellTest
+INSTRUMENTATION_STATUS: current=37
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=importedImageIsPrivateBoundedAndIndependentOfOriginal
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.DaylightUiTest
+INSTRUMENTATION_STATUS: current=38
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.DaylightUiTest:
+INSTRUMENTATION_STATUS: test=textAndStateColorsHaveReadableContrastOnLightSurfaces
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.DaylightUiTest
+INSTRUMENTATION_STATUS: current=38
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=textAndStateColorsHaveReadableContrastOnLightSurfaces
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.DaylightUiTest
+INSTRUMENTATION_STATUS: current=39
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=bundledIllustrationAndAccessibleControlsFitTheWindow
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.DaylightUiTest
+INSTRUMENTATION_STATUS: current=39
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=bundledIllustrationAndAccessibleControlsFitTheWindow
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.AdaptiveWindowTest
+INSTRUMENTATION_STATUS: current=40
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.AdaptiveWindowTest:
+INSTRUMENTATION_STATUS: test=windowKeepsInteractionsReadableAndReachableAfterRecreation
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.AdaptiveWindowTest
+INSTRUMENTATION_STATUS: current=40
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=windowKeepsInteractionsReadableAndReachableAfterRecreation
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+INSTRUMENTATION_STATUS: current=41
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.operator.DeviceOperatorAndroidTest:
+INSTRUMENTATION_STATUS: test=initializationError
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+INSTRUMENTATION_STATUS: current=41
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=41
+INSTRUMENTATION_STATUS: stack=java.lang.RuntimeException: Failed loading specified test class 'com.aiwatch.probe.operator.DeviceOperatorAndroidTest'
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:50)
+	at androidx.test.internal.runner.TestLoader.getRunnersFor(TestLoader.java:64)
+	at androidx.test.internal.runner.TestRequestBuilder.build(TestRequestBuilder.java:842)
+	at androidx.test.runner.AndroidJUnitRunner.buildRequest(AndroidJUnitRunner.java:663)
+	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:437)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2145)
+Caused by: java.lang.ClassNotFoundException: com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+	at java.lang.Class.classForName(Native Method)
+	at java.lang.Class.forName(Class.java:453)
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:44)
+	... 5 more
+Caused by: java.lang.ClassNotFoundException: Didn't find class "com.aiwatch.probe.operator.DeviceOperatorAndroidTest" on path: DexPathList[[zip file "/system/framework/android.test.runner.jar", zip file "/system/framework/android.test.mock.jar", zip file "/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk", zip file "/data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk"],nativeLibraryDirectories=[/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/lib/x86_64, /data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk!/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk!/lib/x86_64, /system/lib64]]
+	at dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:134)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:379)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:312)
+	... 8 more
+
+INSTRUMENTATION_STATUS: stream=
+Error in initializationError(com.aiwatch.probe.operator.DeviceOperatorAndroidTest):
+java.lang.RuntimeException: Failed loading specified test class 'com.aiwatch.probe.operator.DeviceOperatorAndroidTest'
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:50)
+	at androidx.test.internal.runner.TestLoader.getRunnersFor(TestLoader.java:64)
+	at androidx.test.internal.runner.TestRequestBuilder.build(TestRequestBuilder.java:842)
+	at androidx.test.runner.AndroidJUnitRunner.buildRequest(AndroidJUnitRunner.java:663)
+	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:437)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2145)
+Caused by: java.lang.ClassNotFoundException: com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+	at java.lang.Class.classForName(Native Method)
+	at java.lang.Class.forName(Class.java:453)
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:44)
+	... 5 more
+Caused by: java.lang.ClassNotFoundException: Didn't find class "com.aiwatch.probe.operator.DeviceOperatorAndroidTest" on path: DexPathList[[zip file "/system/framework/android.test.runner.jar", zip file "/system/framework/android.test.mock.jar", zip file "/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk", zip file "/data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk"],nativeLibraryDirectories=[/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/lib/x86_64, /data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk!/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk!/lib/x86_64, /system/lib64]]
+	at dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:134)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:379)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:312)
+	... 8 more
+
+INSTRUMENTATION_STATUS: test=initializationError
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 83.565
+There were 2 failures:
+1) anIdentityMovingEditKeepsTheIdAndShowsTheNewFact(com.aiwatch.probe.memory.MemoryTrustTest)
+java.lang.AssertionError: timed out waiting for the editor for m1
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState(MemoryTrustTest.kt:1251)
+	at com.aiwatch.probe.memory.MemoryTrustTest.awaitState$default(MemoryTrustTest.kt:1245)
+	at com.aiwatch.probe.memory.MemoryTrustTest.openEditor(MemoryTrustTest.kt:955)
+	at com.aiwatch.probe.memory.MemoryTrustTest.anIdentityMovingEditKeepsTheIdAndShowsTheNewFact(MemoryTrustTest.kt:671)
+2) initializationError(com.aiwatch.probe.operator.DeviceOperatorAndroidTest)
+java.lang.RuntimeException: Failed loading specified test class 'com.aiwatch.probe.operator.DeviceOperatorAndroidTest'
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:50)
+	at androidx.test.internal.runner.TestLoader.getRunnersFor(TestLoader.java:64)
+	at androidx.test.internal.runner.TestRequestBuilder.build(TestRequestBuilder.java:842)
+	at androidx.test.runner.AndroidJUnitRunner.buildRequest(AndroidJUnitRunner.java:663)
+	at androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:437)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2145)
+Caused by: java.lang.ClassNotFoundException: com.aiwatch.probe.operator.DeviceOperatorAndroidTest
+	at java.lang.Class.classForName(Native Method)
+	at java.lang.Class.forName(Class.java:453)
+	at androidx.test.internal.runner.DirectTestLoader.doCreateRunner(DirectTestLoader.java:44)
+	... 5 more
+Caused by: java.lang.ClassNotFoundException: Didn't find class "com.aiwatch.probe.operator.DeviceOperatorAndroidTest" on path: DexPathList[[zip file "/system/framework/android.test.runner.jar", zip file "/system/framework/android.test.mock.jar", zip file "/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk", zip file "/data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk"],nativeLibraryDirectories=[/data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/lib/x86_64, /data/app/com.aiwatch.probe.test-3T0y9WDF18f8v83oZM_3bA==/base.apk!/lib/x86_64, /data/app/com.aiwatch.probe-WwN-Iy6Yz2JHHZERHejJfw==/base.apk!/lib/x86_64, /system/lib64]]
+	at dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:134)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:379)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:312)
+	... 8 more
+
+FAILURES!!!
+Tests run: 41,  Failures: 2
+
+
+INSTRUMENTATION_CODE: -1
