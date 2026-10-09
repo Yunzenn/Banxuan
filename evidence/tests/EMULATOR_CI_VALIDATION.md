@@ -1,6 +1,12 @@
 # Product emulator CI — 2026-10-09
 
-Status: PENDING first GitHub-hosted runtime execution.
+Status: **PASS / SOFTWARE EMULATOR**.
+
+Hosted run [37909067182](https://github.com/Yunzenn/Banxuan/actions/runs/37909067182),
+source commit `a151128`: fresh-clone PASS; product-emulator PASS.
+Downloaded product artifact: **OK (40 tests)** in 37.927s; no ignored/assumption-skipped
+statuses. Raw output: `EMULATOR_CI_PRODUCT_PASS.log`.
+The following history records the failures before this successful run, not unresolved blockers.
 
 Local checks: YAML parse PASS, PowerShell parse PASS, `git diff --check` PASS.
 Synthetic runner-output checks: 4/4 PASS (accept 40/40, reject 0/40, 39/40 and ignored status).
@@ -36,6 +42,6 @@ The job uses official SDK tools directly, bounded boot timeout and read-only Git
 No release/provider secrets or third-party emulator action. Test output, emulator diagnostics,
 API/ABI/window facts and logcat are uploaded even on failure; a failed test still fails the job.
 
-Runtime PASS must come from an actual GitHub Actions run, not YAML inspection.
+Runtime PASS comes from the actual GitHub Actions run above, not YAML inspection.
 Any PASS is SOFTWARE EMULATOR only. Phone/CD12Max, Cubism, live server, audible audio and
 full eight-cell adaptive validation remain PENDING/outside this gate.
