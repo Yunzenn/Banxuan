@@ -137,6 +137,17 @@ Distinguish a positive control from a real result.
 
 If your PR says something works, the PR must say how you know, with the command and the output.
 
+## Product emulator CI
+
+PRs and main run `product-emulator` on an official API 28 x86_64 Android SDK emulator.
+The compact fixture is 410x502px at 320dpi, fontScale 1.0. It invokes the same
+`evidence/tests/run_product_suite.ps1` selected product suite once, without per-method resets.
+Missing, skipped, zero-match or failing tests fail the job. Raw test output and emulator/logcat
+diagnostics are retained as an Actions artifact even on failure.
+
+This is **SOFTWARE EMULATOR** evidence only, not phone/watch certification, the full eight-cell
+adaptive matrix, hardware audio, Cubism or live-server E2E. No signing or provider secrets are used.
+
 ## Branches and commits
 
 Trunk-based. There is exactly one long-lived branch, `main`, and it must stay explainable and verifiable.

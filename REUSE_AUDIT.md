@@ -1,5 +1,15 @@
 # Reuse Audit — Evidence Freeze
 
+## Product emulator gate — 2026-10-09
+
+DIRECT tool reuse: official Android SDK `sdkmanager`, `avdmanager`, emulator and ADB.
+The workflow provisions `system-images;android-28;google_apis;x86_64` and reuses the existing
+Banxuan whole-run product script. No third-party emulator action or copied provisioning engine.
+Existing checkout/setup-java/setup-gradle/upload-artifact actions are unchanged.
+SDK tools stay on ephemeral CI runners, not in the APK or Git; build logs record installation
+versions (API/image identity is fixed, emulator package revision is not claimed frozen).
+Reference: https://developer.android.com/studio/run/emulator-commandline
+
 审计日期：2026-09-25。所有证据均固定到 commit SHA；后续升级必须重新审计差异。
 
 Daylight UI 补充（2026-09-30）：直接复用 Android 原生浅色 Material 控件及 Google
