@@ -99,6 +99,102 @@ class RemindersAndroidTest {
         assertTrue(checkNotNull(node).performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
         instrumentation.waitForIdleSync()
     }
+    private fun savedDue(activity: ReminderActivity): Long {
+        val bundle = android.os.Bundle()
+        instrumentation.runOnMainSync { instrumentation.callActivityOnSaveInstanceState(activity, bundle) }
+        return bundle.getLong("dueAt")
+    }
+    @Test fun cancellingTimePickerDoesNotChangeCommittedDateOrLabel() {
+        val activity = instrumentation.startActivitySync(Intent(context, ReminderActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ReminderActivity
+        try {
+            val before = savedDue(activity)
+            var label = ""
+            instrumentation.runOnMainSync {
+                label = activity.findViewById<android.widget.Button>(com.aiwatch.probe.R.id.reminder_when).text.toString()
+                val next = java.util.Calendar.getInstance().apply { timeInMillis = before; add(java.util.Calendar.DAY_OF_MONTH, 1) }
+                val dialog = activity.pickDate()
+                dialog.datePicker.updateDate(next.get(java.util.Calendar.YEAR), next.get(java.util.Calendar.MONTH), next.get(java.util.Calendar.DAY_OF_MONTH))
+                dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick()
+            }
+            instrumentation.waitForIdleSync()
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            instrumentation.waitForIdleSync()
+            assertEquals("Cancelling time must not commit the draft date", before, savedDue(activity))
+            instrumentation.runOnMainSync {
+                assertEquals(label, activity.findViewById<android.widget.Button>(com.aiwatch.probe.R.id.reminder_when).text.toString())
+            }
+        } finally { instrumentation.runOnMainSync { activity.finish() }; instrumentation.waitForIdleSync() }
+    }
+    @Test fun cancellingDatePickerDoesNotChangeCommittedDate() {
+        val activity = instrumentation.startActivitySync(Intent(context, ReminderActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ReminderActivity
+        try {
+            val before = savedDue(activity)
+            instrumentation.runOnMainSync {
+                val next = java.util.Calendar.getInstance().apply { timeInMillis = before; add(java.util.Calendar.DAY_OF_MONTH, 1) }
+                val dialog = activity.pickDate()
+                dialog.datePicker.updateDate(next.get(java.util.Calendar.YEAR), next.get(java.util.Calendar.MONTH), next.get(java.util.Calendar.DAY_OF_MONTH))
+                dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick()
+            }
+            assertEquals(before, savedDue(activity))
+        } finally { instrumentation.runOnMainSync { activity.finish() }; instrumentation.waitForIdleSync() }
+    }
+    @Test fun confirmedCancellationIsNotLostWhileRefreshIsBusy() {
+        val book = (context.applicationContext as ProbeApplication).reminders
+        val item = book.create("busy-cancel-${UUID.randomUUID()}", System.currentTimeMillis() + 3_600_000)
+        val activity = instrumentation.startActivitySync(Intent(context, ReminderActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ReminderActivity
+        val held = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
+        val blocker = Thread {
+            synchronized(book) {
+                held.countDown()
+                if (!release.await(20, java.util.concurrent.TimeUnit.SECONDS)) timedOut.set(true)
+            }
+        }
+        try {
+            var cancel: android.widget.Button? = null
+            val readyDeadline = android.os.SystemClock.uptimeMillis() + 5000
+            while (cancel == null && android.os.SystemClock.uptimeMillis() < readyDeadline) {
+                instrumentation.runOnMainSync {
+                    fun find(view: android.view.View): android.widget.TextView? {
+                        if (view is android.widget.TextView && view.text.toString() == item.text) return view
+                        if (view is android.view.ViewGroup) for (i in 0 until view.childCount) find(view.getChildAt(i))?.let { return it }
+                        return null
+                    }
+                    find(activity.findViewById(android.R.id.content))?.let { title ->
+                        val parent = title.parent as android.view.ViewGroup
+                        cancel = parent.getChildAt(parent.indexOfChild(title) + 2) as? android.widget.Button
+                    }
+                }
+                if (cancel == null) android.os.SystemClock.sleep(50)
+            }
+            instrumentation.runOnMainSync { checkNotNull(cancel).performClick() }
+            blocker.start()
+            assertTrue("Refresh blocker must acquire the real repository", held.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            instrumentation.runOnMainSync {
+                instrumentation.callActivityOnPause(activity)
+                instrumentation.callActivityOnResume(activity)
+                assertFalse(activity.findViewById<android.widget.Button>(com.aiwatch.probe.R.id.reminder_save).isEnabled)
+            }
+            // Confirm an already-open dialog while a real refresh is blocked on local storage ownership.
+            clickDialog(android.R.string.ok)
+            release.countDown(); blocker.join(2000)
+            assertFalse("Fixture must not release itself by timeout", timedOut.get())
+            val deadline = android.os.SystemClock.uptimeMillis() + 5000
+            while (book.list().find { it.id == item.id }?.status != ReminderStatus.CANCELLED && android.os.SystemClock.uptimeMillis() < deadline) {
+                android.os.SystemClock.sleep(50)
+            }
+            assertEquals(ReminderStatus.CANCELLED, book.list().find { it.id == item.id }?.status)
+        } finally {
+            release.countDown()
+            if (blocker.isAlive) blocker.join(2000)
+            book.cancel(item.id)
+            instrumentation.runOnMainSync { activity.finish() }; instrumentation.waitForIdleSync()
+        }
+    }
     @Test fun realAlarmPostsNotificationAfterActivityFinishes() {
         val book = (context.applicationContext as ProbeApplication).reminders
         val activity = instrumentation.startActivitySync(Intent(context, ReminderActivity::class.java)

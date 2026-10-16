@@ -84,17 +84,38 @@ class RemindersTest {
         book.deliver(book.create("x", 2000).id)
         assertEquals(0, port.posted); assertEquals(2, port.scheduled)
     }
-    @Test fun failedPostNeverBlindlyRetries() {
+    @Test fun postExceptionStaysUncertainAndNeverBlindlyRetries() {
         val store = Store(); val port = Platform().apply { failPost = true }; var time = 1000L
         val book = Reminders(store, port) { time }; val item = book.create("x", 2000)
         time = 2000; book.deliver(item.id); book.deliver(item.id); book.restore()
-        assertEquals(1, port.posted); assertEquals(ReminderStatus.FAILED, book.list().single().status)
+        assertEquals(1, port.posted); assertEquals(ReminderStatus.POSTING, book.list().single().status)
     }
     @Test fun uncertainPostSurvivesReopenWithoutReplay() {
         val store = Store().apply { records = listOf(Reminder("id", "x", 2000, ReminderStatus.POSTING)) }
         val port = Platform(); val reopened = Reminders(store, port) { 3000 }
         reopened.restore(); reopened.deliver("id")
         assertEquals(0, port.posted); assertEquals(0, port.scheduled)
+        assertEquals(ReminderStatus.POSTING, reopened.list().single().status)
+    }
+    @Test fun acceptedNotificationWithFailedStatusCommitRemainsUncertain() {
+        val backing = Store()
+        val store = object : ReminderStorage {
+            override fun read() = backing.read()
+            override fun write(records: List<Reminder>) {
+                if (records.any { it.status == ReminderStatus.POSTED }) throw java.io.IOException("commit failed")
+                backing.write(records)
+            }
+        }
+        val port = Platform(); var time = 1000L
+        val book = Reminders(store, port) { time }; val item = book.create("x", 2000)
+        time = 2000
+        // The storage error may propagate, but must never rewrite an accepted post as FAILED.
+        runCatching { book.deliver(item.id) }
+        assertEquals(1, port.posted)
+        assertEquals(ReminderStatus.POSTING, backing.records.single().status)
+        val reopened = Reminders(store, port) { time }
+        reopened.restore(); reopened.deliver(item.id)
+        assertEquals(1, port.posted)
         assertEquals(ReminderStatus.POSTING, reopened.list().single().status)
     }
     @Test fun restoreUsesThePersistedReminderIdentity() {

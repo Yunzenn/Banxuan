@@ -1,0 +1,192 @@
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+com.aiwatch.probe.reminder.RemindersAndroidTest:
+INSTRUMENTATION_STATUS: test=corruptStorageIsNotSilentlyReset
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=corruptStorageIsNotSilentlyReset
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=realAlarmPostsNotificationAfterActivityFinishes
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=realAlarmPostsNotificationAfterActivityFinishes
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=pageExposesNativeCreateAndTimeControls
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=pageExposesNativeCreateAndTimeControls
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=cancellingTimePickerDoesNotChangeCommittedDateOrLabel
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Cancelling time must not commit the draft date expected:<1792150740000> but was:<1792237140000>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.cancellingTimePickerDoesNotChangeCommittedDateOrLabel(RemindersAndroidTest.kt:123)
+
+INSTRUMENTATION_STATUS: stream=
+Error in cancellingTimePickerDoesNotChangeCommittedDateOrLabel(com.aiwatch.probe.reminder.RemindersAndroidTest):
+java.lang.AssertionError: Cancelling time must not commit the draft date expected:<1792150740000> but was:<1792237140000>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.cancellingTimePickerDoesNotChangeCommittedDateOrLabel(RemindersAndroidTest.kt:123)
+
+INSTRUMENTATION_STATUS: test=cancellingTimePickerDoesNotChangeCommittedDateOrLabel
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=confirmedCancellationIsNotLostWhileRefreshIsBusy
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: expected:<CANCELLED> but was:<PENDING>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.confirmedCancellationIsNotLostWhileRefreshIsBusy(RemindersAndroidTest.kt:190)
+
+INSTRUMENTATION_STATUS: stream=
+Error in confirmedCancellationIsNotLostWhileRefreshIsBusy(com.aiwatch.probe.reminder.RemindersAndroidTest):
+java.lang.AssertionError: expected:<CANCELLED> but was:<PENDING>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.confirmedCancellationIsNotLostWhileRefreshIsBusy(RemindersAndroidTest.kt:190)
+
+INSTRUMENTATION_STATUS: test=confirmedCancellationIsNotLostWhileRefreshIsBusy
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=atomicStorageReopensWithStatusAndContent
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=atomicStorageReopensWithStatusAndContent
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=oversizedStorageIsRejected
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=oversizedStorageIsRejected
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=cancellingDatePickerDoesNotChangeCommittedDate
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=cancellingDatePickerDoesNotChangeCommittedDate
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=createUiRequiresConfirmationAndPersistsTheEnteredText
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=createUiRequiresConfirmationAndPersistsTheEnteredText
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=cancelledReminderCannotPostFromLateDelivery
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.aiwatch.probe.reminder.RemindersAndroidTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=10
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=cancelledReminderCannotPostFromLateDelivery
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 25.598
+There were 2 failures:
+1) cancellingTimePickerDoesNotChangeCommittedDateOrLabel(com.aiwatch.probe.reminder.RemindersAndroidTest)
+java.lang.AssertionError: Cancelling time must not commit the draft date expected:<1792150740000> but was:<1792237140000>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.cancellingTimePickerDoesNotChangeCommittedDateOrLabel(RemindersAndroidTest.kt:123)
+2) confirmedCancellationIsNotLostWhileRefreshIsBusy(com.aiwatch.probe.reminder.RemindersAndroidTest)
+java.lang.AssertionError: expected:<CANCELLED> but was:<PENDING>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.aiwatch.probe.reminder.RemindersAndroidTest.confirmedCancellationIsNotLostWhileRefreshIsBusy(RemindersAndroidTest.kt:190)
+
+FAILURES!!!
+Tests run: 10,  Failures: 2
+
+
+INSTRUMENTATION_CODE: -1

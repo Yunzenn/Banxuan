@@ -13,6 +13,8 @@ import com.aiwatch.probe.ProbeApplication
 import com.aiwatch.probe.R
 import com.aiwatch.probe.product.ProductUi
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
@@ -27,7 +29,9 @@ class ReminderActivity : Activity() {
     private lateinit var content: EditText
     private lateinit var whenButton: Button
     private lateinit var save: Button
-    private var busy = false
+    private val workMutex = Mutex()
+    private var pendingWork = 0
+    private val busy get() = pendingWork > 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,29 +98,41 @@ class ReminderActivity : Activity() {
             R.string.reminder_permission_granted else R.string.reminder_permission_blocked)
     }
     private fun whenText() = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(selected.time)
-    private fun pickDate() {
-        DatePickerDialog(this, { _, year, month, day ->
-            selected.set(year, month, day)
+    internal fun pickDate(): DatePickerDialog {
+        // Commit the date and time together only after the final confirmation.
+        val draft = selected.clone() as Calendar
+        return DatePickerDialog(this, { _, year, month, day ->
+            draft.set(year, month, day)
             TimePickerDialog(this, { _, hour, minute ->
-                selected.set(Calendar.HOUR_OF_DAY, hour); selected.set(Calendar.MINUTE, minute)
+                draft.set(Calendar.HOUR_OF_DAY, hour); draft.set(Calendar.MINUTE, minute)
+                selected.timeInMillis = draft.timeInMillis
                 whenButton.text = whenText()
-            }, selected.get(Calendar.HOUR_OF_DAY), selected.get(Calendar.MINUTE), android.text.format.DateFormat.is24HourFormat(this)).show()
-        }, selected.get(Calendar.YEAR), selected.get(Calendar.MONTH), selected.get(Calendar.DAY_OF_MONTH)).show()
+            }, draft.get(Calendar.HOUR_OF_DAY), draft.get(Calendar.MINUTE), android.text.format.DateFormat.is24HourFormat(this)).show()
+        }, draft.get(Calendar.YEAR), draft.get(Calendar.MONTH), draft.get(Calendar.DAY_OF_MONTH)).apply { show() }
     }
     private fun work(success: Int?, operation: () -> Unit) {
-        if (busy) return
-        busy = true; save.isEnabled = false
+        // Already-open confirmation dialogs can complete during refresh. Queue that consent
+        // exactly once instead of dropping it; disable new mutations until all work finishes.
+        pendingWork++
+        updateControls()
         scope.launch {
             try {
-                val snapshot = withContext(Dispatchers.IO) { operation(); book.list() }
-                if (success != null) feedback.setText(success)
-                render(snapshot)
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: IllegalArgumentException) { feedback.setText(R.string.reminder_invalid) }
-            catch (_: IllegalStateException) { feedback.setText(R.string.reminder_permission_blocked) }
-            catch (_: Exception) { feedback.setText(R.string.reminder_error) }
-            finally { busy = false; save.isEnabled = true }
+                workMutex.withLock {
+                    try {
+                        val snapshot = withContext(Dispatchers.IO) { operation(); book.list() }
+                        if (success != null) feedback.setText(success)
+                        render(snapshot)
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: IllegalArgumentException) { feedback.setText(R.string.reminder_invalid) }
+                    catch (_: IllegalStateException) { feedback.setText(R.string.reminder_permission_blocked) }
+                    catch (_: Exception) { feedback.setText(R.string.reminder_error) }
+                }
+            } finally { pendingWork--; updateControls() }
         }
+    }
+    private fun updateControls() {
+        save.isEnabled = !busy
+        for (index in 0 until records.childCount) (records.getChildAt(index) as? Button)?.isEnabled = !busy
     }
     private fun render(snapshot: List<Reminder>) {
         records.removeAllViews()

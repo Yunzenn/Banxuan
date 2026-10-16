@@ -51,10 +51,14 @@ class Reminders(private val storage: ReminderStorage, private val platform: Remi
         }
         // Crash after this write means uncertain delivery, not permission to post twice.
         update(reminder.copy(status = ReminderStatus.POSTING))
-        try {
-            platform.post(reminder)
-            update(reminder.copy(status = ReminderStatus.POSTED))
-        } catch (_: Exception) { update(reminder.copy(status = ReminderStatus.FAILED)) }
+        try { platform.post(reminder) }
+        catch (_: Exception) {
+            // Dispatch may have reached Android before the exception. Keep durable POSTING;
+            // neither assert failure nor replay an uncertain side effect.
+            return
+        }
+        // A commit failure is a storage error, not a failed notification. Preserve POSTING.
+        update(reminder.copy(status = ReminderStatus.POSTED))
     }
 
     /** Android clears alarms on reboot. Re-arm pending IDs, without creating a second job identity. */
