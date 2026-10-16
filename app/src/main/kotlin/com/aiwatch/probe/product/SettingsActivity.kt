@@ -80,6 +80,9 @@ class SettingsActivity : Activity() {
         ui.add(root, ui.button(getString(R.string.operator_title)) {
             startActivity(Intent(this, com.aiwatch.probe.operator.DeviceOperatorActivity::class.java))
         })
+        ui.add(root, ui.button(getString(R.string.reminder_title)) {
+            startActivity(Intent(this, com.aiwatch.probe.reminder.ReminderActivity::class.java))
+        })
         section(R.string.product_server, R.string.product_server_hint)
         endpoint = field(R.string.bootstrap_endpoint, 2048, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         ui.add(root, endpoint)
