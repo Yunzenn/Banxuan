@@ -18,7 +18,20 @@ import java.io.File
  * dependency, so persistence stays behind the module that owns it.
  */
 open class ProbeApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // Reconcile after a user reopens a force-stopped app; never keep a service alive.
+        Thread({
+            try { reminders.restore() }
+            catch (_: Exception) { /* The reminder page exposes storage failure without resetting it. */ }
+        }, "reminder-recovery").start()
+    }
     val productStore by lazy { com.aiwatch.probe.product.ProductStore(File(noBackupFilesDir, "product")) }
+    val reminders by lazy {
+        com.aiwatch.probe.reminder.Reminders(
+            com.aiwatch.probe.reminder.ReminderStorageFile(File(noBackupFilesDir, "local-reminders.json")),
+            com.aiwatch.probe.reminder.AndroidReminders(this))
+    }
     // One DataStore per process, outside backup/transfer storage.
     open val identityStore: DeviceIdentityStore by lazy {
         DeviceIdentityStore(File(noBackupFilesDir, "device-identity.bin"))

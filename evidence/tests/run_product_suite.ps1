@@ -27,7 +27,8 @@ $classes = @(
     'com.aiwatch.probe.ProductShellTest',
     'com.aiwatch.probe.DaylightUiTest',
     'com.aiwatch.probe.AdaptiveWindowTest',
-    'com.aiwatch.probe.operator.DeviceOperatorAndroidTest'
+    'com.aiwatch.probe.operator.DeviceOperatorAndroidTest',
+    'com.aiwatch.probe.reminder.RemindersAndroidTest'
 )
 $expected = 0
 foreach ($class in $classes) {
