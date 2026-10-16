@@ -57,12 +57,21 @@ class DeviceOperatorActivity : Activity() {
                 }.setNegativeButton(android.R.string.cancel, null).show()
         }.apply { isEnabled = platform.canSetTimer() })
         if (!platform.canSetTimer()) ui.add(root, ui.text(getString(R.string.operator_no_clock), 14f, ui.muted))
+        ui.add(root, ui.button(getString(R.string.operator_alarm)) { chooseAlarm() }.apply { isEnabled = platform.canSetAlarm() })
+        ui.add(root, ui.text(getString(R.string.operator_alarm_hint), 13f, ui.muted))
+        if (!platform.canSetAlarm()) ui.add(root, ui.text(getString(R.string.operator_no_alarm), 14f, ui.muted))
+        ui.add(root, ui.button(getString(R.string.operator_show_alarms)) {
+            feedback.setText(statusText(operator.execute(DeviceAction.ShowAlarms).status))
+        }.apply { isEnabled = platform.canShowAlarms() })
+        if (!platform.canShowAlarms()) ui.add(root, ui.text(getString(R.string.operator_no_alarm_list), 14f, ui.muted))
         ui.add(root, ui.button(getString(R.string.operator_audit)) {
             val lines = operator.audit().map { record ->
                 val labelText = when(record.action) {
                     is DeviceAction.SetMediaVolume -> getString(R.string.operator_volume)
                     is DeviceAction.LaunchApp -> getString(R.string.operator_launch)
                     is DeviceAction.SetTimer -> getString(R.string.operator_timer)
+                    is DeviceAction.SetAlarm -> getString(R.string.operator_alarm_time, record.action.hour, record.action.minute)
+                    DeviceAction.ShowAlarms -> getString(R.string.operator_show_alarms)
                 }
                 "$labelText · ${getString(statusText(record.status))}"
             }
@@ -70,6 +79,13 @@ class DeviceOperatorActivity : Activity() {
                 .setMessage(lines.joinToString("\n").ifEmpty { getString(R.string.operator_no_audit) })
                 .setPositiveButton(android.R.string.ok, null).show()
         })
+    }
+    internal fun chooseAlarm(): android.app.TimePickerDialog {
+        val now = java.util.Calendar.getInstance()
+        return android.app.TimePickerDialog(this, { _, hour, minute ->
+            confirm(getString(R.string.operator_alarm_confirm, hour, minute), DeviceAction.SetAlarm(hour, minute))
+        }, now.get(java.util.Calendar.HOUR_OF_DAY), now.get(java.util.Calendar.MINUTE),
+            android.text.format.DateFormat.is24HourFormat(this)).apply { show() }
     }
     private fun chooseApp() {
         val pm = packageManager
@@ -95,5 +111,6 @@ class DeviceOperatorActivity : Activity() {
         ActionStatus.INVALID -> R.string.operator_invalid
         ActionStatus.FAILED -> R.string.operator_failed
         ActionStatus.UNVERIFIED -> R.string.operator_unverified
+        ActionStatus.UNKNOWN -> R.string.operator_unknown
     }
 }

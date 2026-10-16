@@ -1,5 +1,17 @@
 # Reuse Audit — Evidence Freeze
 
+## System alarm user tool — 2026-10-17
+
+DIRECT platform API reuse: Android `AlarmClock.ACTION_SET_ALARM`, `ACTION_SHOW_ALARMS`,
+`EXTRA_HOUR`, `EXTRA_MINUTES`, `EXTRA_SKIP_UI`, standard `TimePickerDialog`.
+Reference: https://developer.android.com/reference/android/provider/AlarmClock
+No source copied, new dependency, custom alarm database/scheduler/player or exact-alarm permission.
+Reuses our existing typed policy, confirmation, capability detection and bounded audit.
+`EXTRA_SKIP_UI=false` requests UI but does not guarantee a second confirmation: the clock may
+create/enable immediately. Banxuan asks consent BEFORE dispatch; HANDOFF is not creation proof.
+Ambiguous dispatch exceptions return UNKNOWN without automatic retry (also for timer/app handoff).
+This extends the existing native-tool boundary, not Accessibility or autonomous agent execution.
+
 ## G3 Native user tools — 2026-10-09
 
 REFERENCE SEMANTICS ONLY: `stixez/droid-mcp@aeaa5b9e8e96f56ef64a7ca23d0726585f7b1103`,

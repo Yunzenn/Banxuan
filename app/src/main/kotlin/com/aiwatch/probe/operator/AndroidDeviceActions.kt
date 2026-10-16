@@ -7,7 +7,8 @@ import android.provider.AlarmClock
 
 /** Reference: stixez/droid-mcp@aeaa5b9 (Apache-2.0) SetVolumeTool/LaunchAppTool/CreateTimerTool.
  * Uses platform APIs directly, not the MCP runtime. Changed semantics: media-only readback,
- * no clamping, foreground Activity only, and explicit clock UI handoff rather than silent creation.
+ * no clamping, foreground Activity only, and user-confirmed clock handoff with visible UI requested.
+ * Visible UI is not a guarantee of a second provider confirmation or of successful creation.
  * No upstream source copied; see REUSE_AUDIT.md.
  */
 class AndroidDeviceActions(private val activity: Activity) : DeviceActionPort {
@@ -32,4 +33,15 @@ class AndroidDeviceActions(private val activity: Activity) : DeviceActionPort {
     }
     override fun canSetTimer(): Boolean = timerIntent(60).resolveActivity(activity.packageManager) != null
     override fun openTimer(seconds: Int) { activity.startActivity(timerIntent(seconds)) }
+    internal fun alarmIntent(hour: Int, minute: Int) = Intent(AlarmClock.ACTION_SET_ALARM).apply {
+        putExtra(AlarmClock.EXTRA_HOUR, hour)
+        putExtra(AlarmClock.EXTRA_MINUTES, minute)
+        // This requests visible UI, not a promise the provider asks for confirmation again.
+        putExtra(AlarmClock.EXTRA_SKIP_UI, false)
+    }
+    override fun canSetAlarm(): Boolean = alarmIntent(0, 0).resolveActivity(activity.packageManager) != null
+    override fun openAlarm(hour: Int, minute: Int) { activity.startActivity(alarmIntent(hour, minute)) }
+    internal fun showAlarmsIntent() = Intent(AlarmClock.ACTION_SHOW_ALARMS)
+    override fun canShowAlarms(): Boolean = showAlarmsIntent().resolveActivity(activity.packageManager) != null
+    override fun showAlarms() { activity.startActivity(showAlarmsIntent()) }
 }
