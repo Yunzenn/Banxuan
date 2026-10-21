@@ -170,6 +170,81 @@ class DeviceOperatorAndroidTest {
             instrumentation.removeMonitor(show); instrumentation.removeMonitor(create); close(activity)
         }
     }
+    @Test fun calendarInsertIntentCarriesEditableEventAndAppDoesNotRequestCalendarAccess() {
+        val activity = launch()
+        try {
+            val begin = System.currentTimeMillis() + 3_600_000
+            val end = begin + 30 * 60_000L
+            val intent = AndroidDeviceActions(activity).calendarIntent("Dentist", begin, end)
+            assertEquals(Intent.ACTION_INSERT, intent.action)
+            assertEquals(android.provider.CalendarContract.Events.CONTENT_URI, intent.data)
+            assertEquals("Dentist", intent.getStringExtra(android.provider.CalendarContract.Events.TITLE))
+            assertEquals(begin, intent.getLongExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, -1))
+            assertEquals(end, intent.getLongExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, -1))
+            assertEquals(false, intent.getBooleanExtra(android.provider.CalendarContract.Events.ALL_DAY, true))
+            assertFalse(intent.hasExtra(android.provider.CalendarContract.Events.RRULE))
+            val permissions = activity.packageManager.getPackageInfo(
+                activity.packageName, android.content.pm.PackageManager.GET_PERMISSIONS
+            ).requestedPermissions.orEmpty()
+            assertFalse("Calendar is edited in the user's calendar UI, not by direct provider access",
+                permissions.contains(android.Manifest.permission.WRITE_CALENDAR))
+            assertFalse(permissions.contains(android.Manifest.permission.READ_CALENDAR))
+        } finally { close(activity) }
+    }
+    @Test fun cancellingCalendarFormDoesNotDispatch() {
+        val activity = launch()
+        val dispatched = mutableListOf<Intent>()
+        try {
+            instrumentation.runOnMainSync { activity.setCalendarDispatcherForTesting { dispatched += it } }
+            var dialog: android.app.AlertDialog? = null
+            instrumentation.runOnMainSync { dialog = activity.chooseCalendarEvent() }
+            instrumentation.runOnMainSync {
+                checkNotNull(dialog).getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+            }
+            instrumentation.waitForIdleSync()
+            assertTrue(dispatched.isEmpty())
+        } finally { close(activity) }
+    }
+    @Test fun calendarRequiresUserConfirmationAndReportsOnlyHandoff() {
+        val activity = launch()
+        val port = AndroidDeviceActions(activity)
+        val action = DeviceAction.CreateCalendarEvent("Dentist", System.currentTimeMillis() + 3_600_000, 30)
+        val dispatched = mutableListOf<Intent>()
+        try {
+            instrumentation.runOnMainSync { activity.setCalendarDispatcherForTesting { dispatched += it } }
+            if (!port.canCreateCalendarEvent()) {
+                assertEquals(ActionStatus.UNAVAILABLE, DeviceOperator(port).execute(action).status)
+                assertTrue(dispatched.isEmpty())
+                return
+            }
+            var form: android.app.AlertDialog? = null
+            instrumentation.runOnMainSync { form = activity.chooseCalendarEvent() }
+            instrumentation.runOnMainSync {
+                fun find(view: android.view.View): android.widget.EditText? {
+                    if (view is android.widget.EditText) return view
+                    if (view is android.view.ViewGroup) for (i in 0 until view.childCount) {
+                        find(view.getChildAt(i))?.let { return it }
+                    }
+                    return null
+                }
+                val activeForm = checkNotNull(form)
+                checkNotNull(find(checkNotNull(activeForm.window).decorView)).setText("Dentist")
+                activeForm.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+            }
+            instrumentation.waitForIdleSync()
+            assertTrue("Form submission alone must not start a calendar", dispatched.isEmpty())
+            clickConfirmation(activity, android.R.string.ok)
+            assertEquals(1, dispatched.size)
+            val handedOff = dispatched.single()
+            assertEquals(Intent.ACTION_INSERT, handedOff.action)
+            assertEquals(android.provider.CalendarContract.Events.CONTENT_URI, handedOff.data)
+            assertEquals("Dentist", handedOff.getStringExtra(android.provider.CalendarContract.Events.TITLE))
+            instrumentation.runOnMainSync {
+                assertTrue(allText(activity.findViewById(android.R.id.content))
+                    .contains(activity.getString(com.aiwatch.probe.R.string.operator_handoff)))
+            }
+        } finally { close(activity) }
+    }
     private fun alarmMonitor(action: String) = instrumentation.addMonitor(
         android.content.IntentFilter(action),
         android.app.Instrumentation.ActivityResult(android.app.Activity.RESULT_CANCELED, null), true

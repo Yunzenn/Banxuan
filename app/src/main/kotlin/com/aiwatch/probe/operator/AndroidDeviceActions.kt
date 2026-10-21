@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.media.AudioManager
 import android.provider.AlarmClock
+import android.provider.CalendarContract
 
 /** Reference: stixez/droid-mcp@aeaa5b9 (Apache-2.0) SetVolumeTool/LaunchAppTool/CreateTimerTool.
  * Uses platform APIs directly, not the MCP runtime. Changed semantics: media-only readback,
@@ -11,7 +12,10 @@ import android.provider.AlarmClock
  * Visible UI is not a guarantee of a second provider confirmation or of successful creation.
  * No upstream source copied; see REUSE_AUDIT.md.
  */
-class AndroidDeviceActions(private val activity: Activity) : DeviceActionPort {
+class AndroidDeviceActions(
+    private val activity: Activity,
+    private val dispatchCalendarIntent: ((Intent) -> Unit)? = null,
+) : DeviceActionPort {
     private val audio get() = activity.getSystemService(AudioManager::class.java)
     override fun mediaRange(): IntRange? = audio?.let {
         if (it.isVolumeFixed) null else it.getStreamMinVolume(AudioManager.STREAM_MUSIC)..it.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -44,4 +48,17 @@ class AndroidDeviceActions(private val activity: Activity) : DeviceActionPort {
     internal fun showAlarmsIntent() = Intent(AlarmClock.ACTION_SHOW_ALARMS)
     override fun canShowAlarms(): Boolean = showAlarmsIntent().resolveActivity(activity.packageManager) != null
     override fun showAlarms() { activity.startActivity(showAlarmsIntent()) }
+    internal fun calendarIntent(title: String, startAtEpochMs: Long, endAtEpochMs: Long) =
+        Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI).apply {
+            putExtra(CalendarContract.Events.TITLE, title)
+            putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startAtEpochMs)
+            putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endAtEpochMs)
+            putExtra(CalendarContract.Events.ALL_DAY, false)
+        }
+    override fun canCreateCalendarEvent(): Boolean =
+        calendarIntent("Banxuan", 1L, 1L).resolveActivity(activity.packageManager) != null
+    override fun openCalendarEvent(title: String, startAtEpochMs: Long, endAtEpochMs: Long) {
+        val intent = calendarIntent(title, startAtEpochMs, endAtEpochMs)
+        (dispatchCalendarIntent ?: { activity.startActivity(it) })(intent)
+    }
 }
