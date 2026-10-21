@@ -1,5 +1,14 @@
 # License Matrix — Frozen Evidence
 
+G3 native tools (2026-10-09): frozen `stixez/droid-mcp@aeaa5b9e8e96f56ef64a7ca23d0726585f7b1103`
+`/LICENSE` Apache-2.0, no NOTICE in tree. Reference semantics only, no copied source or dependency.
+Android platform APIs are reused directly; no new APK third-party binary/license obligation.
+
+Product emulator CI (2026-10-09): official Android SDK tooling/system image is used only on
+ephemeral GitHub-hosted runners under the SDK distribution terms; no SDK binary is copied
+into this repository or app. No new third-party emulator action or application dependency.
+This does not change proprietary Cubism/model redistribution exclusions.
+
 | 来源与 commit | License 文件 | 结论 | 分发义务/限制 |
 |---|---|---|---|
 | `google/material-design-icons@bd8cb85bd4bad964fe6918f79665bb40c3a8efef` | `/LICENSE` | Apache-2.0；Daylight 设置图标 | 原始 pathData 保留，仅调整原生主题 tint 命名空间；完整许可随 APK assets/licenses 分发，修改说明见 evidence/DAYLIGHT_UI.md。 |

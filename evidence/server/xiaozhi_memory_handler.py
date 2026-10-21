@@ -39,7 +39,7 @@ class MemoryAuthError(Exception):
 def make_auth_manager_verifier(config: dict) -> Callable[[web.Request], Awaitable[str]]:
     """Build a verifier from the frozen server's own ``AuthManager``.
 
-    The OTA route authenticates with ``AuthManager``'s client_id + device_id + HMAC token, and the
+    The OTA route issues ``AuthManager``'s client_id + device_id + HMAC token, and the
     device already holds that token from bootstrap, so the memory surface reuses it. The Vision route
     uses a *different* mechanism (``core.utils.auth`` JWT/AES, including a web-test-client special
     case); copying that here would have been a plausible-looking mistake.
@@ -54,6 +54,14 @@ def make_auth_manager_verifier(config: dict) -> Callable[[web.Request], Awaitabl
     def verifier_factory() -> Callable[[web.Request], Awaitable[str]]:  # pragma: no cover - server env
         from core.auth import AuthManager  # type: ignore
 
+        # Match the frozen OTA/WebSocket constructors and their resolved startup secret.
+        # Missing configuration must fail at wiring time, not turn every valid token into a refusal.
+        server_config = config["server"]
+        manager = AuthManager(
+            secret_key=server_config["auth_key"],
+            expire_seconds=server_config.get("auth", {}).get("expire_seconds"),
+        )
+
         async def verify(request: web.Request) -> str:
             client_id = request.headers.get("Client-Id", "")
             device_id = request.headers.get("Device-Id", "")
@@ -61,15 +69,10 @@ def make_auth_manager_verifier(config: dict) -> Callable[[web.Request], Awaitabl
             token = auth[7:] if auth.startswith("Bearer ") else auth
             if not token or not client_id or not device_id:
                 raise MemoryAuthError("token, Client-Id and Device-Id are required")
-            manager = AuthManager(config)
-            payload = manager.verify_token(token, client_id, device_id)
-            if not payload:
+            if not manager.verify_token(token, client_id, device_id):
                 raise MemoryAuthError("token was not accepted")
-            # The token's own subject must agree with the device the request claims to be. Without this
-            # check a valid token for device A could be presented alongside device B's header.
-            subject = payload.get("device_id") if isinstance(payload, dict) else None
-            if subject and subject != device_id:
-                raise MemoryAuthError("token subject does not match the presented device")
+            # verify_token returns bool. Its HMAC covers client_id, device_id and timestamp;
+            # successful verification binds this header to the token without a payload API.
             return device_id
 
         return verify

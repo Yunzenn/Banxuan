@@ -7,10 +7,10 @@ function Invoke-Adb([string[]]$Arguments) {
     return $result
 }
 foreach ($apk in @('../app/build/outputs/apk/debug/app-debug.apk', '../app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')) {
-    Invoke-Adb @('install', '-r', (Join-Path $PSScriptRoot $apk)) | Out-Null
+    Invoke-Adb @('install', '-r', '-t', (Join-Path $PSScriptRoot $apk)) | Out-Null
 }
 function Read-Identity {
-    $testOutput = Invoke-Adb @('shell', 'am', 'instrument', '-w', '-r', '-e', 'class', 'com.aiwatch.probe.IdentityProcessTest', 'com.aiwatch.probe.test/androidx.test.runner.AndroidJUnitRunner')
+    $testOutput = Invoke-Adb @('shell', 'am', 'instrument', '-w', '-r', '-e', 'class', 'com.aiwatch.probe.IdentityProcessTest', 'com.aiwatch.probe.test/com.aiwatch.probe.ProductTestRunner')
     if (($testOutput -join "`n") -notmatch 'OK \(1 test\)') { throw "Instrumentation did not pass: $testOutput" }
     return @(Invoke-Adb @('shell', 'run-as', 'com.aiwatch.probe', 'cat', 'files/identity-process-evidence.txt'))
 }

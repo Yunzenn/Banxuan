@@ -14,7 +14,7 @@ android {
         targetSdk = 35
         versionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
         versionName = providers.gradleProperty("VERSION_NAME").get()
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.aiwatch.probe.ProductTestRunner"
     }
 
     compileOptions {
@@ -34,6 +34,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("androidx.core:core:1.15.0")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("junit:junit:4.13.2")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

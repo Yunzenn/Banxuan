@@ -1,0 +1,106 @@
+frozen auth: 788f5301fdd60cc3a8ef74025bfeece9b82b94ce; source SHA256: 27b0af12c591c97a532ccf95ee7c28c088482ea942faf749ef8c6670ac651e90
+test_client_and_device_mismatch_are_rejected (__main__.MemoryRealAuthTest.test_client_and_device_mismatch_are_rejected) ... ok
+test_configured_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_configured_upstream_expiry_is_preserved) ... ERROR
+test_default_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_default_upstream_expiry_is_preserved) ... ERROR
+test_existing_bare_token_form_remains_supported (__main__.MemoryRealAuthTest.test_existing_bare_token_form_remains_supported) ... ERROR
+test_invalid_token_is_rejected (__main__.MemoryRealAuthTest.test_invalid_token_is_rejected) ... ok
+test_missing_or_empty_required_headers_are_rejected (__main__.MemoryRealAuthTest.test_missing_or_empty_required_headers_are_rejected) ... ok
+positive control: frozen upstream verification PASS
+test_valid_upstream_token_is_accepted_as_bound_device (__main__.MemoryRealAuthTest.test_valid_upstream_token_is_accepted_as_bound_device) ... ERROR
+
+======================================================================
+ERROR: test_configured_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_configured_upstream_expiry_is_preserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 80, in test_configured_upstream_expiry_is_preserved
+    self.assertEqual("device-A", self.verify(headers))
+                                 ~~~~~~~~~~~^^^^^^^^^
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 45, in verify
+    return asyncio.run(make_auth_manager_verifier(self.config)(SimpleNamespace(headers=headers)))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\AIwatch\evidence\server\xiaozhi_memory_handler.py", line 67, in verify
+    raise MemoryAuthError("token was not accepted")
+xiaozhi_memory_handler.MemoryAuthError: token was not accepted
+
+======================================================================
+ERROR: test_default_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_default_upstream_expiry_is_preserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 91, in test_default_upstream_expiry_is_preserved
+    self.assertEqual("device-A", self.verify({**self.headers, "Authorization": f"Bearer {token}"}))
+                                 ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 45, in verify
+    return asyncio.run(make_auth_manager_verifier(self.config)(SimpleNamespace(headers=headers)))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\AIwatch\evidence\server\xiaozhi_memory_handler.py", line 67, in verify
+    raise MemoryAuthError("token was not accepted")
+xiaozhi_memory_handler.MemoryAuthError: token was not accepted
+
+======================================================================
+ERROR: test_existing_bare_token_form_remains_supported (__main__.MemoryRealAuthTest.test_existing_bare_token_form_remains_supported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 94, in test_existing_bare_token_form_remains_supported
+    self.assertEqual("device-A", self.verify({**self.headers, "Authorization": self.token}))
+                                 ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 45, in verify
+    return asyncio.run(make_auth_manager_verifier(self.config)(SimpleNamespace(headers=headers)))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\AIwatch\evidence\server\xiaozhi_memory_handler.py", line 67, in verify
+    raise MemoryAuthError("token was not accepted")
+xiaozhi_memory_handler.MemoryAuthError: token was not accepted
+
+======================================================================
+ERROR: test_valid_upstream_token_is_accepted_as_bound_device (__main__.MemoryRealAuthTest.test_valid_upstream_token_is_accepted_as_bound_device)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 50, in test_valid_upstream_token_is_accepted_as_bound_device
+    self.assertEqual("device-A", self.verify(self.headers))
+                                 ~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\AIwatch\evidence\tests\test_memory_real_auth.py", line 45, in verify
+    return asyncio.run(make_auth_manager_verifier(self.config)(SimpleNamespace(headers=headers)))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\miniconda\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\AIwatch\evidence\server\xiaozhi_memory_handler.py", line 67, in verify
+    raise MemoryAuthError("token was not accepted")
+xiaozhi_memory_handler.MemoryAuthError: token was not accepted
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.099s
+
+FAILED (errors=4)

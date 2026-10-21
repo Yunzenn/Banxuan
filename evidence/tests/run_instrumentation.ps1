@@ -1,17 +1,9 @@
 # Per-method instrumentation runner for the memory trust surface.
 #
-# WHY ONE METHOD PER PROCESS
-# A whole-class `am instrument` run shares a single process, and static state leaks
-# between methods: MemoryGatewayRegistry, the identity store, and any singleton the
-# screen touches. Two suites depend on that isolation, so do not "optimise" this
-# into one class run:
-#
-#   * aDamagedIdentityMakesTheSurfaceUnavailableWithoutInventingASubject corrupts
-#     device-identity.bin. DeviceIdentityStore caches what it read, so the corruption
-#     is only observable by a process that has not read it yet. In a shared process an
-#     earlier method warms that cache and the test becomes a tautology.
-#   * the Cubism smoke harness was already changed to per-method processes for the
-#     same class of reason (see HANDOFF.md).
+# HISTORICAL / DIAGNOSTIC RUNNER
+# Product tests now use an owned identity fixture and can share one instrumentation process.
+# Use run_product_suite.ps1 for the canonical product gate. This runner remains useful for
+# diagnosing a specific method; process-per-method is still allowed for third-party Cubism smoke.
 #
 # WHY THE SERIAL IS EXPLICIT
 # More than one device can be attached at once (a workspace AVD plus the Lenovo
@@ -41,11 +33,12 @@ param(
     [string]$TestPkg,
     [string]$Serial = 'emulator-5554',
     [string]$Log = 'instrument.log',
-    [string]$Adb
+    [string]$Adb,
+    [string]$Runner = 'com.aiwatch.probe.ProductTestRunner'
 )
 
 $ErrorActionPreference = 'Continue'
-$runner = 'androidx.test.runner.AndroidJUnitRunner'
+$runner = $Runner
 
 # Resolve adb the way the build does: local.properties, then the environment, then PATH.
 if (-not $Adb) {

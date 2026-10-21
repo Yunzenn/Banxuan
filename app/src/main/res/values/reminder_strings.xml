@@ -1,0 +1,30 @@
+<resources>
+    <string name="reminder_title">本地提醒</string>
+    <string name="reminder_intro">把小事交给本机通知。系统可能延后，不是准点闹钟。</string>
+    <string name="reminder_help_title">使用说明与限制</string>
+    <string name="reminder_help">提醒仅保存在本机，不需要服务器，也不是 AI 主动陪伴。当前为应用私有文件，未做应用层加密，请勿填写敏感信息。受系统省电策略影响，可能晚于所选时间；不适合紧急、医疗或必须准点的事项。强制停止应用后请重新打开。通知已提交不代表已读。</string>
+    <string name="reminder_content_hint">提醒我什么（最多 160 字，不要填敏感信息）</string>
+    <string name="reminder_permission">开启 / 检查通知权限</string>
+    <string name="reminder_settings">打开系统通知设置</string>
+    <string name="reminder_permission_granted">已允许通知，请再次确认并保存提醒。</string>
+    <string name="reminder_create">保存提醒</string>
+    <string name="reminder_confirm">确认创建本地提醒？</string>
+    <string name="reminder_saved">已保存，等待系统调度；可能延后</string>
+    <string name="reminder_list">我的提醒</string>
+    <string name="reminder_empty">还没有提醒，写下一件想记住的小事吧。</string>
+    <string name="reminder_invalid">内容需为 1–160 字，时间需在未来一年内；本地记录损坏时不会自动清空。</string>
+    <string name="reminder_permission_blocked">无法保存：请检查通知权限，或是否已达到 32 条待提醒上限。</string>
+    <string name="reminder_error">操作未确认完成，请重新打开查看记录。不会自动重复创建；存储出错不会清空原记录。</string>
+    <string name="reminder_cancel">取消提醒 / 撤下通知</string>
+    <string name="reminder_cancel_confirm">确定取消这条提醒并撤下它的通知？</string>
+    <string name="reminder_cancelled">已取消</string>
+    <string name="reminder_pending">待提醒（系统可能延后）</string>
+    <string name="reminder_posted">已提交给通知系统（不代表已读）</string>
+    <string name="reminder_unknown">发送结果未确认，不自动重发</string>
+    <string name="reminder_blocked">通知被关闭，未发送</string>
+    <string name="reminder_failed">调度或发送失败，未自动重试</string>
+    <string name="reminder_private">打开伴星查看本地提醒</string>
+    <item name="reminder_content" type="id" />
+    <item name="reminder_when" type="id" />
+    <item name="reminder_save" type="id" />
+</resources>

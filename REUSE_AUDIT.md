@@ -1,5 +1,51 @@
 # Reuse Audit — Evidence Freeze
 
+## User-confirmed calendar event handoff — 2026-10-21
+
+DIRECT platform API reuse: `Intent.ACTION_INSERT` with
+`CalendarContract.Events.CONTENT_URI`, `EXTRA_EVENT_BEGIN_TIME`, and
+`EXTRA_EVENT_END_TIME`. The system calendar owns the editable event form and final save.
+Banxuan requests confirmation before dispatch, limits title/time/duration, and reports HANDOFF only.
+It does not query or write the calendar provider and does not request READ_CALENDAR/WRITE_CALENDAR.
+Package visibility is scoped to the Calendar INSERT intent signature; no QUERY_ALL_PACKAGES.
+No third-party source, dependency, calendar database, or custom sync engine is introduced.
+Reference: https://developer.android.com/guide/components/intents-common
+
+## System alarm user tool — 2026-10-17
+
+DIRECT platform API reuse: Android `AlarmClock.ACTION_SET_ALARM`, `ACTION_SHOW_ALARMS`,
+`EXTRA_HOUR`, `EXTRA_MINUTES`, `EXTRA_SKIP_UI`, standard `TimePickerDialog`.
+Reference: https://developer.android.com/reference/android/provider/AlarmClock
+No source copied, new dependency, custom alarm database/scheduler/player or exact-alarm permission.
+Reuses our existing typed policy, confirmation, capability detection and bounded audit.
+`EXTRA_SKIP_UI=false` requests UI but does not guarantee a second confirmation: the clock may
+create/enable immediately. Banxuan asks consent BEFORE dispatch; HANDOFF is not creation proof.
+Ambiguous dispatch exceptions return UNKNOWN without automatic retry (also for timer/app handoff).
+This extends the existing native-tool boundary, not Accessibility or autonomous agent execution.
+
+## G3 Native user tools — 2026-10-09
+
+REFERENCE SEMANTICS ONLY: `stixez/droid-mcp@aeaa5b9e8e96f56ef64a7ca23d0726585f7b1103`,
+`/LICENSE` Apache-2.0; tree has no NOTICE. Read actual `SetVolumeTool.execute`
+(`droid-mcp-settings/src/main/kotlin/io/droidmcp/settings/SetVolumeTool.kt`),
+`LaunchAppTool.execute` (`droid-mcp-apps/src/main/kotlin/io/droidmcp/apps/LaunchAppTool.kt`),
+`CreateTimerTool.execute` (`droid-mcp-alarms/src/main/kotlin/io/droidmcp/alarms/CreateTimerTool.kt`).
+No source copied or MCP dependency introduced: DIRECT reuse of Android AudioManager,
+PackageManager/launcher Intent and AlarmClock.ACTION_SET_TIMER. Our narrow policy adds typed
+input validation, media-only readback, explicit user confirmation, bounded session audit and
+honest HANDOFF status. Clock UI is kept visible; no silent timer creation or blind mutation retry.
+No Ktor/Netty/SSE, new compression/parser, shell or accessibility automation.
+
+## Product emulator gate — 2026-10-09
+
+DIRECT tool reuse: official Android SDK `sdkmanager`, `avdmanager`, emulator and ADB.
+The workflow provisions `system-images;android-28;google_apis;x86_64` and reuses the existing
+Banxuan whole-run product script. No third-party emulator action or copied provisioning engine.
+Existing checkout/setup-java/setup-gradle/upload-artifact actions are unchanged.
+SDK tools stay on ephemeral CI runners, not in the APK or Git; build logs record installation
+versions (API/image identity is fixed, emulator package revision is not claimed frozen).
+Reference: https://developer.android.com/studio/run/emulator-commandline
+
 审计日期：2026-09-25。所有证据均固定到 commit SHA；后续升级必须重新审计差异。
 
 Daylight UI 补充（2026-09-30）：直接复用 Android 原生浅色 Material 控件及 Google

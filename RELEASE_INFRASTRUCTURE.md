@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Public APK remains **0.4.1-preview, Debug signed**. Its Release/tag/assets are unchanged.
+- Public APK remains **0.4.2-preview, Debug signed**. Its Release/tag/assets are unchanged.
 - Single version source already exists in `gradle.properties`; Gradle and packaging both read it.
 - Tag-triggered workflow and signed-APK provenance checks are implemented; production execution **PENDING**.
 - Owner confirmed no long-term keystore yet. `release/signing-certificate.sha256` is **UNCONFIGURED**.
@@ -56,7 +56,7 @@ removed on shell exit and never uploaded. The runner is ephemeral; there is no s
    missing certificate configuration, wrong signer, debuggable APK or inconsistent bundle metadata.
 7. Approve the release deployment only after reviewing CI, unsigned artifact source and environment policy.
 
-Do not modify `v0.4.0-preview` or `v0.4.1-preview`. On upload/network failure, inspect the existing draft
+Do not modify `v0.4.0-preview`, `v0.4.1-preview` or the current `v0.4.2-preview`. On upload/network failure, inspect the existing draft
 before doing anything else. Re-running fails closed on an existing draft/release: no blind upload retries
 or automatic asset replacement. Correct/recover manually with reviewed provenance, or choose a new version.
 

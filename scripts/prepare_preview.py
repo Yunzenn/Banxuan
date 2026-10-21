@@ -99,8 +99,8 @@ def main():
         "certificateSha256": signer,
         "tag": args.tag,
         "upgradeCompatibility": "NOT YET VERIFIED",
-        "scope": "Daylight and Adaptive Round 1; W0-W4 software evidence; no deployed memory authority",
-        "notValidated": ["real backend voice", "real phone", "CD12Max", "full visual acceptance"],
+        "scope": "Daylight and Adaptive Round 1; W0-W4; memory authentication/isolation; native user-confirmed device tools; no deployed memory authority",
+        "notValidated": ["real backend voice", "real phone", "CD12Max", "full visual acceptance", "timer completion", "arbitrary third-party app completion", "Accessibility", "background proactive reminders"],
     }
     (args.out / "BUILD_INFO.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     if certificate:

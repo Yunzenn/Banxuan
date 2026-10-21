@@ -1,11 +1,16 @@
-# Banxuan Debug Preview 0.4.1
+# Banxuan Debug Preview 0.4.2
 
-**[下载新版 APK](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.1-preview/banxuan-0.4.1-preview.apk)** · [安装说明](INSTALL.md)
+**[下载新版 APK](https://github.com/Yunzenn/Banxuan/releases/download/v0.4.2-preview/banxuan-0.4.2-preview.apk)** · [安装说明](INSTALL.md)
 
-标签 v0.4.1-preview；versionName 0.4.1-preview；versionCode 5；minSdk 28。
+标签 v0.4.2-preview；versionName 0.4.2-preview；versionCode 6；minSdk 28。
 精确构建提交和 APK SHA-256 以本 Release 的 BUILD_INFO.json / SHA256SUMS.txt 为准。
 
 ## 更新内容
+
+- 设置 → 设备操作：用户确认后调节媒体音量、打开应用、交给系统时钟设置计时器。
+- 音量通过 Android 读回验证；应用/计时器仅表示交接，不冒充最终任务完成。不接受语音工具指令。
+- 包含 Memory 认证修复、测试隔离与模拟器 CI。Native Operator 本地/Hosted API28 46/46，app JVM 41/41；见 evidence/G3_NATIVE_OPERATOR.md。
+- Accessibility、后台主动提醒、实际计时完成与第三方应用行为仍未验证。
 
 - Daylight 浅色 Home / Settings / Memory 和静态角色。
 - Adaptive Round 1：按实际窗口分配角色、字幕和 PTT，保留字体大小。
@@ -28,4 +33,4 @@
 只提升成功 main CI 构建的原始已检查 APK，不二次打包或重签名。
 随包保留 BUILD_INFO、SHA256SUMS、badging、signature 和许可；核对构建提交与 tag。
 APK 包含 Concentus 许可，自有源码许可见 LICENSE。
-旧 v0.4.0-preview 标签和附件保持不变。
+旧 v0.4.0-preview / v0.4.1-preview 标签和附件保持不变。

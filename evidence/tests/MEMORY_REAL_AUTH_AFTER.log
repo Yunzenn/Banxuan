@@ -1,0 +1,15 @@
+frozen auth: 788f5301fdd60cc3a8ef74025bfeece9b82b94ce; source SHA256: 27b0af12c591c97a532ccf95ee7c28c088482ea942faf749ef8c6670ac651e90
+test_client_and_device_mismatch_are_rejected (__main__.MemoryRealAuthTest.test_client_and_device_mismatch_are_rejected) ... ok
+test_configured_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_configured_upstream_expiry_is_preserved) ... ok
+test_default_upstream_expiry_is_preserved (__main__.MemoryRealAuthTest.test_default_upstream_expiry_is_preserved) ... ok
+test_existing_bare_token_form_remains_supported (__main__.MemoryRealAuthTest.test_existing_bare_token_form_remains_supported) ... ok
+test_invalid_token_is_rejected (__main__.MemoryRealAuthTest.test_invalid_token_is_rejected) ... ok
+test_missing_or_empty_required_headers_are_rejected (__main__.MemoryRealAuthTest.test_missing_or_empty_required_headers_are_rejected) ... ok
+positive control: frozen upstream verification PASS
+same token and headers: Memory adapter PASS
+test_valid_upstream_token_is_accepted_as_bound_device (__main__.MemoryRealAuthTest.test_valid_upstream_token_is_accepted_as_bound_device) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.035s
+
+OK

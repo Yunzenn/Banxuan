@@ -1,0 +1,2 @@
+PASS: two different Android processes returned the same persisted identity. No reset or clear-data performed.
+Process evidence: first PID=6793, second PID=6839; device identifiers redacted.
