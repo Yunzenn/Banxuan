@@ -7,11 +7,21 @@ sealed interface DeviceAction {
     data class SetTimer(val seconds: Int) : DeviceAction
     data class SetAlarm(val hour: Int, val minute: Int) : DeviceAction
     data object ShowAlarms : DeviceAction
+    data class CreateCalendarEvent(val title: String, val startAtEpochMs: Long, val durationMinutes: Int) : DeviceAction
 }
 
 enum class ActionStatus { VERIFIED, HANDOFF, UNAVAILABLE, DENIED, INVALID, FAILED, UNVERIFIED, UNKNOWN }
 data class ActionResult(val status: ActionStatus)
 data class ActionAudit(val action: DeviceAction, val status: ActionStatus, val timestampMs: Long)
+
+internal fun isValidCalendarEvent(action: DeviceAction.CreateCalendarEvent, nowMs: Long): Boolean {
+    val title = action.title.trim()
+    val endAt = runCatching {
+        Math.addExact(action.startAtEpochMs, Math.multiplyExact(action.durationMinutes.toLong(), 60_000L))
+    }.getOrNull()
+    return title.isNotEmpty() && title.length <= 80 && title.none(Char::isISOControl) &&
+        action.startAtEpochMs > nowMs && action.durationMinutes in 1..1440 && endAt != null
+}
 
 interface DeviceActionPort {
     fun mediaRange(): IntRange?
@@ -24,6 +34,8 @@ interface DeviceActionPort {
     fun openAlarm(hour: Int, minute: Int)
     fun canShowAlarms(): Boolean
     fun showAlarms()
+    fun canCreateCalendarEvent(): Boolean
+    fun openCalendarEvent(title: String, startAtEpochMs: Long, endAtEpochMs: Long)
 }
 
 /** Small testable policy layer; platform adapters own capabilities and permission failures. */
@@ -61,6 +73,17 @@ class DeviceOperator(private val port: DeviceActionPort, private val clock: () -
                 DeviceAction.ShowAlarms -> when {
                     !port.canShowAlarms() -> ActionStatus.UNAVAILABLE
                     else -> handoff { port.showAlarms() }
+                }
+                is DeviceAction.CreateCalendarEvent -> {
+                    val title = action.title.trim()
+                    val endAt = runCatching {
+                        Math.addExact(action.startAtEpochMs, Math.multiplyExact(action.durationMinutes.toLong(), 60_000L))
+                    }.getOrNull()
+                    when {
+                        !isValidCalendarEvent(action, clock()) -> ActionStatus.INVALID
+                        !port.canCreateCalendarEvent() -> ActionStatus.UNAVAILABLE
+                        else -> handoff { port.openCalendarEvent(title, action.startAtEpochMs, checkNotNull(endAt)) }
+                    }
                 }
             }
         } catch (_: SecurityException) { ActionStatus.DENIED }

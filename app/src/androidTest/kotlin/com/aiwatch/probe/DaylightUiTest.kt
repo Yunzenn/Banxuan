@@ -58,7 +58,10 @@ class DaylightUiTest {
                     assertTrue("control is hidden", control.getGlobalVisibleRect(bounds))
                     assertEquals("control clipped vertically", control.height, bounds.height())
                 }
-                assertTrue("stage lost its height", stage.height >= 60 * density)
+                assertTrue("stage lost its height: stage=${stage.height}px, density=$density, " +
+                    "home=${activity.window.decorView.width}x${activity.window.decorView.height}px, " +
+                    "visibleFrame=${activity.window.decorView.rootView.height}px",
+                    stage.height >= 60 * density)
             }
         } finally {
             instrumentation.runOnMainSync { activity.finish() }

@@ -12,6 +12,8 @@ import com.aiwatch.probe.conversation.ConversationState
 import com.aiwatch.probe.conversation.MessageItem
 import com.aiwatch.probe.product.SettingsActivity
 import com.aiwatch.probe.voice.XiaozhiVoiceSession
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,22 +46,21 @@ class CompanionActivity : Activity() {
 
     /** Test double / no-endpoint demo, selected by [EXTRA_SCRIPTED_CONVERSATION]. */
     private var scripted: ConversationController? = null
+    private var compactWindowMode: Boolean? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
 
         // Decor size is the actual window, including bars: using content height here would oscillate
-        // across the threshold as bars appear/disappear. Re-evaluate when the window is resized.
+        // across the threshold as bars appear/disappear. Re-evaluate on resize and after focus is
+        // acquired/restored; Android can reset legacy system-UI flags during window transitions.
         window.decorView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
-            val compact = view.height / resources.displayMetrics.density <= 300
-            val immersiveMask = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            // Preserve Daylight's light status/navigation icon flags and any unrelated window policy.
-            val flags = (view.systemUiVisibility and immersiveMask.inv()) or
-                (if (compact) immersiveMask else 0)
-            if (view.systemUiVisibility != flags) view.systemUiVisibility = flags
+            applyCompactWindowPolicy(view)
         }
+        // Apply the initial layout policy before content is measured; otherwise a compact
+        // window can be permanently measured inside the visible system-bar insets.
+        applyCompactWindowPolicy(window.decorView, force = true)
 
         home = CompanionHomeView(this)
         setContentView(home)
@@ -110,6 +111,28 @@ class CompanionActivity : Activity() {
         scripted?.cancel()
         home.detach()
         super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) window.decorView.post { applyCompactWindowPolicy(window.decorView, force = true) }
+    }
+
+    private fun applyCompactWindowPolicy(view: android.view.View, force: Boolean = false) {
+        val heightDp = if (view.height > 0) view.height / resources.displayMetrics.density
+            else resources.configuration.screenHeightDp.toFloat()
+        val compact = heightDp <= 300
+        if (!force && compactWindowMode == compact) return
+        compactWindowMode = compact
+
+        // Use AndroidX's cross-version controller instead of maintaining legacy system-UI flags.
+        // Transient bars remain available by swipe, while compact layouts reclaim the full window.
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.systemBarsBehavior =
+            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        WindowCompat.setDecorFitsSystemWindows(window, !compact)
+        if (compact) controller.hide(WindowInsetsCompat.Type.systemBars())
+        else controller.show(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroy() {

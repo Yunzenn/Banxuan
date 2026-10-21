@@ -13,6 +13,10 @@
         <intent><action android:name="android.intent.action.SET_TIMER" /></intent>
         <intent><action android:name="android.intent.action.SET_ALARM" /></intent>
         <intent><action android:name="android.intent.action.SHOW_ALARMS" /></intent>
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+            <data android:scheme="content" android:host="com.android.calendar" />
+        </intent>
     </queries>
 
     <application
