@@ -21,7 +21,10 @@ try {
             "CELL ${w}x${h} fontScale=$scale" | Tee-Object -FilePath $Log -Append
             & $Adb -s $Serial shell wm size | Tee-Object -FilePath $Log -Append
             & $Adb -s $Serial shell wm density | Tee-Object -FilePath $Log -Append
-            $output = & $Adb -s $Serial shell am instrument -w -e class com.aiwatch.probe.AdaptiveWindowTest -e expectedFontScale $scale -e expectedWidthDp $w -e expectedHeightDp $h com.aiwatch.probe.test/androidx.test.runner.AndroidJUnitRunner 2>&1
+            # ProductTestRunner installs the test-only composition root required by instrumentation tests.
+            $output = & $Adb -s $Serial shell am instrument -w -r -e class com.aiwatch.probe.AdaptiveWindowTest `
+                -e expectedFontScale $scale -e expectedWidthDp $w -e expectedHeightDp $h `
+                com.aiwatch.probe.test/com.aiwatch.probe.ProductTestRunner 2>&1
             $output | Tee-Object -FilePath $Log -Append
             $passed = ($output | Out-String) -match 'OK \(1 test\)'
             $results += $passed

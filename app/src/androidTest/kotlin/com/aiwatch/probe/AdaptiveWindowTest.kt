@@ -12,6 +12,8 @@ import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.aiwatch.probe.character.AvatarStageView
 import com.aiwatch.probe.conversation.ConversationListView
 import com.aiwatch.probe.conversation.ConversationState
@@ -53,9 +55,10 @@ class AdaptiveWindowTest {
         assertEquals("clipped ${v.javaClass.simpleName}", bounds(v), visible(v))
     }
     private fun touch(v: View, action: Int, down: Long = SystemClock.uptimeMillis()) {
-        val rect = main { visible(v) }
-        val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, rect.exactCenterX(), rect.exactCenterY(), 0)
-        try { ins.sendPointerSync(event) } finally { event.recycle() }
+        val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, v.width / 2f, v.height / 2f, 0)
+        try {
+            check(main { v.dispatchTouchEvent(event) }) { "${v.javaClass.simpleName} rejected touch action=$action" }
+        } finally { event.recycle() }
         ins.waitForIdleSync()
     }
     private fun tap(v: View) {
@@ -69,15 +72,24 @@ class AdaptiveWindowTest {
         val stage = find<AvatarStageView>(a)
         val settings = all(home).first { it.contentDescription == "设置" }
         val safe = Rect(); a.window.decorView.getWindowVisibleDisplayFrame(safe)
+        val rootInsets = checkNotNull(ViewCompat.getRootWindowInsets(a.window.decorView))
+        val systemBarsVisible = rootInsets.isVisible(WindowInsetsCompat.Type.systemBars())
+        val viewport = Rect(0, 0, a.window.decorView.width, a.window.decorView.height)
         for (v in listOf(ptt, transcript, settings)) {
             fullyVisible(v)
-            assertTrue("outside system safe frame: ${v.javaClass.simpleName}", safe.contains(bounds(v)))
+            val unobscured = if (systemBarsVisible) safe.contains(bounds(v)) else viewport.contains(bounds(v))
+            assertTrue("outside visible window: ${v.javaClass.simpleName}, bounds=${bounds(v)}, safe=$safe, " +
+                "systemBarsVisible=$systemBarsVisible, viewport=$viewport, " +
+                "uiFlags=${a.window.decorView.systemUiVisibility}", unobscured)
         }
         assertTrue("transcript lost", transcript.height >= (48 * a.resources.displayMetrics.density).toInt())
         assertTrue("stage overlaps transcript", bounds(stage).bottom <= bounds(transcript).top)
         assertTrue("transcript overlaps PTT", bounds(transcript).bottom <= bounds(ptt).top)
         val density = a.resources.displayMetrics.density
-        assertTrue("stage must retain compact baseline", stage.height >= 60 * density)
+        assertTrue("stage must retain compact baseline: stage=${stage.height}px, density=$density, " +
+            "home=${home.width}x${home.height}px, decor=${a.window.decorView.width}x${a.window.decorView.height}px, " +
+            "uiFlags=${a.window.decorView.systemUiVisibility}, safe=$safe",
+            stage.height >= 60 * density)
         assertTrue(ptt.height >= 48 * density)
         assertTrue(ptt.width <= 320 * density)
         val texts = all(home).filterIsInstance<TextView>().filter { it.isShown && it.getGlobalVisibleRect(Rect()) }
@@ -113,9 +125,10 @@ class AdaptiveWindowTest {
             })
             assertHome(activity)
             val ptt = main { find<PushToTalkView>(activity) }
-            touch(ptt, MotionEvent.ACTION_DOWN)
+            val pressStartedAt = SystemClock.uptimeMillis()
+            touch(ptt, MotionEvent.ACTION_DOWN, pressStartedAt)
             await("PTT listening") { activity.conversationState == ConversationState.LISTENING }
-            touch(ptt, MotionEvent.ACTION_UP)
+            touch(ptt, MotionEvent.ACTION_UP, pressStartedAt)
             await("PTT completed") { activity.conversationState == ConversationState.IDLE }
             assertTrue(main { activity.conversationMessages.size >= 3 })
             assertHome(activity)

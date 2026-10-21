@@ -11,6 +11,9 @@ class DeviceOperatorTest {
         var denied = false
         var actual = 3
         var failDispatch = false
+        var calendarTitle: String? = null
+        var calendarStart: Long? = null
+        var calendarEnd: Long? = null
         override fun mediaRange() = if (available) 0..10 else null
         override fun setMediaVolume(level: Int): Int { calls++; if (denied) throw SecurityException(); return actual }
         override fun canLaunch(packageName: String) = available
@@ -21,6 +24,10 @@ class DeviceOperatorTest {
         override fun openAlarm(hour: Int, minute: Int) { dispatch() }
         override fun canShowAlarms() = available
         override fun showAlarms() { dispatch() }
+        override fun canCreateCalendarEvent() = available
+        override fun openCalendarEvent(title: String, startAtEpochMs: Long, endAtEpochMs: Long) {
+            calendarTitle = title; calendarStart = startAtEpochMs; calendarEnd = endAtEpochMs; dispatch()
+        }
         private fun dispatch() { calls++; if (denied) throw SecurityException(); if (failDispatch) error("uncertain IPC") }
     }
     @Test fun volumeReadsBackBeforeSuccess() {
@@ -40,7 +47,8 @@ class DeviceOperatorTest {
     @Test fun capabilitiesAreCheckedBeforeExecution() {
         val port = Port().apply { available = false }; val operator = DeviceOperator(port)
         listOf(DeviceAction.SetMediaVolume(3), DeviceAction.LaunchApp("example.app"), DeviceAction.SetTimer(60),
-            DeviceAction.SetAlarm(7, 30), DeviceAction.ShowAlarms).forEach {
+            DeviceAction.SetAlarm(7, 30), DeviceAction.ShowAlarms,
+            DeviceAction.CreateCalendarEvent("Future", System.currentTimeMillis() + 60_000, 30)).forEach {
             assertEquals(ActionStatus.UNAVAILABLE, operator.execute(it).status)
         }
         assertEquals(0, port.calls)
@@ -76,6 +84,8 @@ class DeviceOperatorTest {
             override fun openAlarm(hour: Int, minute: Int) = Unit
             override fun canShowAlarms() = false
             override fun showAlarms() = Unit
+            override fun canCreateCalendarEvent() = false
+            override fun openCalendarEvent(title: String, startAtEpochMs: Long, endAtEpochMs: Long) = Unit
         }
         assertEquals(ActionStatus.FAILED, DeviceOperator(port).execute(DeviceAction.SetMediaVolume(3)).status)
         assertEquals(1, calls)
@@ -97,11 +107,43 @@ class DeviceOperatorTest {
     }
     @Test fun uncertainIntentDispatchIsNeverRetriedOrMisreportedAsFailure() {
         for (action in listOf(DeviceAction.SetAlarm(7, 30), DeviceAction.ShowAlarms,
-            DeviceAction.LaunchApp("example.app"), DeviceAction.SetTimer(60))) {
+            DeviceAction.LaunchApp("example.app"), DeviceAction.SetTimer(60),
+            DeviceAction.CreateCalendarEvent("Checkup", System.currentTimeMillis() + 60_000, 30))) {
             val port = Port().apply { failDispatch = true }; val operator = DeviceOperator(port)
             assertEquals(ActionStatus.UNKNOWN, operator.execute(action).status)
             assertEquals(1, port.calls)
             assertEquals(ActionStatus.UNKNOWN, operator.audit().single().status)
         }
+    }
+
+    @Test fun calendarEventRequiresValidTitleFutureTimeAndBoundedDuration() {
+        val now = 10_000L
+        val port = Port()
+        val operator = DeviceOperator(port) { now }
+        val invalid = listOf(
+            DeviceAction.CreateCalendarEvent("  ", now + 60_000, 30),
+            DeviceAction.CreateCalendarEvent("x\ny", now + 60_000, 30),
+            DeviceAction.CreateCalendarEvent("x".repeat(81), now + 60_000, 30),
+            DeviceAction.CreateCalendarEvent("Past", now, 30),
+            DeviceAction.CreateCalendarEvent("Past", now - 1, 30),
+            DeviceAction.CreateCalendarEvent("Zero", now + 60_000, 0),
+            DeviceAction.CreateCalendarEvent("Long", now + 60_000, 1441),
+            DeviceAction.CreateCalendarEvent("Overflow", Long.MAX_VALUE - 1, 1)
+        )
+        invalid.forEach { assertEquals(ActionStatus.INVALID, operator.execute(it).status) }
+        assertEquals(0, port.calls)
+    }
+
+    @Test fun calendarEventTrimsTitleAndHandsOffExactlyOnceWithEndTime() {
+        val now = 10_000L
+        val port = Port()
+        val operator = DeviceOperator(port) { now }
+        val action = DeviceAction.CreateCalendarEvent("  Dentist  ", now + 120_000, 45)
+        assertEquals(ActionStatus.HANDOFF, operator.execute(action).status)
+        assertEquals(1, port.calls)
+        assertEquals("Dentist", port.calendarTitle)
+        assertEquals(now + 120_000, port.calendarStart)
+        assertEquals(now + 120_000 + 45 * 60_000L, port.calendarEnd)
+        assertEquals(ActionAudit(action, ActionStatus.HANDOFF, now), operator.audit().single())
     }
 }

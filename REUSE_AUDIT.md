@@ -1,5 +1,16 @@
 # Reuse Audit — Evidence Freeze
 
+## User-confirmed calendar event handoff — 2026-10-21
+
+DIRECT platform API reuse: `Intent.ACTION_INSERT` with
+`CalendarContract.Events.CONTENT_URI`, `EXTRA_EVENT_BEGIN_TIME`, and
+`EXTRA_EVENT_END_TIME`. The system calendar owns the editable event form and final save.
+Banxuan requests confirmation before dispatch, limits title/time/duration, and reports HANDOFF only.
+It does not query or write the calendar provider and does not request READ_CALENDAR/WRITE_CALENDAR.
+Package visibility is scoped to the Calendar INSERT intent signature; no QUERY_ALL_PACKAGES.
+No third-party source, dependency, calendar database, or custom sync engine is introduced.
+Reference: https://developer.android.com/guide/components/intents-common
+
 ## System alarm user tool — 2026-10-17
 
 DIRECT platform API reuse: Android `AlarmClock.ACTION_SET_ALARM`, `ACTION_SHOW_ALARMS`,
