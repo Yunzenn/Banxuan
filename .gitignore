@@ -20,3 +20,6 @@ commandlinetools-win.zip
 .kotlin/
 __pycache__/
 *.pyc
+# Signing material must never enter source or artifacts.
+*.jks
+*.keystore

@@ -22,7 +22,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     testOptions.unitTests.all {
-        it.systemProperty("w4.classesDir", layout.buildDirectory.dir("tmp/kotlin-classes/debug").get().asFile.absolutePath)
+        val variant = if (it.name.contains("Release")) "release" else "debug"
+        it.systemProperty("w4.classesDir", layout.buildDirectory.dir("tmp/kotlin-classes/$variant").get().asFile.absolutePath)
     }
 }
 

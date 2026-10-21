@@ -50,6 +50,8 @@ PR/main 继续只生成 Debug 测试包；不自动发布用户版本，不承�
 
 **本轮源码新增（尚未进入公开 0.4.2 APK）：** 设置 → 设备操作 → 添加日程。Banxuan 先征求确认，再把标题和时间预填到系统日历；你可以在日历中修改并保存。应用不读取或直接写入日历、不申请日历读写权限；“已交接”不代表日程已保存。验证范围见 [日历交接报告](evidence/CALENDAR_OPERATOR.md)。
 
+**发布签名状态：** Release Infrastructure 接线仍待同步最新 main 并重新审查。长期 keystore 和受保护 GitHub Environment 尚未配置，因此**当前下载的 0.4.2 仍是 Debug 签名**；不要据此宣称稳定覆盖升级兼容性通过。
+
 ---
 
 ## 这不是什么（先说清楚，能省掉大部分误解）
@@ -118,7 +120,7 @@ W4      单 owner、无绕过、成功不 re-list、不确定结果不盲重试 
 证据：[W3](evidence/tests/W3_VALIDATION.md)、[W4](evidence/tests/W4_VALIDATION.md)。测试环境为 API28 SDK 模拟器，不能扩大为完整视觉审查、参考手机、CD12Max 或云端验收。普通安装没有注入测试数据，默认显示「记忆服务尚未连接」。
 
 历史发布基线：`v0.4.0-preview` → `057030884f2c754a316ac52f7e1a84f75ece39fc`；W4 PR #30、分发 PR #31 均已合并。
-新版 `v0.4.1-preview` 包含已合并的 Adaptive PR #35；精确发布源码、APK 哈希以新版 BUILD_INFO.json 为准。
+新版 `v0.4.2-preview` 包含已合并的设备操作能力；精确发布源码、APK 哈希以对应 Release 的 `BUILD_INFO.json` 为准。
 
 ### 尚未完成的目标设备验收
 
