@@ -114,7 +114,22 @@ class AdaptiveWindowTest {
         var settingsActivity: Activity? = null
         var memoryActivity: Activity? = null
         try {
-            await("layout") { find<PushToTalkView>(activity).width > 0 }
+            // Compact-window policy changes decor fitting and hides the system bars. Wait for the
+            // resulting insets/layout pass to settle before asserting geometry; startActivitySync
+            // can return after the first measure but before that asynchronous window transition.
+            var stableSize: Pair<Int, Int>? = null
+            var stablePasses = 0
+            await("settled layout") {
+                val decor = activity.window.decorView
+                val size = decor.width to decor.height
+                if (size == stableSize && decor.width > 0 && decor.height > 0) stablePasses++
+                else { stableSize = size; stablePasses = 0 }
+                val ptt = find<PushToTalkView>(activity)
+                val transcript = find<ConversationListView>(activity)
+                val settings = all(find<CompanionHomeView>(activity)).firstOrNull { it.contentDescription == "设置" }
+                stablePasses >= 3 && ptt.width > 0 && settings != null &&
+                    listOf(ptt, transcript, settings).all { bounds(it) == visible(it) }
+            }
             assertEquals(expectedScale, activity.resources.configuration.fontScale, .01f)
             val metrics = activity.resources.displayMetrics
             assertEquals(args.getString("expectedWidthDp")!!.toInt(), (metrics.widthPixels / metrics.density).toInt())

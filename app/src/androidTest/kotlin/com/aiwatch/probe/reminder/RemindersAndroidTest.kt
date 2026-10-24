@@ -92,11 +92,20 @@ class RemindersAndroidTest {
         val deadline = android.os.SystemClock.uptimeMillis() + 5000
         var node: android.view.accessibility.AccessibilityNodeInfo? = null
         while (node == null && android.os.SystemClock.uptimeMillis() < deadline) {
-            node = instrumentation.uiAutomation.rootInActiveWindow?.findAccessibilityNodeInfosByText(context.getString(label))?.firstOrNull()
+            val matches = instrumentation.uiAutomation.rootInActiveWindow
+                ?.findAccessibilityNodeInfosByText(context.getString(label)).orEmpty()
+            node = matches.firstNotNullOfOrNull { match ->
+                var candidate: android.view.accessibility.AccessibilityNodeInfo? = match
+                while (candidate != null && (!candidate.isClickable || !candidate.isEnabled)) {
+                    candidate = candidate.parent
+                }
+                candidate
+            }
             if (node == null) android.os.SystemClock.sleep(50)
         }
         assertNotNull("Dialog action must appear", node)
-        assertTrue(checkNotNull(node).performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+        assertTrue("Dialog action must accept accessibility click", checkNotNull(node)
+            .performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
         instrumentation.waitForIdleSync()
     }
     private fun savedDue(activity: ReminderActivity): Long {
