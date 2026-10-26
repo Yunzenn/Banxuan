@@ -12,6 +12,7 @@ interface ReminderPlatform {
     fun notificationsEnabled(): Boolean
     fun schedule(reminder: Reminder)
     fun remove(id: String)
+    fun dismiss(id: String)
     fun post(reminder: Reminder)
 }
 
@@ -43,6 +44,25 @@ class Reminders(private val storage: ReminderStorage, private val platform: Remi
         platform.remove(id)
     }
 
+    /** A notification action can re-arm only a reminder whose original post was confirmed. */
+    @Synchronized fun snooze(id: String): Boolean {
+        val reminder = storage.read().find { it.id == id && it.status == ReminderStatus.POSTED } ?: return false
+        if (storage.read().count { it.status == ReminderStatus.PENDING } >= MAX_PENDING_REMINDERS) return false
+
+        val snoozed = reminder.copy(dueAt = now() + SNOOZE_DELAY_MS, status = ReminderStatus.PENDING)
+        update(snoozed)
+        try {
+            platform.schedule(snoozed)
+        } catch (failure: Exception) {
+            // If AlarmManager accepted the request before an error surfaced, FAILED prevents a
+            // duplicate delivery; the old notification remains available for diagnosis.
+            update(snoozed.copy(status = ReminderStatus.FAILED))
+            throw failure
+        }
+        platform.dismiss(id)
+        return true
+    }
+
     @Synchronized fun deliver(id: String) {
         val reminder = storage.read().find { it.id == id && it.status == ReminderStatus.PENDING } ?: return
         if (reminder.dueAt > now()) { platform.schedule(reminder); return }
@@ -69,4 +89,9 @@ class Reminders(private val storage: ReminderStorage, private val platform: Remi
         }
     }
     private fun update(reminder: Reminder) = storage.write(storage.read().map { if (it.id == reminder.id) reminder else it })
+
+    private companion object {
+        const val MAX_PENDING_REMINDERS = 32
+        const val SNOOZE_DELAY_MS = 10L * 60 * 1000
+    }
 }
