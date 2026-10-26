@@ -225,4 +225,40 @@ class RemindersAndroidTest {
             assertEquals(ReminderStatus.POSTED, book.list().find { it.id == item.id }?.status)
         } finally { book.cancel(item.id) }
     }
+
+    @Test fun notificationSnoozeRearmsOnceAndDismissesTheCurrentNotification() {
+        val book = (context.applicationContext as ProbeApplication).reminders
+        val activity = instrumentation.startActivitySync(Intent(context, ReminderActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ReminderActivity
+        instrumentation.runOnMainSync { activity.finish() }
+        context.startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        instrumentation.waitForIdleSync()
+        val item = book.create("稍后提醒测试", System.currentTimeMillis() + 3000)
+        try {
+            val notifications = context.getSystemService(NotificationManager::class.java)
+            val deadline = android.os.SystemClock.uptimeMillis() + 90_000
+            while ((notifications.activeNotifications.none { it.tag == item.id } ||
+                book.list().find { it.id == item.id }?.status != ReminderStatus.POSTED) && android.os.SystemClock.uptimeMillis() < deadline) {
+                android.os.SystemClock.sleep(100)
+            }
+            val active = notifications.activeNotifications.single { it.tag == item.id }
+            val action = active.notification.actions?.firstOrNull {
+                it.title == context.getString(com.aiwatch.probe.R.string.reminder_snooze)
+            }
+            assertNotNull("Notification must expose the snooze action", action)
+
+            checkNotNull(action).actionIntent.send()
+            val snoozeDeadline = android.os.SystemClock.uptimeMillis() + 5000
+            while ((book.list().find { it.id == item.id }?.status != ReminderStatus.PENDING ||
+                notifications.activeNotifications.any { it.tag == item.id }) && android.os.SystemClock.uptimeMillis() < snoozeDeadline) {
+                android.os.SystemClock.sleep(50)
+            }
+            val snoozed = book.list().single { it.id == item.id }
+            assertEquals(ReminderStatus.PENDING, snoozed.status)
+            assertTrue("Snooze must move the due time forward by about ten minutes",
+                snoozed.dueAt - System.currentTimeMillis() in (9 * 60_000L)..(10 * 60_000L))
+            assertFalse("Current notification must be dismissed", notifications.activeNotifications.any { it.tag == item.id })
+
+        } finally { book.cancel(item.id) }
+    }
 }
