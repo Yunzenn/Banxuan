@@ -102,5 +102,8 @@ new dependency, backend, or autonomous Agent behavior was added.
 Local validation: Debug APK + AndroidTest APK compile, `lintDebug`, and app JVM suite pass; **64/64 JVM**
 tests with 0 failures/errors/skips. The new Android instrumentation case verifies the real notification
 action, same-ID re-arm, dismissal, and snooze-action PendingIntent cleanup on API 28; JVM tests cover
-duplicate delivery and schedule failure. Hosted emulator CI is the final gate
-before marking this increment verified; no local emulator is available in this environment.
+duplicate delivery and schedule failure. Hosted CI first reported one timeout in the existing
+`MemoryTrustTest.savingWithoutChangingAnythingPreservesTheOriginalProvenance`; the snooze instrumentation
+case passed in that run. The complete API28 emulator job then passed on rerun (**64/64**, no skips), and
+fresh-clone CI passed. No local emulator is available in this environment. This is emulator evidence, not
+phone/OEM/Doze or acoustic-delivery certification.
