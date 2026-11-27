@@ -89,3 +89,21 @@ Canonical API28 emulator whole-run **56/56**, 32.182s, no failures/skips. The 3 
 1 new JVM test are retained alongside the original cases; uncertain dispatch also remains one-call/no-retry.
 GREEN logs: `tests/LOCAL_REMINDERS_REVIEW_GREEN_BUILD.log`, `tests/LOCAL_REMINDERS_REVIEW_GREEN_ANDROID.log`.
 Hosted review-fix CI pending at submission. Hardware/API33/Doze/reboot boundaries remain unchanged.
+
+## Notification snooze action — 2026-10-26
+
+Each successfully posted reminder now offers **10 分钟后提醒**. The action is handled by the existing
+explicit `ReminderReceiver` and AlarmManager path; it is accepted only from durable `POSTED`, writes the
+new `PENDING` due time before re-arming the same reminder identity, then dismisses the current notification.
+Repeated action delivery cannot move the due time again. Pending capacity remains capped at 32; an uncertain
+or failed scheduling operation is not blindly retried. No exact-alarm permission, service, polling loop,
+new dependency, backend, or autonomous Agent behavior was added.
+
+Local validation: Debug APK + AndroidTest APK compile, `lintDebug`, and app JVM suite pass; **64/64 JVM**
+tests with 0 failures/errors/skips. The new Android instrumentation case verifies the real notification
+action, same-ID re-arm, dismissal, and snooze-action PendingIntent cleanup on API 28; JVM tests cover
+duplicate delivery and schedule failure. Hosted CI first reported one timeout in the existing
+`MemoryTrustTest.savingWithoutChangingAnythingPreservesTheOriginalProvenance`; the snooze instrumentation
+case passed in that run. The complete API28 emulator job then passed on rerun (**64/64**, no skips), and
+fresh-clone CI passed. No local emulator is available in this environment. This is emulator evidence, not
+phone/OEM/Doze or acoustic-delivery certification.

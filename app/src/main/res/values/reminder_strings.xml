@@ -24,6 +24,7 @@
     <string name="reminder_blocked">通知被关闭，未发送</string>
     <string name="reminder_failed">调度或发送失败，未自动重试</string>
     <string name="reminder_private">打开伴星查看本地提醒</string>
+    <string name="reminder_snooze">10 分钟后提醒</string>
     <item name="reminder_content" type="id" />
     <item name="reminder_when" type="id" />
     <item name="reminder_save" type="id" />

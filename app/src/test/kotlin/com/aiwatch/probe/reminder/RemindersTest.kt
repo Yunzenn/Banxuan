@@ -14,11 +14,13 @@ class RemindersTest {
         var scheduled = 0
         var posted = 0
         var removed = 0
+        var dismissed = 0
         var failSchedule = false
         var failPost = false
         override fun notificationsEnabled() = enabled
         override fun schedule(reminder: Reminder) { scheduled++; check(!failSchedule) }
         override fun remove(id: String) { removed++ }
+        override fun dismiss(id: String) { dismissed++ }
         override fun post(reminder: Reminder) { posted++; check(!failPost) }
     }
     @Test fun validReminderPersistsBeforeScheduling() {
@@ -27,6 +29,7 @@ class RemindersTest {
             override fun notificationsEnabled() = true
             override fun schedule(reminder: Reminder) { assertEquals(listOf(reminder), store.records) }
             override fun remove(id: String) = Unit
+            override fun dismiss(id: String) = Unit
             override fun post(reminder: Reminder) = Unit
         }
         val item = Reminders(store, port) { 1000 }.create(" 喝水 ", 2000)
@@ -65,6 +68,41 @@ class RemindersTest {
         time = 2000
         repeat(10) { book.deliver(item.id) }
         assertEquals(1, port.posted); assertEquals(ReminderStatus.POSTED, book.list().single().status)
+    }
+    @Test fun snoozeRearmsOnlyConfirmedPostAndDuplicateActionsAreIgnored() {
+        val store = Store(); val port = Platform(); var time = 1000L
+        val book = Reminders(store, port) { time }; val item = book.create("x", 2000)
+        assertFalse(book.snooze(item.id))
+        assertEquals(1, port.scheduled)
+
+        time = 2000; book.deliver(item.id)
+        time = 2500
+        assertTrue(book.snooze(item.id))
+        val snoozed = book.list().single()
+        assertEquals(ReminderStatus.PENDING, snoozed.status)
+        assertEquals(time + 10 * 60 * 1000, snoozed.dueAt)
+        assertFalse(book.snooze(item.id))
+        assertEquals(2, port.scheduled)
+        assertEquals(1, port.dismissed)
+    }
+    @Test fun failedSnoozeScheduleIsNotBlindlyRetriedOrDismissed() {
+        val store = Store(); val port = Platform(); var time = 1000L
+        val book = Reminders(store, port) { time }; val item = book.create("x", 2000)
+        time = 2000; book.deliver(item.id)
+        port.failSchedule = true
+
+        assertFails { book.snooze(item.id) }
+        assertEquals(ReminderStatus.FAILED, book.list().single().status)
+        assertFalse(book.snooze(item.id))
+        assertEquals(0, port.dismissed)
+    }
+    @Test fun snoozeRespectsPendingReminderLimit() {
+        val store = Store(); val port = Platform()
+        store.records = listOf(Reminder("posted", "x", 2000, ReminderStatus.POSTED)) +
+            (1..32).map { Reminder("pending-$it", "x", 3000, ReminderStatus.PENDING) }
+        assertFalse(Reminders(store, port) { 1000 }.snooze("posted"))
+        assertEquals(ReminderStatus.POSTED, store.records.first().status)
+        assertEquals(0, port.scheduled); assertEquals(0, port.dismissed)
     }
     @Test fun cancellationSurvivesLateBroadcast() {
         val store = Store(); val port = Platform(); val book = Reminders(store, port) { 1000 }
