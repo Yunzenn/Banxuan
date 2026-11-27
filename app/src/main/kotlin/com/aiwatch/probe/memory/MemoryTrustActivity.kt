@@ -90,6 +90,14 @@ class MemoryTrustActivity : Activity() {
     private var hasSnapshot = false
 
     /**
+     * The action controls of the last render, so [setBusy] can disable them.
+     *
+     * Rebuilt by every [renderList], because that call removes the views these point at. Held as a list
+     * rather than looked up by tag so the busy state never depends on walking the view tree.
+     */
+    private val actionButtons = mutableListOf<Button>()
+
+    /**
      * The subject every read and every mutation addresses, resolved once per Activity lifetime.
      *
      * Resolved once rather than per action, for the same reason the composition owner invariant exists:
@@ -358,6 +366,9 @@ class MemoryTrustActivity : Activity() {
     private fun renderList() {
         content.removeAllViews()
         editorError = null
+        // The controls that were just removed are gone from the tree; rebuild this list as the new
+        // ones are created, so setBusy() only ever touches live views.
+        actionButtons.clear()
         val visible = memories
             .filter { filter == null || it.status == filter }
             .let(MemoryDisplay::defaultOrder)
@@ -405,6 +416,10 @@ class MemoryTrustActivity : Activity() {
                     setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2))
                     minHeight = ui.dp(28)
                     tag = TAG_EDIT + memory.id.value
+                    // beginEdit() guards on `busy` too, so this control has to follow the same rule as
+                    // the action row or it would be the one affordance that silently does nothing.
+                    isEnabled = !busy
+                    actionButtons += this
                 },
                 LinearLayout.LayoutParams(-2, -2),
             )
@@ -458,6 +473,10 @@ class MemoryTrustActivity : Activity() {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         fun slot(button: Button) {
             button.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8))
+            // Rendered during a load or a mutation, these must not look tappable: the handlers guard on
+            // `busy` and would otherwise discard the tap without a word. setBusy() flips them back.
+            button.isEnabled = !busy
+            actionButtons += button
             row.addView(button, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(4) })
         }
         when (memory.status) {
@@ -519,6 +538,10 @@ class MemoryTrustActivity : Activity() {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         fun slot(button: Button) {
             button.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8))
+            // Same reason as the card actions: a save in flight must not leave 保存 looking pressable
+            // while the handler would refuse it.
+            button.isEnabled = !busy
+            actionButtons += button
             row.addView(button, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(4) })
         }
         ui.button(getString(android.R.string.cancel)) { cancelEdit() }
@@ -767,6 +790,9 @@ class MemoryTrustActivity : Activity() {
         block: suspend (MemoryTrustRepository) -> MutationOutcome<T>,
         apply: (T) -> Unit,
     ) {
+        // With the action controls disabled while busy, a user cannot reach this line. It remains as the
+        // last line of defence against input that is already queued or synthesised, and it is silent on
+        // purpose: the UI has already shown that the screen is busy, so a second message would be noise.
         if (busy) return
         setBusy(true)
         scope.launch {
@@ -848,6 +874,9 @@ class MemoryTrustActivity : Activity() {
     private fun setBusy(value: Boolean) {
         busy = value
         filterButton.isEnabled = !value && hasSnapshot
+        // Keep every action control in step with the flag its handlers test. Without this a tap during
+        // the tail of a refresh is accepted by the view, refused by mutate(), and reported to nobody.
+        actionButtons.forEach { it.isEnabled = !value }
     }
 
     private fun filterLabel(): String = getString(

@@ -1204,6 +1204,13 @@ class MemoryTrustTest {
 
     private fun clickTagged(activity: Activity, tag: String) {
         awaitState("tag $tag to exist") { onMain { findTagged(activity, tag) != null } }
+        // Wait for the screen before pressing anything.
+        //
+        // A card is rendered on the CACHED/FRESH frame while load() still holds `busy`, and the handlers
+        // refuse input in that window. Pressing then does nothing, and a caller that waited only for the
+        // card would sit on a confirmation that can never arrive - which is exactly how
+        // aSuccessfulMutationUsesTheAuthorityReturnWithoutRelisting went red on main.
+        awaitIdle(activity)
         instrumentation.runOnMainSync {
             val view = findTagged(activity, tag)
             assertNotNull("no view tagged $tag", view)
