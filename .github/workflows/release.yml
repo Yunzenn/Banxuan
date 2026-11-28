@@ -1,0 +1,128 @@
+name: Signed Preview Release
+
+on:
+  push:
+    tags: ['v*-preview*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag, main ancestry, monotonic version and pinned identity
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          BUILD_COMMIT: ${{ github.sha }}
+        run: python scripts/release_contract.py --tag "$RELEASE_TAG" --commit "$BUILD_COMMIT"
+
+  gate:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    # No secrets passed or inherited. Same tag source, full existing fresh-clone gate.
+
+  sign:
+    needs: gate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unsigned-${{ github.sha }}
+          path: unsigned
+      - name: Sign only the gated APK; never run Gradle with release credentials
+        env:
+          BANXUAN_KEYSTORE_BASE64: ${{ secrets.BANXUAN_KEYSTORE_BASE64 }}
+          BANXUAN_KEYSTORE_PASSWORD: ${{ secrets.BANXUAN_KEYSTORE_PASSWORD }}
+          BANXUAN_KEY_ALIAS: ${{ secrets.BANXUAN_KEY_ALIAS }}
+          BANXUAN_KEY_PASSWORD: ${{ secrets.BANXUAN_KEY_PASSWORD }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          BUILD_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${BANXUAN_KEYSTORE_BASE64:?missing keystore}"
+          : "${BANXUAN_KEYSTORE_PASSWORD:?missing store password}"
+          : "${BANXUAN_KEY_ALIAS:?missing alias}"
+          : "${BANXUAN_KEY_PASSWORD:?missing key password}"
+          umask 077
+          key_dir="$(mktemp -d "$RUNNER_TEMP/banxuan-sign.XXXXXX")"
+          trap 'rm -f -- "$key_dir/release.jks"; rmdir -- "$key_dir"' EXIT
+          printf '%s' "$BANXUAN_KEYSTORE_BASE64" | base64 --decode > "$key_dir/release.jks"
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          "$tools/apksigner" sign --ks "$key_dir/release.jks" --ks-key-alias "$BANXUAN_KEY_ALIAS" \
+            --ks-pass env:BANXUAN_KEYSTORE_PASSWORD --key-pass env:BANXUAN_KEY_PASSWORD \
+            --out signed.apk unsigned/app-release-unsigned.apk
+          python scripts/prepare_preview.py --apk signed.apk --out build/signed-preview \
+            --commit "$BUILD_COMMIT" --tag "$RELEASE_TAG" --build-tools "$tools" \
+            --certificate-file release/signing-certificate.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: signed-${{ github.sha }}
+          path: build/signed-preview/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: signed-${{ github.sha }}
+          path: build/signed-preview
+      - name: Recompute provenance from the downloaded APK
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          python scripts/release_contract.py --tag "$RELEASE_TAG" --commit "$BUILD_COMMIT" \
+            --bundle build/signed-preview --build-tools "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Create a new draft then publish only after uploads succeed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Existing releases are never overwritten or clobbered; failed draft runs need review.
+          gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --latest=false \
+            --target "$BUILD_COMMIT" --title "Banxuan $RELEASE_TAG" --notes-file build/signed-preview/PREVIEW.md \
+            build/signed-preview/*
+          gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" > build/remote-release.json
+          python scripts/release_contract.py --tag "$RELEASE_TAG" --commit "$BUILD_COMMIT" \
+            --bundle build/signed-preview --build-tools "$ANDROID_HOME/build-tools/35.0.0" \
+            --remote-release build/remote-release.json
+          gh release edit "$RELEASE_TAG" --draft=false

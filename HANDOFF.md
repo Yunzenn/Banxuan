@@ -1,12 +1,19 @@
 # Handoff — Banxuan 当前交接
 
-## 当前用户功能交接（2026-10-09）
+## 当前交接（2026-10-21）
 
-- main 基线 4110ff7；#38/#39/#40 已合并，40 项产品模拟器 CI 已成立。
-- 新分支 codex/device-operator-native：用户入口在设置 → 设备操作；无服务器依赖。
-- typed native tools：媒体音量读回、应用启动交接、系统时钟 UI 交接，确认/拒绝/审计边界见 G3 Native 报告。
-- Accessibility、后台通知、语音 Agent、真实 Voice/Memory 与手机/CD12Max 验证仍 PENDING；没有更新 Release APK。
-- 旧 S2 本地准备文件保留，未混入本轮 PR、未变更云端；下文为历史，当前优先级以本节为准。
+- `main` 基线为 `bd25225`；PR #38–#45 已合并。当前唯一打开的 PR 是 #37（Release Infrastructure），尚无正式审查且与 main 有冲突，不能直接合并。
+- 已合并的用户侧能力包括设备操作、系统本地提醒、系统闹钟交接和日历交接；Calendar handoff 仅把事件预填到系统日历，不代表已保存。
+- 公开 APK 仍为 0.4.2-preview；#43–#45 后续功能尚未进入该 APK。后台/设备/OEM 和真实服务端验证边界以各 evidence 报告为准。
+- G1 server readiness 的本地草稿不属于已合并交付，仍需单独审查；不要把它们并入发布基础设施 PR。
+
+## Release Infrastructure 接线（待同步和审查）
+
+- 用户确认暂无长期签名 keystore，仅先完成接线。见 [接线与配置说明](RELEASE_INFRASTRUCTURE.md)。
+- tag-only workflow 复用完整 CI；unsigned 构建不拿密钥；签名 job 单独使用 release Environment；publisher 再核验 APK、tag、BUILD_INFO、签名和远端附件 digest。PR/main 不获取 release secrets。
+- 原分支的本地 Debug/Release JVM、Python、actionlint 和一次性测试签名证据不等于当前 main 上的验证；同步冲突后必须重跑 CI。
+- 固定证书仍 UNCONFIGURED；Environment 保护、真实密钥、tag 实发、升级迁移均 PENDING / NOT RUN。
+- 当前公开 0.4.2 APK 仍为 Debug 签名；不要创建新 tag 或声称升级兼容性通过。
 
 ## 0.4.1 Debug Preview 分发（2026-10-02）
 
